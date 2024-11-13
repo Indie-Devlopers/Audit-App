@@ -4,6 +4,7 @@ import { View, TextInput, Text, TouchableOpacity, StyleSheet, Alert } from "reac
 import { Ionicons } from "@expo/vector-icons";
 import{auth} from './firebaseConfig';
 import { signInWithEmailAndPassword } from "firebase/auth";
+import Icon from 'react-native-vector-icons/FontAwesome';
 
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState("");
@@ -16,7 +17,9 @@ const LoginScreen = ({ navigation }) => {
   const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/;
 
   // Password validation regex
-  const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*])[A-Za-z\d!@#$%^&*]{8,}$/;
+//   const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*])[A-Za-z\d!@#$%^&*]{8,}$/;
+const passwordRegex = /^[a-z]{8,}$/;
+
 
   const handleLogin = () => {
     let isValid = true;
@@ -26,19 +29,25 @@ const LoginScreen = ({ navigation }) => {
     setPasswordError("");
 
     // Email validation
-    if (!emailRegex.test(email)) {
-      setEmailError("Please enter a valid email.");
-      isValid = false;
-    }
+    // if (!emailRegex.test(email)) {
+    //   setEmailError("Please enter a valid email.");
+    //   isValid = false;
+    // }
 
     // Password validation
-    if (!passwordRegex.test(password)) {
-      setPasswordError(
-        "Password must contain at least 1 special symbol, 1 uppercase letter, 1 lowercase letter, and 1 number."
-      );
-      isValid = false;
-    }
+    // if (!passwordRegex.test(password)) {
+    //   setPasswordError(
+    //     "Password must contain at least 1 special symbol, 1 uppercase letter, 1 lowercase letter, and 1 number."
+    //   );
+    //   isValid = false;
+    // }
 
+
+    
+    // if (!passwordRegex.test(password)) {
+    //     setPasswordError("Password must contain only lowercase letters and be at least 8 characters long.");
+    //     isValid = false;
+    //   }
     
     // if (isValid) {
     //   signInWithEmailAndPassword(auth, email, password)
@@ -60,7 +69,7 @@ if (isValid) {
     signInWithEmailAndPassword(auth, email, password)
       .then((userCredential) => {
         // Successfully signed in, navigate to HomeScreen and pass the email
-        navigation.navigate("Home", { userEmail: email });
+        navigation.navigate("HomeScreen", { userEmail: email });
       })
       .catch((error) => {
         const errorMessage = error.message;
@@ -96,7 +105,7 @@ if (isValid) {
           secureTextEntry={!showPassword} 
         />
         <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.showPasswordButton}>
-          <Ionicons name={showPassword ? "eye-off" : "eye"} size={24} color="gray" />
+        <Icon name={showPassword ? 'eye' : 'eye-slash'} size={20} color="black" />
         </TouchableOpacity>
       </View>
       {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
@@ -116,8 +125,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     padding: 20,
-    borderWidth: 4,
-    borderColor: "#4CA6FF", 
+    // borderWidth: 4,
+    // borderColor: "#4CA6FF", 
     
   },
   title: {
