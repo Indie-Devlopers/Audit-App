@@ -1,304 +1,348 @@
+
+
+
 import React, { useState, useEffect } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, FlatList, Image, Alert } from "react-native";
-import { Ionicons } from "@expo/vector-icons"; // For location icon
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, FlatList, TextInput, Dimensions } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { firebase } from './firebaseConfig';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getDocs, collection } from "firebase/firestore";
+import { db } from "./firebaseConfig";
+
+const { width, height } = Dimensions.get("window");
 
 const HomeScreen = ({ navigation, route }) => {
-  const userEmail = route?.params?.userEmail || ""; // Safely retrieve userEmail or set to an empty string
+  const userEmail = route?.params?.userEmail || "";
   const [greeting, setGreeting] = useState("");
   const [userName, setUserName] = useState("");
   const [audits, setAudits] = useState([]);
   const [ongoingAudits, setOngoingAudits] = useState([]);
+  const [todayTasks, setTodayTasks] = useState([]);
+  const [completedTasks, setCompletedTasks] = useState([]);
+  const [clientsData, setClientsData] = useState({});
+  const [branchesData, setBranchesData] = useState([]);
+  const [selectedStatus, setSelectedStatus] = useState(""); // Selected status for filter
+  const [searchTerm, setSearchTerm] = useState(""); // Search term for filter
+  const [filterLocation, setFilterLocation] = useState(""); // Location filter
 
-  // Load audits data from AsyncStorage
   useEffect(() => {
-    const loadAudits = async () => {
+    const loadData = async () => {
       try {
-        const storedUpcomingAudits = await AsyncStorage.getItem("upcomingAudits");
-        const storedOngoingAudits = await AsyncStorage.getItem("ongoingAudits");
+        // Fetch audits from Firebase collection 'audits'
+        const auditRef = collection(db, "audits");
+        const snapshot = await getDocs(auditRef);
+        const auditData = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setAudits(auditData);
 
-        if (storedUpcomingAudits) {
-          setAudits(JSON.parse(storedUpcomingAudits));
-        } else {
-          // Default set of audits
-          const defaultAudits = [
-            { 
-              id: "1", 
-              name: "Client A", 
-              location: "New York", 
-              date: "2024-11-20",
-              image: "https://images.unsplash.com/photo-1602610126445-05311e91a91f" // Unsplash image
-            },
-            { 
-              id: "2", 
-              name: "Client B", 
-              location: "Los Angeles", 
-              date: "2024-12-05",
-              image: "https://images.unsplash.com/photo-1585056795224-5c02d2f2568a" // Unsplash image
-            },
-            { 
-              id: "3", 
-              name: "Client C", 
-              location: "Chicago", 
-              date: "2024-11-15",
-              image: "https://images.unsplash.com/photo-1604679800740-6e342fb2a9f3" // Unsplash image
-            },
-            { 
-              id: "4", 
-              name: "John", 
-              location: "New York", 
-              date: "2024-11-20",
-              image: "https://images.unsplash.com/photo-1602610126445-05311e91a91f" // Unsplash image
-            },
-            { 
-              id: "5", 
-              name: "Shraddha", 
-              location: "Los Angeles", 
-              date: "2024-12-18",
-              image: "" // Unsplash image
-            },
-            { 
-              id: "6", 
-              name: "Harry", 
-              location: "Chicago", 
-              date: "2024-11-31",
-              image: "https://unsplash.com/photos/woman-near-green-leafed-plants-R8bNESnnKR8" // Unsplash image
-            },
-          ];
-          setAudits(defaultAudits);
-          await AsyncStorage.setItem("upcomingAudits", JSON.stringify(defaultAudits)); // Save default audits
+        // Fetch ongoing audits from AsyncStorage
+        const ongoingAuditsData = await AsyncStorage.getItem("ongoingAudits");
+        if (ongoingAuditsData) {
+          setOngoingAudits(JSON.parse(ongoingAuditsData));
         }
 
-        if (storedOngoingAudits) {
-          setOngoingAudits(JSON.parse(storedOngoingAudits));
-        }
+        // Fetch clients from 'clients' collection
+        const clientsRef = collection(db, "clients");
+        const clientSnapshot = await getDocs(clientsRef);
+        const clients = {};
+        clientSnapshot.docs.forEach((doc) => {
+          clients[doc.id] = doc.data().name;
+        });
+        setClientsData(clients);
+
+        // Fetch branches from 'branches' collection
+        const branchesRef = collection(db, "branches");
+        const branchSnapshot = await getDocs(branchesRef);
+        const branches = branchSnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setBranchesData(branches);
+
+        // Fetch tasks from 'tasks' collection
+        const tasksRef = collection(db, "tasks");
+        const taskSnapshot = await getDocs(tasksRef);
+        const taskData = taskSnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setTodayTasks(taskData.filter(task => task.status === 'today'));
+        setCompletedTasks(taskData.filter(task => task.status === 'completed'));
       } catch (error) {
-        console.error("Failed to load audits", error);
+        console.error("Error fetching data:", error);
       }
+
+      // Set greeting based on time
+      const currentTime = new Date().getHours();
+      setGreeting(currentTime < 12 ? "Good Morning" : currentTime < 19 ? "Good Afternoon " : "Good Evening");
+      setUserName(userEmail ? userEmail.split("@")[0] : "User");
     };
 
-    loadAudits();
-
-    const currentTime = new Date().getHours();
-    if (currentTime < 12) {
-      setGreeting("Good Morning");
-    } else if (currentTime < 19) {
-      setGreeting("Good Afternoon");
-    } else {
-      setGreeting("Good Evening");
-    }
-
-    const name = userEmail ? userEmail.split("@")[0] : "User"; 
-    setUserName(name);
+    loadData();
   }, [userEmail]);
 
-  // Move audit to Ongoing and remove from Upcoming
-  const acceptAudit = async (audit) => {
-    // Remove from upcoming audits
-    const updatedAudits = audits.filter((item) => item.id !== audit.id); 
+  const getAvatar = (Client) => {
+    const firstLetter = Client ? Client.charAt(0).toUpperCase() : "Ⓐ";
+    return firstLetter;
+  };
 
-    // Add to ongoing audits
-    const updatedOngoingAudits = [...ongoingAudits, audit];
-
-    // Update state to remove the audit from the list
-    setAudits(updatedAudits); // Remove the accepted audit from the FlatList
-    setOngoingAudits(updatedOngoingAudits); // Add to ongoing list
-
-    // Save updated lists to AsyncStorage
-    try {
-      await AsyncStorage.setItem("upcomingAudits", JSON.stringify(updatedAudits));
-      await AsyncStorage.setItem("ongoingAudits", JSON.stringify(updatedOngoingAudits));
-    } catch (error) {
-      console.error("Failed to update audits", error);
+  // Filter the audits based on status, location, and search term
+  const filteredAudits = audits.filter((audit) => {
+    // Filter by selected status
+    if (selectedStatus && audit.status !== selectedStatus) {
+      return false;
     }
-  };
 
-  // Remove audit from the list and update AsyncStorage
-  const removeAudit = async (auditId) => {
-    Alert.alert(
-      "Remove Audit",
-      "Are you sure you want to remove this audit?",
-      [
-        {
-          text: "Cancel",
-          style: "cancel",
-        },
-        {
-          text: "OK",
-          onPress: async () => {
-            const updatedAudits = audits.filter(audit => audit.id !== auditId);
-            setAudits(updatedAudits);
-            try {
-              await AsyncStorage.setItem("upcomingAudits", JSON.stringify(updatedAudits)); // Save updated list
-            } catch (error) {
-              console.error("Failed to update upcoming audits", error);
-            }
-          },
-        },
-      ]
-    );
-  };
+    // Filter by location
+    if (filterLocation && audit.location !== filterLocation) {
+      return false;
+    }
 
-  // Render each audit item in the FlatList
-  const renderAuditItem = ({ item }) => (
-    <TouchableOpacity 
-      style={styles.auditItem} 
-      onPress={() => navigation.navigate("AuditDetails", { audit: item })} // Navigate to details page
-    >
-      <Image source={{ uri: item.image }} style={styles.clientImage} />
-      <View style={styles.auditContent}>
-        <Text style={styles.auditName}>{item.name}</Text>
-        <Text style={styles.auditLocation}>{item.location}</Text>
-        <Text style={styles.auditDate}>{item.date}</Text>
-      </View>
-      <TouchableOpacity onPress={() => acceptAudit(item)} style={styles.acceptButton}>
-        <Ionicons name="checkmark-circle" size={24} color="green" />
-      </TouchableOpacity>
-      <TouchableOpacity onPress={() => removeAudit(item.id)} style={styles.removeButton}>
-        <Ionicons name="trash-bin" size={24} color="red" />
-      </TouchableOpacity>
-    </TouchableOpacity>
-  );
+    // Filter by search term (client name or audit name)
+    if (searchTerm && !audit.name.toLowerCase().includes(searchTerm.toLowerCase())) {
+      return false;
+    }
+
+    return true;
+  });
 
   return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.greetingText}>{greeting}, {userName}</Text>
+    <View style={styles.fullScreen}>
+      <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
+        <View style={styles.greetingContainer}>
+          <Text style={styles.greetingText}>{greeting}, {userName}</Text>
+        </View>
 
-      <View style={styles.taskBoxesContainer}>
-        <TouchableOpacity style={styles.taskBox}>       
-          <TouchableOpacity onPress={() => navigation.navigate("UserInfo")}>
-            <View>
-              <Ionicons name="calendar" size={30} color="black" style={styles.icon} />
-              <Text style={styles.taskBoxTitle}>Today's Tasks</Text>
-              <Text style={styles.taskBoxContent}>5 tasks</Text>
-            </View>
-          </TouchableOpacity>
-        </TouchableOpacity>
+        <View style={styles.container}>
+          {/* Task Boxes Section */}
+          <View style={styles.taskBoxesContainer}>
+            <TouchableOpacity style={styles.taskBox}>
+              <TouchableOpacity onPress={() => navigation.navigate("UserInfo")}>
+                <Ionicons name="calendar" size={30} color="black" style={styles.icon} />
+                <Text style={styles.taskBoxTitle}>Today's Tasks</Text>
+                <Text style={styles.taskBoxContent}>{todayTasks.length} Tasks</Text>
+              </TouchableOpacity>
+            </TouchableOpacity>
 
-        <TouchableOpacity style={styles.taskBox}>
-          <TouchableOpacity onPress={() => navigation.navigate("Ongoing")}>
-            <View>
-              <Ionicons name="play-circle" size={30} color="black" style={styles.icon} />
-              <Text style={styles.taskBoxTitle}>Ongoing Tasks</Text>
-              <Text style={styles.taskBoxContent}>13 Tasks</Text>
-            </View>
-          </TouchableOpacity>
-        </TouchableOpacity>
-      </View>
+            <TouchableOpacity style={styles.taskBox}>
+              <TouchableOpacity onPress={() => navigation.navigate("Ongoing")}>
+                <Ionicons name="play-circle" size={30} color="black" style={styles.icon} />
+                <Text style={styles.taskBoxTitle}>Ongoing Tasks</Text>
+                <Text style={styles.taskBoxContent}>{ongoingAudits.length} Tasks</Text>
+              </TouchableOpacity>
+            </TouchableOpacity>
+          </View>
 
-      <View>
-        <TouchableOpacity style={styles.taskBox}>
-          <TouchableOpacity onPress={() => navigation.navigate("CompletedTasks")}>
-            <View style={{ backgroundColor: 'white' }}>
+          <TouchableOpacity style={styles.taskBox2}>
+            <TouchableOpacity onPress={() => navigation.navigate("Completed-Tasks")}>
               <Ionicons name="checkmark-circle" size={30} color="black" style={styles.icon} />
-            </View>
-            <Text style={styles.taskBoxTitle}>Completed Tasks</Text>
-            <Text style={styles.taskBoxContent}>20 Tasks</Text>
+              <Text style={styles.taskBoxTitle}>Completed Tasks</Text>
+              <Text style={styles.taskBoxContent}>{completedTasks.length} Tasks</Text>
+            </TouchableOpacity>
           </TouchableOpacity>
-        </TouchableOpacity>
-      </View>
 
-      {/* Upcoming Audits - FlatList Slider */}
-      <View style={styles.upcomingAuditsContainer}>
-        <Text style={styles.upcomingAuditsText}>Upcoming Audits</Text>
-        <FlatList
-          data={audits}
-          renderItem={renderAuditItem}
-          keyExtractor={(item) => item.id}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.auditList}
-        />
-      </View>
-    </ScrollView>
+          {/* Search Input */}
+          {/* <TextInput
+            style={styles.input}
+            placeholder="Search audits"
+            value={searchTerm}
+            onChangeText={(text) => setSearchTerm(text)}
+          /> */}
+
+          {/* Location Filter */}
+          {/* <TextInput
+            style={styles.input}
+            placeholder="Filter by location"
+            value={filterLocation}
+            onChangeText={(text) => setFilterLocation(text)}
+          /> */}
+
+          {/* Status Filter */}
+          {/* <View style={styles.filterContainer}>
+            <TouchableOpacity onPress={() => setSelectedStatus("")}>
+              <Text style={styles.filterText}>All</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setSelectedStatus("completed")}>
+              <Text style={styles.filterText}>Completed</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setSelectedStatus("inProgress")}>
+              <Text style={styles.filterText}>In Progress</Text>
+            </TouchableOpacity>
+          </View> */}
+
+          {/* Upcoming Audits Section */}
+          <View style={styles.upcomingAuditsContainer}>
+            <Text style={styles.upcomingAuditsText}>Upcoming Audits</Text>
+
+            <FlatList
+              data={filteredAudits}
+              renderItem={({ item }) => {
+                const clientName = clientsData[item.clientId] || "Unknown Client";
+                const branch = branchesData.find((branch) => branch.id === item.branchId);
+                const branchCity = branch ? branch.city : "Unknown Location"; // Get city from branches data
+
+                return (
+                  <TouchableOpacity
+                    style={styles.auditItem}
+                    onPress={() => navigation.navigate("AuditDetails", { audit: item })}
+                  >
+                    <View style={styles.clientImageContainer}>
+                      <Text style={styles.clientImage}>{getAvatar(item.auditorId)}</Text>
+                    </View>
+                    <View style={styles.auditContent}>
+                      <Text style={styles.auditName}>{item.name}</Text>
+                      <Text style={styles.auditDate}>{item.date}</Text>
+                      <Text style={styles.auditBranchId}>Branch: {branch?.name || "Unknown Branch"}</Text>
+                      <Text style={styles.auditClientId}>Client: {clientName}</Text>
+                      <Text style={styles.auditCity}>Location: {branchCity}</Text> 
+                      <Text style={styles.auditAuditorId}>Auditor: {item.auditorId}</Text> 
+                    </View>
+                  </TouchableOpacity>
+                );
+              }}
+              keyExtractor={(item) => item.id}
+            />
+          </View>
+        </View>
+      </ScrollView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  fullScreen: {
     flex: 1,
-    padding: 20,
-    backgroundColor: '#E6EDEF',
+   backgroundColor:'white'
+  },
+  greetingContainer: {
+    marginTop: 50,
+    paddingHorizontal: 20,
   },
   greetingText: {
-    fontSize: 28,
-    fontWeight: "bold",
-    marginBottom: 20,
-    color: "black",
+    fontSize: 24,
+    fontWeight: 'bold',
+  },
+  container: {
+    padding: 20,
   },
   taskBoxesContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+   
   },
   taskBox: {
-    width: "47%",
-    padding: 10,
-    backgroundColor: "white",
+    width: (width - 60) / 2,
+    height: 120,
+    backgroundColor: '#f0f0f0',
     borderRadius: 10,
-    shadowColor: "#000",
-    shadowOffset: { width: 2, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
+    padding: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+    borderRadius:15,
+    borderWidth:1,
+    borderColor:'gray'
+  },
+  taskBox2: {
+    width: width - 40,
+    height: 120,
+    backgroundColor: '#f0f0f0',
+    borderRadius: 10,
+    padding: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+    borderRadius:15,
+   borderWidth:1,
+    borderColor:'gray'
+  },
+  taskBoxTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  taskBoxContent: {
+    fontSize: 16,
+  },
+  input: {
+    height: 40,
+    borderColor: 'gray',
+    borderWidth: 1,
+    marginBottom: 20,
+    paddingLeft: 10,
+  },
+  filterContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+  },
+  filterText: {
+    fontSize: 16,
+    fontWeight: 'bold',
   },
   upcomingAuditsContainer: {
-    padding: 20,
-    marginTop: 40,
-    borderRadius: 20,
-    backgroundColor: 'gray',
+    marginTop: 20,
+    
+    
   },
   upcomingAuditsText: {
     fontSize: 18,
-    fontWeight: "bold",
-    marginVertical: 10,
-    color: "black",
-  },
-  auditList: {
-    marginVertical: 10,
-    marginHorizontal: 10,
+    fontWeight: 'bold',
   },
   auditItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#f0f0f0",
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
     padding: 15,
-    borderRadius: 10,
-    shadowColor: "#000",
-    shadowOffset: { width: 2, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    width: 280,
-    height: 120,
+    marginVertical: 10,
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+     borderRadius:15,
+   borderWidth:1,
+    borderColor:'gray'
+  },
+  clientImageContainer: {
+    backgroundColor: '#ccc',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
     marginRight: 15,
   },
   clientImage: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    marginRight: 15,
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#fff',
   },
   auditContent: {
-    flexDirection: "column",
-    justifyContent: "center",
+    flex: 1,
   },
   auditName: {
-    fontWeight: "bold",
     fontSize: 16,
-  },
-  auditLocation: {
-    fontSize: 14,
-    color: "gray",
+    fontWeight: 'bold',
   },
   auditDate: {
-    fontSize: 12,
-    color: "gray",
+    fontSize: 14,
+    color: 'gray',
   },
-  acceptButton: {
-    marginLeft: "auto",
-    marginRight: 10,
+  auditBranchId: {
+    fontSize: 14,
   },
-  removeButton: {
-    marginLeft: "auto",
+  auditClientId: {
+    fontSize: 14,
+  },
+  auditCity: {
+    fontSize: 14,
+    color: 'gray',
+  },
+  auditAuditorId: {
+    fontSize: 14,
+    color: 'gray',
   },
 });
 
