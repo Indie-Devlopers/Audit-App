@@ -120,91 +120,95 @@
 
 
 
+
+
+
 import React, { useState, useEffect } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { getFirestore, doc, getDoc } from "firebase/firestore";
+import { getFirestore, doc, getDoc, updateDoc, setDoc, collection } from "firebase/firestore";
 import { app } from "./firebaseConfig"; // Import Firebase configuration
 
 const db = getFirestore(app); // Firestore instance
 
 const Ongoing = ({ navigation }) => {
-  const [enrichedClients, setEnrichedClients] = useState({});
+  const [ongoingAudits, setOngoingAudits] = useState({});
 
-  // Load ongoing clients and enrich with Firestore data
+  // Load ongoing audits from AsyncStorage and enrich with Firestore data
   useEffect(() => {
-    const loadClients = async () => {
+    const loadOngoingAudits = async () => {
       try {
-        const storedClients = await AsyncStorage.getItem("ongoingClients");
-        if (storedClients) {
-          const parsedClients = JSON.parse(storedClients);
-          const clientDetails = {};
+        const storedAudits = await AsyncStorage.getItem("ongoingAudits");
+        if (storedAudits) {
+          const parsedAudits = JSON.parse(storedAudits);
+          if (Object.keys(parsedAudits).length > 0) {
+            const enrichedAudits = {};
 
-          for (const clientKey of Object.keys(parsedClients)) {
-            const client = parsedClients[clientKey];
+            for (const auditId of Object.keys(parsedAudits)) {
+              const audit = parsedAudits[auditId];
 
-            // Validate clientId and branchId
-            if (!client.clientId || !client.branchId) {
-              console.warn(`Invalid data for client ${clientKey}: Missing clientId or branchId`);
-              continue;
+              // Only fetch audits that are accepted (isAccepted = true)
+              if (audit.isAccepted) {
+                // Enrich audit with client and branch info
+                const branchRef = doc(db, "branches", audit.branchId);
+                const branchSnap = await getDoc(branchRef);
+                const branchCity = branchSnap.exists() ? branchSnap.data().city : "Unknown City";
+
+                const clientRef = doc(db, "clients", audit.clientId);
+                const clientSnap = await getDoc(clientRef);
+                const clientName = clientSnap.exists() ? clientSnap.data().name : "Unknown Client";
+
+                enrichedAudits[auditId] = {
+                  ...audit,
+                  branchCity,
+                  clientName,
+                };
+              }
             }
 
-            // Fetch branch city
-            const branchRef = doc(db, "branches", client.branchId);
-            const branchSnap = await getDoc(branchRef);
-            const branchCity = branchSnap.exists() ? branchSnap.data().city : "Unknown City";
-
-            // Fetch client name
-            const clientRef = doc(db, "clients", client.clientId);
-            const clientSnap = await getDoc(clientRef);
-            const clientName = clientSnap.exists() ? clientSnap.data().name : "Unknown Client";
-
-            // Enrich client details
-            clientDetails[clientKey] = {
-              ...client,
-              branchCity,
-              clientName,
-            };
+            setOngoingAudits(enrichedAudits);
           }
-
-          setEnrichedClients(clientDetails);
         }
       } catch (error) {
-        console.error("Failed to load ongoing clients", error);
+        console.error("Failed to load ongoing audits", error);
       }
     };
 
-    loadClients();
+    loadOngoingAudits();
   }, []);
 
   // Handle completion of a task
-  const handleComplete = async (clientKey) => {
-    const completedClient = enrichedClients[clientKey];
+  const handleComplete = async (auditId) => {
+    const completedAudit = ongoingAudits[auditId];
 
     try {
-      // Save completed task to AsyncStorage
-      const existingCompletedClients = await AsyncStorage.getItem("completedClients");
-      const completedClients = existingCompletedClients ? JSON.parse(existingCompletedClients) : [];
-      completedClients.push(completedClient);
-      await AsyncStorage.setItem("completedClients", JSON.stringify(completedClients));
+      // Create a new document in the CompletedAudits collection in Firestore
+      const completedAuditRef = doc(collection(db, "CompletedAudits"));
+      await setDoc(completedAuditRef, completedAudit);
 
-      // Remove the task from ongoing tasks
-      const updatedClients = { ...enrichedClients };
-      delete updatedClients[clientKey];
-      setEnrichedClients(updatedClients);
+      // Remove the audit from ongoing audits
+      const updatedAudits = { ...ongoingAudits };
+      delete updatedAudits[auditId];
+      setOngoingAudits(updatedAudits);
 
-      // Save updated ongoing clients
-      await AsyncStorage.setItem("ongoingClients", JSON.stringify(updatedClients));
+      // Update AsyncStorage with the new ongoing audits
+      await AsyncStorage.setItem("ongoingAudits", JSON.stringify(updatedAudits));
+
+      // Optionally update 'isComplete' field in the Firestore audits collection (if needed)
+      const auditRef = doc(db, "audits", auditId);
+      await updateDoc(auditRef, {
+        isComplete: true,
+      });
 
       // Navigate to Completed Tasks screen
       navigation.navigate("Completed-Tasks");
     } catch (error) {
-      console.error("Error saving completed task", error);
+      console.error("Error completing task", error);
     }
   };
 
-  const noOngoingTasks = Object.keys(enrichedClients).length === 0;
+  const noOngoingTasks = Object.keys(ongoingAudits).length === 0;
 
   return (
     <ScrollView style={styles.container}>
@@ -213,28 +217,25 @@ const Ongoing = ({ navigation }) => {
           <Text style={styles.noTasksText}>No ongoing tasks</Text>
         </View>
       ) : (
-        Object.keys(enrichedClients).map((clientKey) => {
-          const client = enrichedClients[clientKey];
+        Object.keys(ongoingAudits).map((auditId) => {
+          const audit = ongoingAudits[auditId];
           return (
-            <View key={clientKey} style={styles.optionContainer}>
+            <View key={auditId} style={styles.optionContainer}>
               <TouchableOpacity
                 style={styles.option}
                 onPress={() =>
-                  navigation.navigate("ClientDetails", {
-                    client: enrichedClients[clientKey],
+                  navigation.navigate("AuditDetails", {
+                    audit: audit,
                   })
                 }
               >
-                <Text style={styles.optionText}>{client.clientName}</Text>
-                <Text style={styles.optionText}>Location: {client.branchCity}</Text>
-                {/* <Text style={styles.optionText}>Auditor ID: {client.auditorId}</Text> */}
-                {/* <Text style={styles.optionText}>Branch ID: {client.branchId}</Text>
-                <Text style={styles.optionText}>Client ID: {client.clientId}</Text> */}
+                <Text style={styles.optionText}>{audit.clientName}</Text>
+                <Text style={styles.optionText}>Location: {audit.branchCity}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 style={styles.completeButton}
-                onPress={() => handleComplete(clientKey)}
+                onPress={() => handleComplete(auditId)}
               >
                 <Ionicons name="checkmark-circle" size={24} color="green" />
                 <Text>Complete</Text>
