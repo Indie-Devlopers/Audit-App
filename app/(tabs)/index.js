@@ -62,7 +62,7 @@ import ClientDetails from './ClientDetails';
 import CompletedTasks from './CompletedTasks'
 import UpcomingAudits from "./UpcomingAudits";
 import AuditDetails from "./AuditDetails";
-
+import RejectedAudits from "./RejectedAudits"
 const Stack = createStackNavigator();
 
 export default function App() {
@@ -82,6 +82,7 @@ export default function App() {
         <Stack.Screen name="AuditDetails" component={AuditDetails} />
         <Stack.Screen name="ClientDetails" component={ClientDetails} />
         <Stack.Screen name="Completed-Tasks" component={CompletedTasks} />
+        <Stack.Screen name="RejectedAudits" component={RejectedAudits} />
       </Stack.Navigator>
     </NavigationContainer>
   );

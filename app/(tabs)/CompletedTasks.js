@@ -65,10 +65,13 @@
 
 
 
+
+
+
 import React, { useState, useEffect } from "react";
 import { View, Text, StyleSheet, ScrollView } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { getFirestore, doc, getDoc } from "firebase/firestore";
+import { getFirestore, doc, getDoc, setDoc, updateDoc, collection } from "firebase/firestore";
 import { app } from "./firebaseConfig"; // Import Firebase configuration
 
 const db = getFirestore(app); // Firestore instance
@@ -101,7 +104,35 @@ const CompletedTasks = () => {
             const clientSnap = await getDoc(clientRef);
             const clientName = clientSnap.exists() ? clientSnap.data().name : "Unknown Client";
 
-            // Enrich client data
+            // Fetch audit information
+            const auditRef = doc(db, "audits", client.auditId); // Assuming you have an auditId field
+            const auditSnap = await getDoc(auditRef);
+
+            if (auditSnap.exists()) {
+              const auditData = auditSnap.data();
+
+              // If the audit is completed, move it to CompletedAudits collection
+              if (auditData.isCompleted) {
+                // Add the audit to the CompletedAudits collection
+                const completedAuditRef = doc(db, "CompletedAudits", client.auditId);
+                await setDoc(completedAuditRef, {
+                  ...auditData,
+                  acceptedBy: client.acceptedBy, // You can retrieve this based on the logged-in user or stored data
+                  name: client.clientName, // Client name
+                  location: branchCity, // Branch location (city)
+                  AcceptedAudits: [client.auditId],  // Array to store accepted audits
+                  date: new Date().toISOString(), // Current date when the task is marked completed
+                });
+
+                // Optionally, remove the completed audit from the original collection (audits)
+                await updateDoc(auditRef, { isCompleted: true });
+
+                // Optionally, delete from the original collection after moving
+                // await deleteDoc(auditRef);
+              }
+            }
+
+            // Enrich client data to show in UI
             enrichedClients.push({
               ...client,
               branchCity,
@@ -112,7 +143,7 @@ const CompletedTasks = () => {
           setEnrichedCompletedClients(enrichedClients);
         }
       } catch (error) {
-        console.error("Failed to load completed clients", error);
+        console.error("Error fetching data:", error);
       }
     };
 
