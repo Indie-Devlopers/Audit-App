@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, FlatList, Modal, TextInput, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -6,21 +5,6 @@ import { collection, getDocs, doc, updateDoc, arrayUnion } from 'firebase/firest
 import { db } from './firebaseConfig';
 import { fetchCompletedAuditsCount } from "./CompletedTasks";
 import { getAuth } from 'firebase/auth';
-=======
-import React, { useState, useEffect } from 'react';  // Make sure it's only here, not multiple times
-
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, FlatList, Dimensions,Alert } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import { firebase } from './firebaseConfig';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getDocs, collection, updateDoc, doc, arrayUnion } from "firebase/firestore";
-import { db } from "./firebaseConfig";
-import AuditDetails from "./AuditDetails";
-// import { useEffect, useState } from "react";
-// import AsyncStorage from '@react-native-async-storage/async-storage';
-
-const { width, height } = Dimensions.get("window");
->>>>>>> b9f48e99e16895170955d10a15b6812dc1f2c671
 
 const HomeScreen = ({ navigation, route }) => {
   
@@ -32,7 +16,7 @@ const HomeScreen = ({ navigation, route }) => {
   const [audits, setAudits] = useState([]);
   const [clientsData, setClientsData] = useState({});
   const [branchesData, setBranchesData] = useState([]);
-<<<<<<< HEAD
+
   const [loading, setLoading] = useState(true);
   const [ongoingCounter, setOngoingCounter] = useState(0);
   const [ongoingAudits, setOngoingAudits] = useState([]);
@@ -66,24 +50,6 @@ const HomeScreen = ({ navigation, route }) => {
     const acceptedAudits = await getAcceptedAudits(userId);
     const completedAudits = await getCompletedAudits(userId);
 
-
-    useEffect(() => {
-      const loadData = async () => {
-        try {
-          // Fetch audits
-          const auditRef = collection(db, 'audits');
-          const snapshot = await getDocs(auditRef);
-          const auditData = snapshot.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-          }));
-          setAudits(auditData);
-          setOriginalAudits(auditData);
-=======
-  const [selectedStatus, setSelectedStatus] = useState("");
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filterLocation, setFilterLocation] = useState("");
-  // const [userId, setUserId] = useState(""); // To store logged-in user's ID
  
 
   
@@ -100,7 +66,7 @@ const HomeScreen = ({ navigation, route }) => {
           ...doc.data(),
         }));
         setAudits(auditData);
->>>>>>> b9f48e99e16895170955d10a15b6812dc1f2c671
+
 
           const clientsRef = collection(db, 'clients');
           const clientSnapshot = await getDocs(clientsRef);
@@ -197,12 +163,7 @@ const HomeScreen = ({ navigation, route }) => {
       }
 
       const currentTime = new Date().getHours();
-<<<<<<< HEAD
       setGreeting(currentTime < 12 ? 'Good Morning Auditor' : currentTime < 19 ? 'Good Afternoon Auditor ' : 'Good Evening Auditor');
-=======
-      setGreeting(currentTime < 12 ? "Good Morning" : currentTime < 19 ? "Good Afternoon " : "Good Evening");
-      setUserName(userEmail ? userEmail.split("@")[0] : "Auditor");
->>>>>>> b9f48e99e16895170955d10a15b6812dc1f2c671
     };
 
     
@@ -210,7 +171,6 @@ const HomeScreen = ({ navigation, route }) => {
     loadData();
   }, [userEmail]);
 
-<<<<<<< HEAD
 
 
   useEffect(() => {
@@ -243,69 +203,10 @@ const HomeScreen = ({ navigation, route }) => {
   }, [filteredAudits, userId]); // Re-run this when filteredAudits or userId changes
 
   // Filtered Audits should exclude the audits that the user has already accepted
-=======
-  const getAvatar = (Client) => {
-    const firstLetter = Client ? Client.charAt(0).toUpperCase() : "Ⓐ";
-    return firstLetter;
-  };
-
-  const acceptAudit = async (auditId) => {
-    try {
-      // Update the audit with auditorId and isAccepted status
-      const auditRef = doc(db, "audits", auditId);
-      await updateDoc(auditRef, {
-        auditorId: userId, // Set the auditorId to the logged-in user's ID
-        isAccepted: true, // Mark the audit as accepted
-      });
-  
-      // Update the logged-in user's Profile with the accepted auditId
-      if (userId) {
-        const userRef = doc(db, "Profile", userId); // Reference to the specific user document
-        await updateDoc(userRef, {
-          AcceptedAudits: arrayUnion(auditId), // Add the auditId to the AcceptedAudits array
-        });
-  
-        console.log("Audit accepted successfully!");
-      } else {
-        console.log("User ID is not available.");
-      }
-    } catch (error) {
-      console.error("Error accepting audit:", error);
-    }
-  };
-  
-
-  const completeAudit = async (auditId) => {
-    try {
-      // Fetch the audit data to check if it's accepted
-      const auditRef = doc(db, "audits", auditId);
-      const auditSnapshot = await getDoc(auditRef);
-      const auditData = auditSnapshot.data();
-  
-      // Only allow marking as complete if isAccepted is true
-      if (auditData.isAccepted) {
-        // Update the audit to mark it as complete
-        await updateDoc(auditRef, {
-          isCompleted: true, // Set the isCompleted field to true
-        });
-  
-        console.log("Audit marked as complete!");
-      } else {
-        console.log("Audit is not accepted, cannot mark as complete.");
-      }
-    } catch (error) {
-      console.error("Error completing audit:", error);
-    }
-  };
-  
-
-  // Filter the audits based on status, location, and search term
->>>>>>> b9f48e99e16895170955d10a15b6812dc1f2c671
   const filteredAudits = audits.filter((audit) => {
     return !audit.acceptedBy || !audit.acceptedBy.includes(userId);
   });
 
-<<<<<<< HEAD
 
   useEffect(() => {
     const fetchAudits = async () => {
@@ -582,74 +483,9 @@ const HomeScreen = ({ navigation, route }) => {
                 onPress={resetFilters}
               >
                 <Text style={styles.modalButtonText}>Reset</Text>
-=======
- 
-
-  const logout = () => {
-    Alert.alert(
-      "Logout",
-      "Are you sure you want to logout?",
-      [
-        {
-          text: "Cancel",
-          style: "cancel",
-        },
-        {
-          text: "Yes",
-          onPress: () => {
-            // Clear any stored session or data here, like AsyncStorage or Firebase logout
-            AsyncStorage.clear();
-            navigation.replace("LoginScreen"); // Navigate back to the login screen
-          },
-        },
-      ],
-      { cancelable: false }
-    );
-  };
-
-
-  return (
-    
-    <View style={styles.fullScreen}>
-         <View>
-      {userId ? (
-        <Text>Welcome, User ID: {userId}</Text>
-      ) : (
-        <Text>.</Text>
-      )}
-    </View>
-      <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
-      <View style={styles.topRightIconContainer}>
-          <TouchableOpacity onPress={logout}>
-            <Ionicons name="log-out" size={30} color="black" />
-          </TouchableOpacity>
-        </View>
-        <View style={styles.greetingContainer}>
-          <Text style={styles.greetingText}>{greeting}, {userName}</Text>
-          
-        </View>
-
-        <View style={styles.container}>
-          {/* Task Boxes Section */}
-          <View style={styles.taskBoxesContainer}>
-            <TouchableOpacity style={styles.taskBox}>
-              <TouchableOpacity onPress={() => navigation.navigate("UserInfo")}>
-                <Ionicons name="calendar" size={30} color="black" style={styles.icon} />
-                <Text style={styles.taskBoxTitle}>Today's Tasks</Text>
-                <Text style={styles.taskBoxContent}>{todayTasks.length} Tasks</Text>
-              </TouchableOpacity>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.taskBox}>
-              <TouchableOpacity onPress={() => navigation.navigate("Ongoing")}>
-                <Ionicons name="play-circle" size={30} color="black" style={styles.icon} />
-                <Text style={styles.taskBoxTitle}>Ongoing Tasks</Text>
-                <Text style={styles.taskBoxContent}>{ongoingAudits.length} Tasks</Text>
->>>>>>> b9f48e99e16895170955d10a15b6812dc1f2c671
               </TouchableOpacity>
             </View>
           </View>
-<<<<<<< HEAD
         </View>
       </Modal>
 
@@ -719,55 +555,11 @@ const HomeScreen = ({ navigation, route }) => {
                       Location: {branchesData.find((branch) => branch.id === item.branchId)?.city || 'Unknown Location'}
                     </Text>
                   </View>
-=======
-
-          <TouchableOpacity style={styles.taskBox2}>
-            <TouchableOpacity onPress={() => navigation.navigate("Completed-Tasks")}>
-              <Ionicons name="checkmark-circle" size={30} color="black" style={styles.icon} />
-              <Text style={styles.taskBoxTitle}>Completed Tasks</Text>
-              <Text style={styles.taskBoxContent}>{completedTasks.length} Tasks</Text>
-            </TouchableOpacity>
-          </TouchableOpacity>
-
-          {/* Upcoming Audits Section */}
-          <View style={styles.upcomingAuditsContainer}>
-            <Text style={styles.upcomingAuditsText}>Upcoming Audits</Text>
-
-            <FlatList
-              data={filteredAudits}
-              renderItem={({ item }) => {
-                const clientName = clientsData[item.clientId] || "Unknown Client";
-                const branch = branchesData.find((branch) => branch.id === item.branchId);
-                const branchCity = branch ? branch.city : "Unknown Location";
-
-                return (
->>>>>>> b9f48e99e16895170955d10a15b6812dc1f2c671
                   <TouchableOpacity
                     style={styles.seeMoreButton}
                     onPress={() => navigation.navigate('AuditDetails', { audit: item })}
                   >
-<<<<<<< HEAD
                     <Text style={styles.seeMoreButtonText}>See More Info</Text>
-=======
-                    <View style={styles.clientImageContainer}>
-                      <Text style={styles.clientImage}>{getAvatar(item.auditorId)}</Text>
-                    </View>
-                    <View style={styles.auditContent}>
-                      <Text style={styles.auditName}>{item.name}</Text>
-                      <Text style={styles.auditLocation}>{clientName}</Text>
-                      <Text style={styles.auditLocation}>{branchCity}</Text>
-                    </View>
-                    <View style={styles.actionsContainer}>
-                    
-                        <TouchableOpacity
-                          style={styles.acceptButton}
-                          onPress={() => navigation.navigate("AuditDetails", { audit: item })}
-                        >
-                          <Text style={styles.buttonText}>See More</Text>
-                        </TouchableOpacity>
-                      
-                    </View>
->>>>>>> b9f48e99e16895170955d10a15b6812dc1f2c671
                   </TouchableOpacity>
                 </View>
               )}
@@ -780,7 +572,6 @@ const HomeScreen = ({ navigation, route }) => {
   );
 };
 
-<<<<<<< HEAD
 
 
 const styles = StyleSheet.create({
@@ -857,96 +648,11 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowRadius: 3,
     elevation: 2,
-=======
-const styles = StyleSheet.create({
-  fullScreen: {
-    flex: 1,
-    backgroundColor: "#f5f5f5",
-  },
-  greetingContainer: {
-    padding: 15,
-    backgroundColor: "#6200ea",
-  },
-  greetingText: {
-    color: "#fff",
-    fontSize: 18,
-    fontWeight: "bold",
-  },
-  container: {
-    padding: 20,
-  },
-  taskBoxesContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 20,
-  },
-  taskBox: {
-    width: (width - 60) / 2,
-    backgroundColor: "#fff",
-    padding: 15,
-    borderRadius: 10,
-    elevation: 3,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  taskBoxTitle: {
-    fontSize: 16,
-    fontWeight: "bold",
-    marginTop: 10,
-  },
-  taskBoxContent: {
-    fontSize: 14,
-    marginTop: 5,
-  },
-  taskBox2: {
-    backgroundColor: "#fff",
-    padding: 15,
-    borderRadius: 10,
-    elevation: 3,
-    marginBottom: 20,
-  },
-  upcomingAuditsContainer: {
-    backgroundColor: "#fff",
-    padding: 20,
-    borderRadius: 10,
-    elevation: 3,
-  },
-  topRightIconContainer: {
-   marginBottom:20,
-   marginRight:50
-    
-  },
-  upcomingAuditsText: {
-    fontSize: 18,
-    fontWeight: "bold",
-    marginBottom: 15,
-  },
-  auditItem: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    padding: 10,
-    borderBottomWidth: 1,
-    borderColor: "#ddd",
-  },
-  clientImageContainer: {
-    width: 50,
-    height: 50,
-    borderRadius: 50,
-    backgroundColor: "#6200ea",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  clientImage: {
-    color: "#fff",
-    fontSize: 22,
-    fontWeight: "bold",
->>>>>>> b9f48e99e16895170955d10a15b6812dc1f2c671
   },
   auditDetails: {
     flex: 1,
     paddingLeft: 10,
   },
-<<<<<<< HEAD
   filterButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -975,15 +681,11 @@ const styles = StyleSheet.create({
   // Other styles remain unchanged
 
   auditTitle: {
-=======
-  auditName: {
->>>>>>> b9f48e99e16895170955d10a15b6812dc1f2c671
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 5,
     color: '#4A90E2',
   },
-<<<<<<< HEAD
   auditClient: {
     fontSize: 14,
     color: '#666',
@@ -1018,30 +720,6 @@ const styles = StyleSheet.create({
     margin: 20,
     padding: 20,
     borderRadius: 8,
-=======
-  auditLocation: {
-    fontSize: 14,
-    color: "#888",
-  },
-  actionsContainer: {
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  acceptButton: {
-    backgroundColor: "#4caf50",
-    padding: 10,
-    borderRadius: 5,
-  },
-  completeButton: {
-    backgroundColor: "#4caf50",
-    padding: 10,
-    borderRadius: 5,
-  },
-  buttonText: {
-    color: "#fff",
-    fontSize: 14,
-    fontWeight: "bold",
->>>>>>> b9f48e99e16895170955d10a15b6812dc1f2c671
   },
   modalTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 10 },
   input: { borderBottomWidth: 1, marginBottom: 10 },

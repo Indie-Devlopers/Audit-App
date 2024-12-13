@@ -16,7 +16,6 @@ import ProfileScreen from "./ProfileScreen";
 import ClientDetails from "./ClientDetails";
 import CompletedTasks from "./CompletedTasks";
 import AuditDetails from "./AuditDetails";
-<<<<<<< HEAD
 import RejectedAudits from "./RejectedAudits";
 import UpcomingAudits from "./UpcomingAudits";
 import TodaysTasks from "./TodaysTasks";
@@ -27,9 +26,6 @@ import { signOut } from "firebase/auth";
 import { auth } from "./firebaseConfig"; // Assuming your Firebase auth is configured
 
 // Stack and Tab Navigators
-=======
-import RejectedAudits from "./RejectedAudits"
->>>>>>> b9f48e99e16895170955d10a15b6812dc1f2c671
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
 
@@ -127,10 +123,6 @@ export default function App() {
         <Stack.Screen name="TodaysTasks" component={TodaysTasks} />
         <Stack.Screen name="AuditDetails" component={AuditDetails} />
         <Stack.Screen name="ClientDetails" component={ClientDetails} />
-<<<<<<< HEAD
-=======
-        <Stack.Screen name="Completed-Tasks" component={CompletedTasks} />
->>>>>>> b9f48e99e16895170955d10a15b6812dc1f2c671
         <Stack.Screen name="RejectedAudits" component={RejectedAudits} />
       </Stack.Navigator>
     </NavigationContainer>
