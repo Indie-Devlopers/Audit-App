@@ -1,9 +1,5 @@
 import React, { useState } from 'react';
-<<<<<<< HEAD
 import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
-=======
-import { View, Text, Button, StyleSheet, Alert } from 'react-native';
->>>>>>> b9f48e99e16895170955d10a15b6812dc1f2c671
 import { Picker } from '@react-native-picker/picker';
 
 const RejectedAudits = ({ navigation }) => {
@@ -18,7 +14,6 @@ const RejectedAudits = ({ navigation }) => {
   ];
 
   const handleRemove = () => {
-<<<<<<< HEAD
     if (!selectedReason) {
       Alert.alert('Error', 'Please select a reason before removing the audit.');
       return;
@@ -44,21 +39,11 @@ const RejectedAudits = ({ navigation }) => {
         },
       ]
     );
-=======
-    if (selectedReason) {
-      Alert.alert('Audit Removal', `You selected: ${selectedReason}`, [
-        { text: 'OK', onPress: () => navigation.goBack() },
-      ]);
-    } else {
-      Alert.alert('Error', 'Please select a reason before removing the audit.');
-    }
->>>>>>> b9f48e99e16895170955d10a15b6812dc1f2c671
   };
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Why are you removing the audit?</Text>
-<<<<<<< HEAD
       <View style={styles.pickerContainer}>
         <Picker
           selectedValue={selectedReason}
@@ -79,19 +64,6 @@ const RejectedAudits = ({ navigation }) => {
       >
         <Text style={styles.removeButtonText}>Remove Audit</Text>
       </TouchableOpacity>
-=======
-      <Picker
-        selectedValue={selectedReason}
-        style={styles.picker}
-        onValueChange={(itemValue) => setSelectedReason(itemValue)}
-      >
-        <Picker.Item label="Select a reason" value="" />
-        {reasons.map((reason, index) => (
-          <Picker.Item key={index} label={reason} value={reason} />
-        ))}
-      </Picker>
-      <Button title="Remove Audit" onPress={handleRemove} />
->>>>>>> b9f48e99e16895170955d10a15b6812dc1f2c671
     </View>
   );
 };
@@ -100,7 +72,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: 'center',
-<<<<<<< HEAD
     alignItems: 'center',
     padding: 20,
     backgroundColor: '#F5F5F5',
@@ -143,19 +114,6 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontSize: 18,
     fontWeight: 'bold',
-=======
-    padding: 20,
-  },
-  title: {
-    fontSize: 20,
-    marginBottom: 10,
-    textAlign: 'center',
-  },
-  picker: {
-    height: 50,
-    width: '100%',
-    marginBottom: 20,
->>>>>>> b9f48e99e16895170955d10a15b6812dc1f2c671
   },
 });
 

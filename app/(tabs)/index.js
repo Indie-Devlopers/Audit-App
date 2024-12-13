@@ -110,7 +110,7 @@ export default function App() {
           component={LoginScreen}
           options={{ headerShown: false }}
         />
-        {/* Bottom Tabs for Home, ReportScreen, CompletedTasks, and Profile */}
+       
         <Stack.Screen
           name="HomeScreen"
           component={BottomTabs}
