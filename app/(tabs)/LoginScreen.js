@@ -128,6 +128,7 @@
 
 
 
+<<<<<<< HEAD
 
 
 
@@ -155,6 +156,10 @@ import {
 } from "react-native";
 import { Picker } from "@react-native-picker/picker";
 import Svg, { Circle } from "react-native-svg";
+=======
+import React, { useState, useEffect } from "react";
+import { View, TextInput, Text, TouchableOpacity, StyleSheet, Alert, ScrollView } from "react-native";
+>>>>>>> b9f48e99e16895170955d10a15b6812dc1f2c671
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { db } from "./firebaseConfig";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -170,6 +175,19 @@ export default function LoginScreen({ navigation }) {
     const checkUserLogin = async () => {
       const userId = await AsyncStorage.getItem("userId");
       if (userId) {
+        navigation.navigate("HomeScreen");
+      }
+    };
+
+    checkUserLogin();
+  }, [navigation]);
+
+  useEffect(() => {
+    // Check if user is already logged in
+    const checkUserLogin = async () => {
+      const userId = await AsyncStorage.getItem("userId");
+      if (userId) {
+        // If user is already logged in, navigate to HomeScreen
         navigation.navigate("HomeScreen");
       }
     };

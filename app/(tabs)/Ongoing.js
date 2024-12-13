@@ -842,6 +842,388 @@
 
 
 
+<<<<<<< HEAD
+=======
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// import React, { useState, useEffect } from "react";
+// import { View, Text, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator } from "react-native";
+// import { getFirestore, collection, query, where, getDocs, doc, updateDoc } from "firebase/firestore";
+// import { app } from "./firebaseConfig"; // Import Firebase configuration
+
+// const db = getFirestore(app); // Firestore instance
+
+// const Ongoing = ({ navigation }) => {
+//   const [ongoingAudits, setOngoingAudits] = useState([]);
+//   const [loading, setLoading] = useState(true);
+
+//   useEffect(() => {
+//     const loadOngoingAudits = async () => {
+//       try {
+//         // Query Firestore to get audits where isAccepted is true
+//         const auditsQuery = query(
+//           collection(db, "audits"),
+//           where("isAccepted", "==", true)
+//         );
+//         const querySnapshot = await getDocs(auditsQuery);
+
+//         const fetchedAudits = [];
+//         querySnapshot.forEach((docSnap) => {
+//           const auditData = docSnap.data();
+//           fetchedAudits.push({
+//             id: docSnap.id,
+//             ...auditData,
+//           });
+//         });
+
+//         setOngoingAudits(fetchedAudits);
+//       } catch (error) {
+//         console.error("Failed to load ongoing audits", error);
+//       } finally {
+//         setLoading(false);
+//       }
+//     };
+
+//     loadOngoingAudits();
+//   }, []);
+
+//   const handleComplete = async (auditId) => {
+//     try {
+//       const auditRef = doc(db, "audits", auditId);
+//       await updateDoc(auditRef, {
+//         isCompleted: true, // Set isCompleted to true
+//       });
+
+//       // Update local state to reflect completion
+//       setOngoingAudits((prevAudits) =>
+//         prevAudits.map((audit) =>
+//           audit.id === auditId ? { ...audit, isCompleted: true } : audit
+//         )
+//       );
+//     } catch (error) {
+//       console.error("Error marking audit as complete", error);
+//     }
+//   };
+
+//   const noOngoingTasks = ongoingAudits.length === 0;
+
+//   return (
+//     <ScrollView style={styles.container}>
+//       {loading ? (
+//         <View style={styles.loadingContainer}>
+//           <ActivityIndicator size="large" color="#4CAF50" />
+//         </View>
+//       ) : noOngoingTasks ? (
+//         <View style={styles.noTasksContainer}>
+//           <Text style={styles.noTasksText}>No ongoing tasks</Text>
+//         </View>
+//       ) : (
+//         ongoingAudits.map((audit) => {
+//           return (
+//             <View key={audit.id} style={styles.cardContainer}>
+//               <TouchableOpacity
+//                 style={styles.card}
+//                 onPress={() =>
+//                   navigation.navigate("AuditDetails", {
+//                     auditId: audit.id, // Pass auditId to the AuditDetails screen
+//                   })
+//                 }
+//               >
+//                 <Text style={styles.clientName}>{audit.clientName}</Text>
+//                 <Text style={styles.branchCity}>Location: {audit.branchCity}</Text>
+//                 {audit.isCompleted ? (
+//                   <Text style={styles.completedText}>Completed</Text>
+//                 ) : (
+//                   <TouchableOpacity
+//                     style={styles.completeButton}
+//                     onPress={() => handleComplete(audit.id)}
+//                   >
+//                     <Text style={styles.completeButtonText}>Complete</Text>
+//                   </TouchableOpacity>
+//                 )}
+//               </TouchableOpacity>
+//             </View>
+//           );
+//         })
+//       )}
+//     </ScrollView>
+//   );
+// };
+
+// const styles = StyleSheet.create({
+//   container: {
+//     flex: 1,
+//     padding: 20,
+//     backgroundColor: "#f5f5f5",
+//   },
+//   loadingContainer: {
+//     flex: 1,
+//     justifyContent: "center",
+//     alignItems: "center",
+//   },
+//   cardContainer: {
+//     marginBottom: 15,
+//   },
+//   card: {
+//     backgroundColor: "#ffffff",
+//     padding: 20,
+//     borderRadius: 10,
+//     shadowColor: "#000",
+//     shadowOffset: { width: 0, height: 4 },
+//     shadowOpacity: 0.1,
+//     shadowRadius: 6,
+//     elevation: 5,
+//   },
+//   clientName: {
+//     fontSize: 18,
+//     fontWeight: "bold",
+//     color: "#333",
+//   },
+//   branchCity: {
+//     fontSize: 14,
+//     color: "#777",
+//     marginVertical: 5,
+//   },
+//   noTasksContainer: {
+//     justifyContent: "center",
+//     alignItems: "center",
+//     marginTop: 20,
+//   },
+//   noTasksText: {
+//     fontSize: 18,
+//     color: "gray",
+//   },
+//   completeButton: {
+//     marginTop: 10,
+//     backgroundColor: "#4CAF50", // Green color for the Complete button
+//     padding: 12,
+//     borderRadius: 5,
+//     alignItems: "center",
+//   },
+//   completeButtonText: {
+//     color: "white",
+//     fontSize: 16,
+//     fontWeight: "bold",
+//   },
+//   completedText: {
+//     fontSize: 16,
+//     color: "#4CAF50", // Green color to indicate completion
+//     fontWeight: "bold",
+//   },
+// });
+
+// export default Ongoing;
+
+
+
+
+
+
+
+
+
+// import React, { useState, useEffect } from "react";
+// import { View, Text, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator } from "react-native";
+// import { getFirestore, collection, query, where, getDocs, doc, updateDoc } from "firebase/firestore";
+// import { app } from "./firebaseConfig"; // Import Firebase configuration
+
+// const db = getFirestore(app); // Firestore instance
+
+// const Ongoing = ({ navigation }) => {
+//   const [ongoingAudits, setOngoingAudits] = useState([]);
+//   const [loading, setLoading] = useState(true);
+
+//   useEffect(() => {
+//     const loadOngoingAudits = async () => {
+//       try {
+//         // Query Firestore to get audits where isAccepted is true
+//         const auditsQuery = query(
+//           collection(db, "audits"),
+//           where("isAccepted", "==", true)
+//         );
+//         const querySnapshot = await getDocs(auditsQuery);
+
+//         const fetchedAudits = [];
+//         querySnapshot.forEach((docSnap) => {
+//           const auditData = docSnap.data();
+//           fetchedAudits.push({
+//             id: docSnap.id,
+//             ...auditData,
+//           });
+//         });
+
+//         setOngoingAudits(fetchedAudits);
+//       } catch (error) {
+//         console.error("Failed to load ongoing audits", error);
+//       } finally {
+//         setLoading(false);
+//       }
+//     };
+
+//     loadOngoingAudits();
+//   }, []);
+
+//   const handleComplete = async (auditId) => {
+//     try {
+//       const auditRef = doc(db, "audits", auditId);
+//       await updateDoc(auditRef, {
+//         isCompleted: true, // Set isCompleted to true
+//       });
+
+//       // Update local state to reflect completion
+//       setOngoingAudits((prevAudits) =>
+//         prevAudits.map((audit) =>
+//           audit.id === auditId ? { ...audit, isCompleted: true } : audit
+//         )
+//       );
+//     } catch (error) {
+//       console.error("Error marking audit as complete", error);
+//     }
+//   };
+
+//   const noOngoingTasks = ongoingAudits.length === 0;
+
+//   return (
+//     <ScrollView style={styles.container}>
+//       {loading ? (
+//         <View style={styles.loadingContainer}>
+        
+//         </View>
+//       ) : noOngoingTasks ? (
+//         <View style={styles.noTasksContainer}>
+//           <Text style={styles.noTasksText}>No ongoing tasks</Text>
+//         </View>
+//       ) : (
+//         ongoingAudits.map((audit) => {
+//           return (
+//             <View key={audit.id} style={styles.cardContainer}>
+//               <TouchableOpacity
+//                 style={styles.card}
+//                 onPress={() =>
+//                   navigation.navigate("AuditDetails", {
+//                     auditId: audit.id, // Pass auditId to the AuditDetails screen
+//                   })
+//                 }
+//               >
+//                 <Text style={styles.clientName}>{audit.clientName}</Text>
+//                 <Text style={styles.branchCity}>Location: {audit.branchCity}</Text>
+//                 {audit.isCompleted ? (
+//                   <Text style={styles.completedText}>Completed</Text>
+//                 ) : (
+//                   <TouchableOpacity
+//                     style={styles.completeButton}
+//                     onPress={() => handleComplete(audit.id)}
+//                   >
+//                     <Text style={styles.completeButtonText}>Complete</Text>
+//                   </TouchableOpacity>
+//                 )}
+//               </TouchableOpacity>
+//             </View>
+//           );
+//         })
+//       )}
+//     </ScrollView>
+//   );
+// };
+
+// const styles = StyleSheet.create({
+//   container: {
+//     flex: 1,
+//     padding: 20,
+//     backgroundColor: "#f5f5f5",
+//   },
+//   loadingContainer: {
+//     flex: 1,
+//     justifyContent: "center",
+//     alignItems: "center",
+//   },
+//   cardContainer: {
+//     marginBottom: 15,
+//   },
+//   card: {
+//     backgroundColor: "#ffffff",
+//     padding: 20,
+//     borderRadius: 10,
+//     shadowColor: "#000",
+//     shadowOffset: { width: 0, height: 4 },
+//     shadowOpacity: 0.1,
+//     shadowRadius: 6,
+//     elevation: 5,
+//   },
+//   clientName: {
+//     fontSize: 18,
+//     fontWeight: "bold",
+//     color: "#333",
+//   },
+//   branchCity: {
+//     fontSize: 14,
+//     color: "#777",
+//     marginVertical: 5,
+//   },
+//   noTasksContainer: {
+//     justifyContent: "center",
+//     alignItems: "center",
+//     marginTop: 20,
+//   },
+//   noTasksText: {
+//     fontSize: 18,
+//     color: "gray",
+//   },
+//   completeButton: {
+//     marginTop: 10,
+//     backgroundColor: "#4CAF50", // Green color for the Complete button
+//     padding: 12,
+//     borderRadius: 5,
+//     alignItems: "center",
+//   },
+//   completeButtonText: {
+//     color: "white",
+//     fontSize: 16,
+//     fontWeight: "bold",
+//   },
+//   completedText: {
+//     fontSize: 16,
+//     color: "#4CAF50", // Green color to indicate completion
+//     fontWeight: "bold",
+//   },
+// });
+
+// export default Ongoing;
+
+
+
+
+
+
+import React, { useState, useEffect } from "react";
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView,  } from "react-native";
+import { getFirestore, collection, query, where, getDocs, doc, updateDoc } from "firebase/firestore";
+import { app } from "./firebaseConfig"; // Import Firebase configuration
+>>>>>>> b9f48e99e16895170955d10a15b6812dc1f2c671
 
 
 
@@ -1524,6 +1906,7 @@ const Ongoing = ({ navigation }) => {
     const loadOngoingAudits = async () => {
       setLoading(true);
       try {
+<<<<<<< HEAD
         const userId = await AsyncStorage.getItem("userId");
         if (!userId) {
           console.error("User ID not found!");
@@ -1586,6 +1969,33 @@ const Ongoing = ({ navigation }) => {
 
       } catch (error) {
         console.error("Error loading ongoing audits:", error);
+=======
+        const auditsQuery = query(
+          collection(db, "audits"),
+          where("isAccepted", "==", true)
+        );
+        const querySnapshot = await getDocs(auditsQuery);
+        
+        console.log('Fetched query snapshot size:', querySnapshot.size); // Debugging
+        
+        const fetchedAudits = [];
+        querySnapshot.forEach((docSnap) => {
+          const auditData = docSnap.data();
+          console.log('Fetched audit data:', auditData); // Debugging
+          fetchedAudits.push({
+            id: docSnap.id,
+            ...auditData,
+          });
+        });
+
+        if (fetchedAudits.length === 0) {
+          console.log("No audits available."); // Debugging
+        }
+
+        setOngoingAudits(fetchedAudits);
+      } catch (error) {
+        console.error("Failed to load ongoing audits", error);
+>>>>>>> b9f48e99e16895170955d10a15b6812dc1f2c671
       } finally {
         setLoading(false);
       }
@@ -1596,6 +2006,7 @@ const Ongoing = ({ navigation }) => {
 
   const handleComplete = async (auditId) => {
     try {
+<<<<<<< HEAD
       const userId = await AsyncStorage.getItem("userId");
       if (!userId) {
         console.error("User ID not found!");
@@ -1708,18 +2119,44 @@ const Ongoing = ({ navigation }) => {
             </Text>
           ))
       : <Text>No details available</Text>;
+=======
+      const auditRef = doc(db, "audits", auditId);
+      await updateDoc(auditRef, {
+        isCompleted: true, // Set isCompleted to true
+      });
+
+      // Update local state to reflect completion
+      setOngoingAudits((prevAudits) =>
+        prevAudits.map((audit) =>
+          audit.id === auditId ? { ...audit, isCompleted: true } : audit
+        )
+      );
+    } catch (error) {
+      console.error("Error marking audit as complete", error);
+    }
+  };
+
+  const noOngoingTasks = ongoingAudits.length === 0;
+>>>>>>> b9f48e99e16895170955d10a15b6812dc1f2c671
 
   return (
     <ScrollView style={styles.container}>
       {loading ? (
         <View style={styles.loadingContainer}>
+<<<<<<< HEAD
           <ActivityIndicator size="large" color="#4CAF50" />
         </View>
       ) : ongoingAudits.length === 0 ? (
+=======
+       
+        </View>
+      ) : noOngoingTasks ? (
+>>>>>>> b9f48e99e16895170955d10a15b6812dc1f2c671
         <View style={styles.noTasksContainer}>
           <Text style={styles.noTasksText}>No ongoing tasks</Text>
         </View>
       ) : (
+<<<<<<< HEAD
         ongoingAudits.map((audit) => (
           <View key={audit.id} style={styles.cardContainer}>
             <Text style={styles.clientName}>{audit.clientDetails.clientName}</Text>
@@ -1752,6 +2189,31 @@ const Ongoing = ({ navigation }) => {
                 onPress={() => handleGenerateReport(audit.id, audit.clientDetails.clientName)}
               >
                 <Text style={styles.generateReportButtonText}>Generate Report</Text>
+=======
+        ongoingAudits.map((audit) => {
+          return (
+            <View key={audit.id} style={styles.cardContainer}>
+              <TouchableOpacity
+                style={styles.card}
+                onPress={() =>
+                  navigation.navigate("AuditDetails", {
+                    auditId: audit.id, // Pass auditId to the AuditDetails screen
+                  })
+                }
+              >
+                <Text style={styles.clientName}>{audit.clientName}</Text>
+                <Text style={styles.branchCity}>Location: {audit.branchCity}</Text>
+                {audit.isCompleted ? (
+                  <Text style={styles.completedText}>Completed</Text>
+                ) : (
+                  <TouchableOpacity
+                    style={styles.completeButton}
+                    onPress={() => handleComplete(audit.id)}
+                  >
+                    <Text style={styles.completeButtonText}>Complete</Text>
+                  </TouchableOpacity>
+                )}
+>>>>>>> b9f48e99e16895170955d10a15b6812dc1f2c671
               </TouchableOpacity>
             </View>
           </View>
@@ -1764,6 +2226,7 @@ const Ongoing = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+<<<<<<< HEAD
     padding: 15,
     backgroundColor: "white",
   },
@@ -1835,12 +2298,63 @@ const styles = StyleSheet.create({
   },
   noTasksContainer: {
     flex: 1,
+=======
+    padding: 20,
+    backgroundColor: "#f5f5f5",
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  cardContainer: {
+    marginBottom: 15,
+  },
+  card: {
+    backgroundColor: "#ffffff",
+    padding: 20,
+    borderRadius: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 5,
+  },
+  clientName: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#333",
+  },
+  branchCity: {
+    fontSize: 14,
+    color: "#777",
+    marginVertical: 5,
+  },
+  noTasksContainer: {
+>>>>>>> b9f48e99e16895170955d10a15b6812dc1f2c671
     justifyContent: "center",
     alignItems: "center",
   },
   noTasksText: {
     fontSize: 18,
     color: "#555",
+  },
+  completeButton: {
+    marginTop: 10,
+    backgroundColor: "#4CAF50", // Green color for the Complete button
+    padding: 12,
+    borderRadius: 5,
+    alignItems: "center",
+  },
+  completeButtonText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  completedText: {
+    fontSize: 16,
+    color: "#4CAF50", // Green color to indicate completion
+    fontWeight: "bold",
   },
 });
 
