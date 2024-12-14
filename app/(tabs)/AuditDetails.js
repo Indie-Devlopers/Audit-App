@@ -210,16 +210,23 @@ const styles = StyleSheet.create({
     marginVertical: 5,
   },
   buttonsContainer: {
-    marginTop: 20,
+    marginTop: 60,
   },
   acceptButton: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 15,
-    backgroundColor: "#007BFF",
-    borderRadius: 5,
-    marginBottom: 10,
+    justifyContent: "center", // Centers content inside the button
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    backgroundColor: "green",
+    borderRadius: 25,
+    marginBottom: 20,
+    position: "absolute", // For absolute positioning
+    top: "50%", // Centers it vertically
+    left: "50%", // Centers it horizontally
+    transform: [{ translateX: -75 }, { translateY: -30 }], // Adjust for exact center (button size)
   },
+  
   buttonText: {
     marginLeft: 10,
     color: "white",

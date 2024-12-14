@@ -61,13 +61,18 @@ function BottomTabs({ navigation }) {
         name="DashBoard"
         component={HomeScreen}
         options={{
+          headerShown: false, // If you also want to hide the header
+          tabBarLabel: () => null, // Completely removes the label
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="home" color={color} size={size} />
           ),
         }}
       />
-      
-      <Tab.Screen
+
+
+
+
+      {/* <Tab.Screen
         name="ReportScreen"
         component={ReportScreen}  
         options={{
@@ -75,8 +80,8 @@ function BottomTabs({ navigation }) {
             <Ionicons name="document-text" color={color} size={size} />
           ),
         }}
-      />
-      
+      /> */}
+
       <Tab.Screen
         name="CompletedTasks"
         component={CompletedTasks}
@@ -110,7 +115,7 @@ export default function App() {
           component={LoginScreen}
           options={{ headerShown: false }}
         />
-       
+
         <Stack.Screen
           name="HomeScreen"
           component={BottomTabs}

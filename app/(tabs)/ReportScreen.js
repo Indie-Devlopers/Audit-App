@@ -1,955 +1,245 @@
-// import React, { useState } from 'react';
-// import { View, Text, TouchableOpacity, Modal, StyleSheet } from 'react-native';
-// import { Ionicons } from '@expo/vector-icons';
-// import DateTimePicker from '@react-native-community/datetimepicker'; // Importing DateTimePicker
-// import { db } from './firebaseConfig'; // Assuming you have firebaseConfig.js set up
-// import { doc, setDoc } from 'firebase/firestore'; // Firestore functions
 
-// const ReportScreen = ({ route }) => {
-//   const [selectedDate, setSelectedDate] = useState(new Date()); // Default to current date
-//   const [showCalendar, setShowCalendar] = useState(false);
-//   const [auditId, setAuditId] = useState(route?.params?.auditId || ''); // Assuming auditId comes from route params
-//   const [userId, setUserId] = useState(route?.params?.userId || ''); // Assuming userId comes from route params
 
-//   // Dates for the four options
-//   const [scanDate, setScanDate] = useState('');
-//   const [hardCopyDate, setHardCopyDate] = useState('');
-//   const [softCopyDate, setSoftCopyDate] = useState('');
-//   const [photoDate, setPhotoDate] = useState('');
 
-//   // Handle Date Picker
-//   const handleDateSelect = (type, date) => {
-//     if (type === 'scan') {
-//       setScanDate(date);
-//     } else if (type === 'hardCopy') {
-//       setHardCopyDate(date);
-//     } else if (type === 'softCopy') {
-//       setSoftCopyDate(date);
-//     } else if (type === 'photo') {
-//       setPhotoDate(date);
-//     }
-//     setShowCalendar(false); // Close the calendar after date selection
-//   };
 
-//   const handleSaveDates = async () => {
-//     try {
-//       const acceptedAuditsRef = doc(
-//         db,
-//         'Profile',
-//         userId,
-//         'acceptedAudits',
-//         auditId,
-//         'DateCollection',
-//         'dates' // Document name
-//       );
-
-//       // Save each date in the corresponding field
-//       await setDoc(acceptedAuditsRef, {
-//         scanCopy: scanDate || '',
-//         hardCopy: hardCopyDate || '',
-//         softCopy: softCopyDate || '',
-//         photo: photoDate || '',
-//       });
-
-//       alert('Dates saved successfully');
-//     } catch (error) {
-//       console.error('Error saving dates: ', error);
-//       alert('Error saving dates');
-//     }
-//   };
-
-//   return (
-//     <View style={styles.container}>
-//       <Text style={styles.title}>Select Dates for Reports</Text>
-
-//       {/* Scan */}
-//       <View style={styles.row}>
-//         <Text style={styles.optionText}>Scan</Text>
-//         <TouchableOpacity style={styles.selectButton} onPress={() => setShowCalendar('scan')}>
-//           <Text style={styles.buttonText}>Select Date</Text>
-//         </TouchableOpacity>
-//       </View>
-
-//       {/* Hard Copy */}
-//       <View style={styles.row}>
-//         <Text style={styles.optionText}>Hard Copy</Text>
-//         <TouchableOpacity style={styles.selectButton} onPress={() => setShowCalendar('hardCopy')}>
-//           <Text style={styles.buttonText}>Select Date</Text>
-//         </TouchableOpacity>
-//       </View>
-
-//       {/* Soft Copy */}
-//       <View style={styles.row}>
-//         <Text style={styles.optionText}>Soft Copy</Text>
-//         <TouchableOpacity style={styles.selectButton} onPress={() => setShowCalendar('softCopy')}>
-//           <Text style={styles.buttonText}>Select Date</Text>
-//         </TouchableOpacity>
-//       </View>
-
-//       {/* Photo */}
-//       <View style={styles.row}>
-//         <Text style={styles.optionText}>Photo</Text>
-//         <TouchableOpacity style={styles.selectButton} onPress={() => setShowCalendar('photo')}>
-//           <Text style={styles.buttonText}>Select Date</Text>
-//         </TouchableOpacity>
-//       </View>
-
-//       {/* Date Picker Modal */}
-//       {showCalendar && (
-//         <Modal
-//           visible={showCalendar ? true : false}
-//           transparent={true}
-//           animationType="slide"
-//           onRequestClose={() => setShowCalendar(false)}
-//         >
-//           <View style={styles.modalContainer}>
-//             <View style={styles.modalContent}>
-//               <DateTimePicker
-//                 value={selectedDate}
-//                 mode="date" // Ensures only the date is shown (no time)
-//                 display="default"
-//                 onChange={(event, date) => {
-//                   setSelectedDate(date || new Date()); // Update the selected date
-//                   handleDateSelect(showCalendar, date || new Date()); // Pass selected date to the correct type
-//                 }}
-//               />
-//             </View>
-//           </View>
-//         </Modal>
-//       )}
-
-//       {/* Save Button */}
-//       <TouchableOpacity style={styles.saveButton} onPress={handleSaveDates}>
-//         <Text style={styles.saveButtonText}>Save Dates</Text>
-//       </TouchableOpacity>
-//     </View>
-//   );
-// };
-
-// const styles = StyleSheet.create({
-//   container: {
-//     flex: 1,
-//     padding: 16,
-//     justifyContent: 'center',
-//   },
-//   title: {
-//     fontSize: 24,
-//     fontWeight: 'bold',
-//     textAlign: 'center',
-//     marginBottom: 20,
-//   },
-//   row: {
-//     flexDirection: 'row',
-//     justifyContent: 'space-between',
-//     marginBottom: 20,
-//     alignItems: 'center',
-//   },
-//   optionText: {
-//     fontSize: 18,
-//     color: '#000',
-//   },
-//   selectButton: {
-//     padding: 10,
-//     backgroundColor: '#4A90E2',
-//     borderRadius: 5,
-//   },
-//   buttonText: {
-//     color: '#fff',
-//   },
-//   modalContainer: {
-//     flex: 1,
-//     justifyContent: 'center',
-//     alignItems: 'center',
-//     backgroundColor: 'rgba(0, 0, 0, 0.5)',
-//   },
-//   modalContent: {
-//     backgroundColor: '#fff',
-//     padding: 20,
-//     borderRadius: 10,
-//     width: '80%',
-//   },
-//   saveButton: {
-//     marginTop: 30,
-//     backgroundColor: '#28A745',
-//     padding: 15,
-//     alignItems: 'center',
-//     borderRadius: 5,
-//   },
-//   saveButtonText: {
-//     color: '#fff',
-//     fontSize: 16,
-//     fontWeight: 'bold',
-//   },
-// });
-
-// export default ReportScreen;
-
-
-
-// import React, { useState } from 'react';
-// import { View, Text, TouchableOpacity, Modal, StyleSheet } from 'react-native';
-// import { Ionicons } from '@expo/vector-icons';
-// import DateTimePicker from '@react-native-community/datetimepicker'; // Importing DateTimePicker
-// import { db } from './firebaseConfig'; // Assuming you have firebaseConfig.js set up
-// import { doc, setDoc, collection } from 'firebase/firestore'; // Firestore functions
-
-// const ReportScreen = ({ route }) => {
-//   const [selectedDate, setSelectedDate] = useState(new Date()); // Default to current date
-//   const [showCalendar, setShowCalendar] = useState(false);
-//   const [auditId, setAuditId] = useState(route?.params?.auditId || ''); // Assuming auditId comes from route params
-//   const [userId, setUserId] = useState(route?.params?.userId || ''); // Assuming userId comes from route params
-
-//   // Dates for the four options
-//   const [scanDate, setScanDate] = useState('');
-//   const [hardCopyDate, setHardCopyDate] = useState('');
-//   const [softCopyDate, setSoftCopyDate] = useState('');
-//   const [photoDate, setPhotoDate] = useState('');
-
-//   // Handle Date Picker
-//   const handleDateSelect = (type, date) => {
-//     if (type === 'scan') {
-//       setScanDate(date);
-//     } else if (type === 'hardCopy') {
-//       setHardCopyDate(date);
-//     } else if (type === 'softCopy') {
-//       setSoftCopyDate(date);
-//     } else if (type === 'photo') {
-//       setPhotoDate(date);
-//     }
-//     setShowCalendar(false); // Close the calendar after date selection
-//   };
-
-//   const handleSaveDates = async () => {
-//     try {
-//       // Reference to the DateCollection -> dates document
-//       const acceptedAuditsRef = doc(
-//         db,
-//         'Profile', 
-//         userId, // Assuming userId is auditorId
-//         'acceptedAudits',
-//         auditId, // The selected auditId
-//         'DateCollection', // The collection where dates will be stored
-//         'dates' // The document where dates will be saved
-//       );
-
-//       // Save each date in the corresponding field
-//       await setDoc(acceptedAuditsRef, {
-//         scan: scanDate || '',
-//         hard: hardCopyDate || '',
-//         soft: softCopyDate || '',
-//         photo: photoDate || '',
-//       });
-
-//       alert('Dates saved successfully');
-//     } catch (error) {
-//       console.error('Error saving dates: ', error);
-//       alert('Error saving dates');
-//     }
-//   };
-
-//   return (
-//     <View style={styles.container}>
-//       <Text style={styles.title}>Select Dates for Reports</Text>
-
-//       {/* Scan */}
-//       <View style={styles.row}>
-//         <Text style={styles.optionText}>Scan</Text>
-//         <TouchableOpacity style={styles.selectButton} onPress={() => setShowCalendar('scan')}>
-//           <Text style={styles.buttonText}>Select Date</Text>
-//         </TouchableOpacity>
-//       </View>
-
-//       {/* Hard Copy */}
-//       <View style={styles.row}>
-//         <Text style={styles.optionText}>Hard Copy</Text>
-//         <TouchableOpacity style={styles.selectButton} onPress={() => setShowCalendar('hardCopy')}>
-//           <Text style={styles.buttonText}>Select Date</Text>
-//         </TouchableOpacity>
-//       </View>
-
-//       {/* Soft Copy */}
-//       <View style={styles.row}>
-//         <Text style={styles.optionText}>Soft Copy</Text>
-//         <TouchableOpacity style={styles.selectButton} onPress={() => setShowCalendar('softCopy')}>
-//           <Text style={styles.buttonText}>Select Date</Text>
-//         </TouchableOpacity>
-//       </View>
-
-//       {/* Photo */}
-//       <View style={styles.row}>
-//         <Text style={styles.optionText}>Photo</Text>
-//         <TouchableOpacity style={styles.selectButton} onPress={() => setShowCalendar('photo')}>
-//           <Text style={styles.buttonText}>Select Date</Text>
-//         </TouchableOpacity>
-//       </View>
-
-//       {/* Date Picker Modal */}
-//       {showCalendar && (
-//         <Modal
-//           visible={showCalendar ? true : false}
-//           transparent={true}
-//           animationType="slide"
-//           onRequestClose={() => setShowCalendar(false)}
-//         >
-//           <View style={styles.modalContainer}>
-//             <View style={styles.modalContent}>
-//               <DateTimePicker
-//                 value={selectedDate}
-//                 mode="date" // Ensures only the date is shown (no time)
-//                 display="default"
-//                 onChange={(event, date) => {
-//                   setSelectedDate(date || new Date()); // Update the selected date
-//                   handleDateSelect(showCalendar, date || new Date()); // Pass selected date to the correct type
-//                 }}
-//               />
-//             </View>
-//           </View>
-//         </Modal>
-//       )}
-
-//       {/* Save Button */}
-//       <TouchableOpacity style={styles.saveButton} onPress={handleSaveDates}>
-//         <Text style={styles.saveButtonText}>Save Dates</Text>
-//       </TouchableOpacity>
-//     </View>
-//   );
-// };
-
-// const styles = StyleSheet.create({
-//   container: {
-//     flex: 1,
-//     padding: 16,
-//     justifyContent: 'center',
-//   },
-//   title: {
-//     fontSize: 24,
-//     fontWeight: 'bold',
-//     textAlign: 'center',
-//     marginBottom: 20,
-//   },
-//   row: {
-//     flexDirection: 'row',
-//     justifyContent: 'space-between',
-//     marginBottom: 20,
-//     alignItems: 'center',
-//   },
-//   optionText: {
-//     fontSize: 18,
-//     color: '#000',
-//   },
-//   selectButton: {
-//     padding: 10,
-//     backgroundColor: '#4A90E2',
-//     borderRadius: 5,
-//   },
-//   buttonText: {
-//     color: '#fff',
-//   },
-//   modalContainer: {
-//     flex: 1,
-//     justifyContent: 'center',
-//     alignItems: 'center',
-//     backgroundColor: 'rgba(0, 0, 0, 0.5)',
-//   },
-//   modalContent: {
-//     backgroundColor: '#fff',
-//     padding: 20,
-//     borderRadius: 10,
-//     width: '80%',
-//   },
-//   saveButton: {
-//     marginTop: 30,
-//     backgroundColor: '#28A745',
-//     padding: 15,
-//     alignItems: 'center',
-//     borderRadius: 5,
-//   },
-//   saveButtonText: {
-//     color: '#fff',
-//     fontSize: 16,
-//     fontWeight: 'bold',
-//   },
-// });
-
-// export default ReportScreen;
-
-
-
-
-
-
-
-
-
-
-// import React, { useState } from 'react';
-// import { View, Text, TouchableOpacity, Modal, StyleSheet } from 'react-native';
-// import { Ionicons } from '@expo/vector-icons';
-// import DateTimePicker from '@react-native-community/datetimepicker'; // Importing DateTimePicker
-// import { db } from './firebaseConfig'; // Assuming you have firebaseConfig.js set up
-// import { doc, setDoc } from 'firebase/firestore'; // Firestore functions
-
-// const ReportScreen = ({ route }) => {
-//   const [selectedDate, setSelectedDate] = useState(new Date()); // Default to current date
-//   const [showCalendar, setShowCalendar] = useState(false);
-//   const [auditId, setAuditId] = useState(route?.params?.auditId || ''); // Assuming auditId comes from route params
-//   const [userId, setUserId] = useState(route?.params?.userId || ''); // Assuming userId comes from route params
-
-//   // Dates for the four options
-//   const [scanDate, setScanDate] = useState('');
-//   const [hardCopyDate, setHardCopyDate] = useState('');
-//   const [softCopyDate, setSoftCopyDate] = useState('');
-//   const [photoDate, setPhotoDate] = useState('');
-
-//   // Handle Date Picker
-//   const handleDateSelect = (type, date) => {
-//     if (type === 'scan') {
-//       setScanDate(date);
-//     } else if (type === 'hardCopy') {
-//       setHardCopyDate(date);
-//     } else if (type === 'softCopy') {
-//       setSoftCopyDate(date);
-//     } else if (type === 'photo') {
-//       setPhotoDate(date);
-//     }
-//     setShowCalendar(false); // Close the calendar after date selection
-//   };
-
-//   const handleSaveDates = async () => {
-//     try {
-//       // Construct the Firestore document reference dynamically
-//       const reportDatesRef = doc(
-//         db,                  // Firestore instance
-//         'Profile',           // Collection: Profile
-//         userId,              // User ID (auditor's user ID)
-//         'acceptedAudits',    // Subcollection: acceptedAudits
-//         auditId,             // Audit ID (the selected audit's ID)
-//         'ReportDates',       // Subcollection: ReportDates (where dates will be stored)
-//         'reportDate'         // Document ID (this can be 'reportDate', or dynamically generated)
-//       );
-
-//       // Save the selected dates into the 'reportDate' document in 'ReportDates'
-//       await setDoc(reportDatesRef, {
-//         scan: scanDate || '',      // Save the scan date
-//         hard: hardCopyDate || '',  // Save the hard copy date
-//         soft: softCopyDate || '',  // Save the soft copy date
-//         photo: photoDate || '',    // Save the photo date
-//       });
-
-//       // Success alert
-//       alert('Dates saved successfully');
-//     } catch (error) {
-//       // Error handling
-//       console.error('Error saving dates: ', error);
-//       alert('Error saving dates');
-//     }
-//   };
-
-//   return (
-//     <View style={styles.container}>
-//       <Text style={styles.title}>Select Dates for Reports</Text>
-
-//       {/* Scan */}
-//       <View style={styles.row}>
-//         <Text style={styles.optionText}>Scan</Text>
-//         <TouchableOpacity style={styles.selectButton} onPress={() => setShowCalendar('scan')}>
-//           <Text style={styles.buttonText}>Select Date</Text>
-//         </TouchableOpacity>
-//       </View>
-
-//       {/* Hard Copy */}
-//       <View style={styles.row}>
-//         <Text style={styles.optionText}>Hard Copy</Text>
-//         <TouchableOpacity style={styles.selectButton} onPress={() => setShowCalendar('hardCopy')}>
-//           <Text style={styles.buttonText}>Select Date</Text>
-//         </TouchableOpacity>
-//       </View>
-
-//       {/* Soft Copy */}
-//       <View style={styles.row}>
-//         <Text style={styles.optionText}>Soft Copy</Text>
-//         <TouchableOpacity style={styles.selectButton} onPress={() => setShowCalendar('softCopy')}>
-//           <Text style={styles.buttonText}>Select Date</Text>
-//         </TouchableOpacity>
-//       </View>
-
-//       {/* Photo */}
-//       <View style={styles.row}>
-//         <Text style={styles.optionText}>Photo</Text>
-//         <TouchableOpacity style={styles.selectButton} onPress={() => setShowCalendar('photo')}>
-//           <Text style={styles.buttonText}>Select Date</Text>
-//         </TouchableOpacity>
-//       </View>
-
-//       {/* Date Picker Modal */}
-//       {showCalendar && (
-//         <Modal
-//           visible={showCalendar ? true : false}
-//           transparent={true}
-//           animationType="slide"
-//           onRequestClose={() => setShowCalendar(false)}
-//         >
-//           <View style={styles.modalContainer}>
-//             <View style={styles.modalContent}>
-//               <DateTimePicker
-//                 value={selectedDate}
-//                 mode="date" // Ensures only the date is shown (no time)
-//                 display="default"
-//                 onChange={(event, date) => {
-//                   setSelectedDate(date || new Date()); // Update the selected date
-//                   handleDateSelect(showCalendar, date || new Date()); // Pass selected date to the correct type
-//                 }}
-//               />
-//             </View>
-//           </View>
-//         </Modal>
-//       )}
-
-//       {/* Save Button */}
-//       <TouchableOpacity style={styles.saveButton} onPress={handleSaveDates}>
-//         <Text style={styles.saveButtonText}>Save Dates</Text>
-//       </TouchableOpacity>
-//     </View>
-//   );
-// };
-
-// const styles = StyleSheet.create({
-//   container: {
-//     flex: 1,
-//     padding: 16,
-//     justifyContent: 'center',
-//   },
-//   title: {
-//     fontSize: 24,
-//     fontWeight: 'bold',
-//     textAlign: 'center',
-//     marginBottom: 20,
-//   },
-//   row: {
-//     flexDirection: 'row',
-//     justifyContent: 'space-between',
-//     marginBottom: 20,
-//     alignItems: 'center',
-//   },
-//   optionText: {
-//     fontSize: 18,
-//     color: '#000',
-//   },
-//   selectButton: {
-//     padding: 10,
-//     backgroundColor: '#4A90E2',
-//     borderRadius: 5,
-//   },
-//   buttonText: {
-//     color: '#fff',
-//   },
-//   modalContainer: {
-//     flex: 1,
-//     justifyContent: 'center',
-//     alignItems: 'center',
-//     backgroundColor: 'rgba(0, 0, 0, 0.5)',
-//   },
-//   modalContent: {
-//     backgroundColor: '#fff',
-//     padding: 20,
-//     borderRadius: 10,
-//     width: '80%',
-//   },
-//   saveButton: {
-//     marginTop: 30,
-//     backgroundColor: '#28A745',
-//     padding: 15,
-//     alignItems: 'center',
-//     borderRadius: 5,
-//   },
-//   saveButtonText: {
-//     color: '#fff',
-//     fontSize: 16,
-//     fontWeight: 'bold',
-//   },
-// });
-
-// export default ReportScreen;
-
-
-
-
-
-
-
-
-
-
-// import React, { useState } from 'react';
-// import { View, Text, TouchableOpacity, Modal, StyleSheet } from 'react-native';
-// import DateTimePicker from '@react-native-community/datetimepicker'; // Importing DateTimePicker
-// import { db } from './firebaseConfig'; // Assuming you have firebaseConfig.js set up
-// import { doc, setDoc } from 'firebase/firestore'; // Firestore functions
-
-// const ReportScreen = ({ route }) => {
-//   const [selectedDate, setSelectedDate] = useState(new Date()); // Default to current date
-//   const [showCalendar, setShowCalendar] = useState(false);
-//   const [auditId, setAuditId] = useState(route?.params?.auditId || ''); // Assuming auditId comes from route params
-//   const [userId, setUserId] = useState(route?.params?.userId || ''); // Assuming userId comes from route params
-
-//   // Dates for the four options
-//   const [scanDate, setScanDate] = useState('');
-//   const [hardCopyDate, setHardCopyDate] = useState('');
-//   const [softCopyDate, setSoftCopyDate] = useState('');
-//   const [photoDate, setPhotoDate] = useState('');
-
-//   // Handle Date Picker
-//   const handleDateSelect = (type, date) => {
-//     if (type === 'scan') {
-//       setScanDate(date);
-//     } else if (type === 'hardCopy') {
-//       setHardCopyDate(date);
-//     } else if (type === 'softCopy') {
-//       setSoftCopyDate(date);
-//     } else if (type === 'photo') {
-//       setPhotoDate(date);
-//     }
-//     setShowCalendar(false); // Close the calendar after date selection
-//   };
-
-//   const handleSaveDates = async () => {
-//     try {
-//       // Correctly reference the ReportDates collection inside the auditId
-//       const reportDatesRef = doc(
-//         db,                        // Firestore instance
-//         'Profile',                 // Collection: Profile
-//         userId,                    // User ID (auditor's user ID)
-//         'acceptedAudits',          // Subcollection: acceptedAudits
-//         auditId,                   // Audit ID (the selected audit's ID)
-//         'ReportDates'              // Subcollection: ReportDates
-//       );
-
-//       // Save the selected dates into the ReportDates document
-//       await setDoc(reportDatesRef, {
-//         scan: scanDate || '',      // Save the scan date
-//         hard: hardCopyDate || '',  // Save the hard copy date
-//         soft: softCopyDate || '',  // Save the soft copy date
-//         photo: photoDate || '',    // Save the photo date
-//       });
-
-//       // Success alert
-//       alert('Dates saved successfully');
-//     } catch (error) {
-//       // Error handling
-//       console.error('Error saving dates: ', error);
-//       alert('Error saving dates');
-//     }
-//   };
-
-//   return (
-//     <View style={styles.container}>
-//       <Text style={styles.title}>Select Dates for Reports</Text>
-
-//       {/* Scan */}
-//       <View style={styles.row}>
-//         <Text style={styles.optionText}>Scan</Text>
-//         <TouchableOpacity style={styles.selectButton} onPress={() => setShowCalendar('scan')}>
-//           <Text style={styles.buttonText}>Select Date</Text>
-//         </TouchableOpacity>
-//       </View>
-
-//       {/* Hard Copy */}
-//       <View style={styles.row}>
-//         <Text style={styles.optionText}>Hard Copy</Text>
-//         <TouchableOpacity style={styles.selectButton} onPress={() => setShowCalendar('hardCopy')}>
-//           <Text style={styles.buttonText}>Select Date</Text>
-//         </TouchableOpacity>
-//       </View>
-
-//       {/* Soft Copy */}
-//       <View style={styles.row}>
-//         <Text style={styles.optionText}>Soft Copy</Text>
-//         <TouchableOpacity style={styles.selectButton} onPress={() => setShowCalendar('softCopy')}>
-//           <Text style={styles.buttonText}>Select Date</Text>
-//         </TouchableOpacity>
-//       </View>
-
-//       {/* Photo */}
-//       <View style={styles.row}>
-//         <Text style={styles.optionText}>Photo</Text>
-//         <TouchableOpacity style={styles.selectButton} onPress={() => setShowCalendar('photo')}>
-//           <Text style={styles.buttonText}>Select Date</Text>
-//         </TouchableOpacity>
-//       </View>
-
-//       {/* Date Picker Modal */}
-//       {showCalendar && (
-//         <Modal
-//           visible={showCalendar ? true : false}
-//           transparent={true}
-//           animationType="slide"
-//           onRequestClose={() => setShowCalendar(false)}
-//         >
-//           <View style={styles.modalContainer}>
-//             <View style={styles.modalContent}>
-//               <DateTimePicker
-//                 value={selectedDate}
-//                 mode="date" // Ensures only the date is shown (no time)
-//                 display="default"
-//                 onChange={(event, date) => {
-//                   setSelectedDate(date || new Date()); // Update the selected date
-//                   handleDateSelect(showCalendar, date || new Date()); // Pass selected date to the correct type
-//                 }}
-//               />
-//             </View>
-//           </View>
-//         </Modal>
-//       )}
-
-//       {/* Save Button */}
-//       <TouchableOpacity style={styles.saveButton} onPress={handleSaveDates}>
-//         <Text style={styles.saveButtonText}>Save Dates</Text>
-//       </TouchableOpacity>
-//     </View>
-//   );
-// };
-
-// const styles = StyleSheet.create({
-//   container: {
-//     flex: 1,
-//     padding: 16,
-//     justifyContent: 'center',
-//   },
-//   title: {
-//     fontSize: 24,
-//     fontWeight: 'bold',
-//     textAlign: 'center',
-//     marginBottom: 20,
-//   },
-//   row: {
-//     flexDirection: 'row',
-//     justifyContent: 'space-between',
-//     marginBottom: 20,
-//     alignItems: 'center',
-//   },
-//   optionText: {
-//     fontSize: 18,
-//     color: '#000',
-//   },
-//   selectButton: {
-//     padding: 10,
-//     backgroundColor: '#4A90E2',
-//     borderRadius: 5,
-//   },
-//   buttonText: {
-//     color: '#fff',
-//   },
-//   modalContainer: {
-//     flex: 1,
-//     justifyContent: 'center',
-//     alignItems: 'center',
-//     backgroundColor: 'rgba(0, 0, 0, 0.5)',
-//   },
-//   modalContent: {
-//     backgroundColor: '#fff',
-//     padding: 20,
-//     borderRadius: 10,
-//     width: '80%',
-//   },
-//   saveButton: {
-//     marginTop: 30,
-//     backgroundColor: '#28A745',
-//     padding: 15,
-//     alignItems: 'center',
-//     borderRadius: 5,
-//   },
-//   saveButtonText: {
-//     color: '#fff',
-//     fontSize: 16,
-//     fontWeight: 'bold',
-//   },
-// });
-
-// export default ReportScreen;
-
-
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Modal, StyleSheet } from 'react-native';
-import DateTimePicker from '@react-native-community/datetimepicker'; // Importing DateTimePicker
-import { db } from './firebaseConfig'; // Assuming you have firebaseConfig.js set up
-import { doc, setDoc } from 'firebase/firestore'; // Firestore functions
+import React, { useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import DropDownPicker from 'react-native-dropdown-picker';
+import { useNavigation } from '@react-navigation/native';
+import { db } from './firebaseConfig';
+import { doc, setDoc, updateDoc, getDoc, deleteDoc } from 'firebase/firestore';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const ReportScreen = ({ route }) => {
-  const [selectedDate, setSelectedDate] = useState(new Date()); // Default to current date
-  const [showCalendar, setShowCalendar] = useState(false);
-  const [auditId, setAuditId] = useState(route?.params?.auditId || ''); // Assuming auditId comes from route params
-  const [userId, setUserId] = useState(route?.params?.userId || ''); // Assuming userId comes from route params
-
-  // Dates for the four options
+  const navigation = useNavigation();
   const [scanDate, setScanDate] = useState('');
   const [hardCopyDate, setHardCopyDate] = useState('');
   const [softCopyDate, setSoftCopyDate] = useState('');
   const [photoDate, setPhotoDate] = useState('');
 
-  // Handle Date Picker
-  const handleDateSelect = (type, date) => {
-    if (type === 'scan') {
-      setScanDate(date);
-    } else if (type === 'hardCopy') {
-      setHardCopyDate(date);
-    } else if (type === 'softCopy') {
-      setSoftCopyDate(date);
-    } else if (type === 'photo') {
-      setPhotoDate(date);
-    }
-    setShowCalendar(false); // Close the calendar after date selection
-  };
+  const [auditId, setAuditId] = useState(route?.params?.auditId || '');
+  const [userId, setUserId] = useState(route?.params?.userId || '');
 
-  const handleSaveDates = async () => {
+  const [openScan, setOpenScan] = useState(false);
+  const [openHard, setOpenHard] = useState(false);
+  const [openSoft, setOpenSoft] = useState(false);
+  const [openPhoto, setOpenPhoto] = useState(false);
+
+  useEffect(() => {
+    const fetchSavedDates = async () => {
+      const docRef = doc(db, 'audits', auditId);
+      const docSnap = await getDoc(docRef);
+
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        if (data.reportDates) {
+          setScanDate(data.reportDates.scan || '');
+          setHardCopyDate(data.reportDates.hard || '');
+          setSoftCopyDate(data.reportDates.soft || '');
+          setPhotoDate(data.reportDates.photo || '');
+        }
+      }
+    };
+
+    if (auditId) {
+      fetchSavedDates();
+    }
+  }, [auditId]);
+
+
+  const handleSaveAndComplete = async () => {
     try {
-      // Correctly reference the ReportDates collection directly inside the 'audits' collection
-      const reportDatesRef = doc(
-        db,                        // Firestore instance
-        'audits',                  // Collection: audits
-        auditId,                   // Audit ID (the selected audit's ID)
-      );
-
-      // Save the selected dates into the ReportDates field inside the audit document
-      await setDoc(reportDatesRef, {
-        reportDates: {
-          scan: scanDate || '',      // Save the scan date
-          hard: hardCopyDate || '',  // Save the hard copy date
-          soft: softCopyDate || '',  // Save the soft copy date
-          photo: photoDate || '',    // Save the photo date
+      // Save Dates Functionality
+      const reportDatesRef = doc(db, 'audits', auditId);
+      await setDoc(
+        reportDatesRef,
+        {
+          reportDates: {
+            scan: scanDate || '',
+            hard: hardCopyDate || '',
+            soft: softCopyDate || '',
+            photo: photoDate || '',
+          },
         },
-      }, { merge: true });  // Merge to avoid overwriting existing fields
-
-      // Success alert
-      alert('Dates saved successfully');
+        { merge: true }
+      );
+  
+    
+  
+      // Complete Functionality
+      const userId = await AsyncStorage.getItem('userId');
+      if (!userId) {
+        console.error('User ID not found!');
+        return;
+      }
+  
+      await updateDoc(doc(db, 'audits', auditId), { isCompleted: true });
+  
+      const userProfileRef = doc(db, 'Profile', userId);
+      const userProfileSnap = await getDoc(userProfileRef);
+  
+      if (userProfileSnap.exists()) {
+        const userProfileData = userProfileSnap.data();
+        const completedCount = (userProfileData.completedCounter || 0) + 1;
+  
+        await updateDoc(userProfileRef, {
+          completedCounter: completedCount,
+        });
+  
+        const acceptedAuditsRef = doc(db, 'Profile', userId, 'acceptedAudits', auditId);
+        await deleteDoc(acceptedAuditsRef);
+  
+        await setDoc(doc(db, 'Profile', userId, 'completedAudits', auditId), {
+          auditId,
+          completedAt: new Date(),
+        });
+  
+        const ongoingCounter = Math.max(0, (userProfileData.ongoingCounter || 0) - 1);
+        await updateDoc(userProfileRef, {
+          ongoingCounter: ongoingCounter,
+        });
+  
+        
+        navigation.navigate('CompletedTasks', { auditId, isCompleted: true });
+      }
     } catch (error) {
-      // Error handling
-      console.error('Error saving dates: ', error);
-      alert('Error saving dates');
+      
+      alert('Error saving and completing audit');
     }
   };
+  
 
   return (
-    <View style={styles.container}>
+    <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>Select Dates for Reports</Text>
 
-      {/* Scan */}
       <View style={styles.row}>
         <Text style={styles.optionText}>Scan</Text>
-        <TouchableOpacity style={styles.selectButton} onPress={() => setShowCalendar('scan')}>
-          <Text style={styles.buttonText}>Select Date</Text>
-        </TouchableOpacity>
+        <DropDownPicker
+          open={openScan}
+          value={scanDate}
+          items={Array.from({ length: 31 }, (_, i) => ({
+            label: `2024-12-${i + 1}`,
+            value: `2024-12-${i + 1}`,
+          }))}
+          setOpen={setOpenScan}
+          setValue={setScanDate}
+          style={styles.dropdown}
+          zIndex={4000}
+          dropDownContainerStyle={{ zIndex: 4000 }}
+        />
       </View>
 
-      {/* Hard Copy */}
       <View style={styles.row}>
         <Text style={styles.optionText}>Hard Copy</Text>
-        <TouchableOpacity style={styles.selectButton} onPress={() => setShowCalendar('hardCopy')}>
-          <Text style={styles.buttonText}>Select Date</Text>
-        </TouchableOpacity>
+        <DropDownPicker
+          open={openHard}
+          value={hardCopyDate}
+          items={Array.from({ length: 31 }, (_, i) => ({
+            label: `2024-12-${i + 1}`,
+            value: `2024-12-${i + 1}`,
+          }))}
+          setOpen={setOpenHard}
+          setValue={setHardCopyDate}
+          style={styles.dropdown}
+          zIndex={3000}
+          dropDownContainerStyle={{ zIndex: 3000 }}
+        />
       </View>
 
-      {/* Soft Copy */}
       <View style={styles.row}>
         <Text style={styles.optionText}>Soft Copy</Text>
-        <TouchableOpacity style={styles.selectButton} onPress={() => setShowCalendar('softCopy')}>
-          <Text style={styles.buttonText}>Select Date</Text>
-        </TouchableOpacity>
+        <DropDownPicker
+          open={openSoft}
+          value={softCopyDate}
+          items={Array.from({ length: 31 }, (_, i) => ({
+            label: `2024-12-${i + 1}`,
+            value: `2024-12-${i + 1}`,
+          }))}
+          setOpen={setOpenSoft}
+          setValue={setSoftCopyDate}
+          style={styles.dropdown}
+          zIndex={2000}
+          dropDownContainerStyle={{ zIndex: 2000 }}
+        />
       </View>
 
-      {/* Photo */}
       <View style={styles.row}>
         <Text style={styles.optionText}>Photo</Text>
-        <TouchableOpacity style={styles.selectButton} onPress={() => setShowCalendar('photo')}>
-          <Text style={styles.buttonText}>Select Date</Text>
-        </TouchableOpacity>
+        <DropDownPicker
+          open={openPhoto}
+          value={photoDate}
+          items={Array.from({ length: 31 }, (_, i) => ({
+            label: `2024-12-${i + 1}`,
+            value: `2024-12-${i + 1}`,
+          }))}
+          setOpen={setOpenPhoto}
+          setValue={setPhotoDate}
+          style={styles.dropdown}
+          zIndex={1000}
+          dropDownContainerStyle={{ zIndex: 1000 }}
+        />
       </View>
 
-      {/* Date Picker Modal */}
-      {showCalendar && (
-        <Modal
-          visible={showCalendar ? true : false}
-          transparent={true}
-          animationType="slide"
-          onRequestClose={() => setShowCalendar(false)}
-        >
-          <View style={styles.modalContainer}>
-            <View style={styles.modalContent}>
-              <DateTimePicker
-                value={selectedDate}
-                mode="date" // Ensures only the date is shown (no time)
-                display="default"
-                onChange={(event, date) => {
-                  setSelectedDate(date || new Date()); // Update the selected date
-                  handleDateSelect(showCalendar, date || new Date()); // Pass selected date to the correct type
-                }}
-              />
-            </View>
-          </View>
-        </Modal>
-      )}
+      <TouchableOpacity style={styles.saveAndCompleteButton} onPress={handleSaveAndComplete}>
+  <Text style={styles.saveAndCompleteButtonText}>Save & Complete</Text>
+</TouchableOpacity>
 
-      {/* Save Button */}
-      <TouchableOpacity style={styles.saveButton} onPress={handleSaveDates}>
-        <Text style={styles.saveButtonText}>Save Dates</Text>
-      </TouchableOpacity>
-    </View>
+    </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    flexGrow: 1,
     padding: 16,
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
+    backgroundColor: '#f5f5f5',
   },
   title: {
-    fontSize: 24,
-    fontWeight: 'bold',
+    fontSize: 26,
+    fontWeight: '700',
+    color: '#333',
     textAlign: 'center',
-    marginBottom: 20,
+    marginVertical: 20,
   },
   row: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 20,
+    marginBottom: 16,
     alignItems: 'center',
+    justifyContent: 'flex-start',
   },
   optionText: {
     fontSize: 18,
-    color: '#000',
+    color: '#555',
+    marginRight: 12,
+    minWidth: 120,
   },
-  selectButton: {
-    padding: 10,
-    backgroundColor: '#4A90E2',
-    borderRadius: 5,
-  },
-  buttonText: {
-    color: '#fff',
-  },
-  modalContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  modalContent: {
+  dropdown: {
+    width: 220,
+    height: 45,
     backgroundColor: '#fff',
-    padding: 20,
-    borderRadius: 10,
-    width: '80%',
+    borderRadius: 8,
+    borderColor: '#ddd',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
   },
-  saveButton: {
+  saveAndCompleteButton: {
     marginTop: 30,
-    backgroundColor: '#28A745',
-    padding: 15,
+    backgroundColor: '#0071c5',
+    paddingVertical: 14,
+    borderRadius: 8,
     alignItems: 'center',
-    borderRadius: 5,
+    marginBottom: 12,
   },
-  saveButtonText: {
+  saveAndCompleteButtonText: {
     color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
+    fontSize: 18,
+    fontWeight: '600',
   },
+  
 });
 
 export default ReportScreen;

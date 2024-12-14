@@ -227,12 +227,12 @@ const Ongoing = ({ navigation }) => {
             </View>
 
             <View style={styles.buttonsContainer}>
-              <TouchableOpacity
+              {/* <TouchableOpacity
                 style={styles.completeButton}
                 onPress={() => handleComplete(audit.id)}
               >
                 <Text style={styles.completeButtonText}>Complete</Text>
-              </TouchableOpacity>
+              </TouchableOpacity> */}
 
               <TouchableOpacity
                 style={styles.removeButton}

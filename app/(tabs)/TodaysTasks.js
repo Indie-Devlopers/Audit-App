@@ -1,41 +1,51 @@
-// import React, { useEffect, useState } from "react";
-// import {
-//   View,
-//   Text,
-//   StyleSheet,
-//   FlatList,
-//   TouchableOpacity,
-//   Alert,
-// } from "react-native";
-// import { getFirestore, doc, getDocs, query, collection, where, updateDoc } from "firebase/firestore";
-// import { app } from "./firebaseConfig"; // Firebase configuration
-// import DateTimePicker from "@react-native-community/datetimepicker";
-// import { Timestamp } from "firebase/firestore";
-// // Initialize Firestore
+// import React, { useState, useEffect } from "react";
+// import { View, Text, TouchableOpacity, StyleSheet, FlatList, Alert } from "react-native";
+// import { getFirestore, doc, getDocs, collection, updateDoc, query, where } from "firebase/firestore";
+// import AsyncStorage from "@react-native-async-storage/async-storage";
+// import { app } from "./firebaseConfig"; // Your Firebase config file
+
 // const db = getFirestore(app);
 
-// export default function TodaysTasks({ navigation }) {
+// export default function TodaysTasks() {
 //   const [todaysAudits, setTodaysAudits] = useState([]);
-//   const [showClock, setShowClock] = useState(false);
 //   const [selectedAudit, setSelectedAudit] = useState(null);
 //   const [selectedTime, setSelectedTime] = useState(new Date());
-
+//   const [showClock, setShowClock] = useState(false);
 //   const todayDate = new Date().toISOString().split("T")[0]; // Get today's date in YYYY-MM-DD format
 
 //   useEffect(() => {
-//     fetchTodaysAudits();
+//     const getUserId = async () => {
+//       try {
+//         const userId = await AsyncStorage.getItem("userId");
+//         if (userId) {
+//           fetchTodaysAudits(userId); // Fetch today's audits for the logged-in user
+//         } else {
+//           console.error("User ID not found in AsyncStorage");
+//         }
+//       } catch (error) {
+//         console.error("Error fetching user ID:", error);
+//       }
+//     };
+
+//     getUserId(); // Call function to get user ID and fetch audits
 //   }, []);
 
-//   const fetchTodaysAudits = async () => {
+//   const fetchTodaysAudits = async (userId) => {
 //     try {
-//       const auditsRef = collection(db, "audits");
-//       const q = query(auditsRef, where("date", "==", todayDate)); // Assuming "date" is the field storing the task date
+//       const userRef = doc(db, "Profile", userId);
+//       const acceptedAuditsRef = collection(userRef, "acceptedAudits");
+
+//       const q = query(acceptedAuditsRef, where("date", "==", todayDate));
 //       const querySnapshot = await getDocs(q);
 
 //       const audits = [];
 //       querySnapshot.forEach((doc) => {
 //         audits.push({ id: doc.id, ...doc.data() });
 //       });
+
+//       if (audits.length === 0) {
+//         console.log("No audits for today");
+//       }
 
 //       setTodaysAudits(audits);
 //     } catch (error) {
@@ -51,51 +61,32 @@
 //   const handleComplete = async (audit) => {
 //     try {
 //       const auditRef = doc(db, "audits", audit.id);
-//       await updateDoc(auditRef, {
-//         isComplete: true,
-//       });
+//       await updateDoc(auditRef, { isComplete: true });
 
 //       Alert.alert("Task Completed", "This task has been marked as completed.");
-//       fetchTodaysAudits(); // Refresh the list
+//       fetchTodaysAudits(); // Refresh the list of today's audits
 //     } catch (error) {
 //       console.error("Error completing audit:", error);
 //     }
 //   };
 
-//   // const onTimeChange = (event, selectedTime) => {
-//   //   setShowClock(false);
-
-//   //   if (event.type === "set" && selectedTime) {
-//   //     Alert.alert("Time Set", `Time for this audit is set to ${selectedTime.toLocaleTimeString()}`);
-//   //     // Optionally, update the time in the database
-//   //   }
-//   // };
-
 //   const onTimeChange = async (event, selectedTime) => {
 //     setShowClock(false);
-  
+
 //     if (event.type === "set" && selectedTime) {
-//       // Convert the selected time to a Firebase Timestamp
-//       const firebaseTimestamp = Timestamp.fromDate(selectedTime);
-      
-//       // Update the selected time in Firestore for the current audit
-//       try {
-//         const auditRef = doc(db, "audits", selectedAudit.id);
-//         await updateDoc(auditRef, {
-//           time: firebaseTimestamp, // Store the time as a timestamp
-//         });
-  
-//         Alert.alert("Time Set", `Time for this audit is set to ${selectedTime.toLocaleTimeString()}`);
-//       } catch (error) {
-//         console.error("Error setting time for audit:", error);
-//       }
+//       const auditRef = doc(db, "audits", selectedAudit.id);
+//       await updateDoc(auditRef, {
+//         time: selectedTime,
+//       });
+
+//       Alert.alert("Time Set", `Time for this audit is set to ${selectedTime.toLocaleTimeString()}`);
 //     }
 //   };
+
 //   const renderAudit = ({ item }) => (
 //     <View style={styles.auditCard}>
 //       <Text style={styles.auditText}>Client ID: {item.clientId}</Text>
 //       <Text style={styles.auditText}>Branch ID: {item.branchId}</Text>
-//       {/* <Text style={styles.auditText}>Accepted By: {item.authored}</Text> */}
 //       <Text style={styles.auditText}>Date: {item.date}</Text>
 
 //       <View style={styles.buttonContainer}>
@@ -186,55 +177,56 @@
 
 
 
-import React, { useEffect, useState } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  TouchableOpacity,
-  Alert,
-} from "react-native";
-import { getFirestore, collection, query, where, getDocs, doc, updateDoc, Timestamp } from "firebase/firestore";
-import { app } from "./firebaseConfig"; // Firebase configuration
-import { getAuth } from "firebase/auth"; // Firebase Authentication for getting the logged-in user ID
-import DateTimePicker from "@react-native-community/datetimepicker";
 
-// Initialize Firestore
+import React, { useState, useEffect } from "react";
+import { View, Text, TouchableOpacity, StyleSheet, FlatList, Alert } from "react-native";
+import { getFirestore, doc, getDocs, collection, updateDoc, query, where } from "firebase/firestore";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { app } from "./firebaseConfig"; // Your Firebase config file
+import DateTimePicker from '@react-native-community/datetimepicker';
+
 const db = getFirestore(app);
 
 export default function TodaysTasks() {
   const [todaysAudits, setTodaysAudits] = useState([]);
-  const [showClock, setShowClock] = useState(false);
   const [selectedAudit, setSelectedAudit] = useState(null);
   const [selectedTime, setSelectedTime] = useState(new Date());
-
-  const todayDate = new Date().toISOString().split("T")[0]; // Get today's date in YYYY-MM-DD format
-  const auth = getAuth(); // Firebase Auth instance to get logged-in user info
-  const auditorId = auth.currentUser?.uid; // Get the logged-in user's UID
+  const [showClock, setShowClock] = useState(false);
+  const todayDate = new Date().toISOString().split("T")[0]; 
 
   useEffect(() => {
-    if (auditorId) {
-      fetchTodaysAudits();
-    }
-  }, [auditorId]);
+    const getUserId = async () => {
+      try {
+        const userId = await AsyncStorage.getItem("userId");
+        if (userId) {
+          fetchTodaysAudits(userId); 
+        } else {
+          console.error("User ID not found in AsyncStorage");
+        }
+      } catch (error) {
+        console.error("Error fetching user ID:", error);
+      }
+    };
 
-  // Fetch audits for today based on the logged-in user's auditorId
-  const fetchTodaysAudits = async () => {
+    getUserId(); 
+  }, []);
+
+  const fetchTodaysAudits = async (userId) => {
     try {
-      // Firestore path: /Profile/{auditorId}/acceptedAudits
-      const acceptedAuditsRef = collection(db, "Profile", auditorId, "acceptedAudits");
+      const userRef = doc(db, "Profile", userId);
+      const acceptedAuditsRef = collection(userRef, "acceptedAudits");
 
-      // Query to find the audits that match today's date
       const q = query(acceptedAuditsRef, where("date", "==", todayDate));
-
       const querySnapshot = await getDocs(q);
 
       const audits = [];
       querySnapshot.forEach((doc) => {
-        const auditData = doc.data();
-        audits.push({ id: doc.id, ...auditData });
+        audits.push({ id: doc.id, ...doc.data() });
       });
+
+      if (audits.length === 0) {
+        console.log("No audits for today");
+      }
 
       setTodaysAudits(audits);
     } catch (error) {
@@ -242,55 +234,48 @@ export default function TodaysTasks() {
     }
   };
 
-  // Handle setting time for a selected audit
   const handleSetTime = (audit) => {
     setSelectedAudit(audit);
     setShowClock(true);
   };
 
-  // Mark audit as completed
   const handleComplete = async (audit) => {
     try {
-      const auditRef = doc(db, "Profile", auditorId, "acceptedAudits", audit.id);
-      await updateDoc(auditRef, {
-        isComplete: true,
-      });
+      const auditRef = doc(db, "audits", audit.id);
+      await updateDoc(auditRef, { isComplete: true });
 
       Alert.alert("Task Completed", "This task has been marked as completed.");
-      fetchTodaysAudits(); // Refresh the list
+      fetchTodaysAudits(); // Refresh the list of today's audits
     } catch (error) {
       console.error("Error completing audit:", error);
     }
   };
 
-  // Handle time selection
   const onTimeChange = async (event, selectedTime) => {
     setShowClock(false);
 
     if (event.type === "set" && selectedTime) {
-      // Convert the selected time to a Firebase Timestamp
-      const firebaseTimestamp = Timestamp.fromDate(selectedTime);
+      const auditRef = doc(db, "Profile", selectedAudit.userId);
+      const acceptedAuditRef = doc(auditRef, "acceptedAudits", selectedAudit.id);
 
-      // Update the selected time in Firestore for the current audit
-      try {
-        const auditRef = doc(db, "Profile", auditorId, "acceptedAudits", selectedAudit.id);
-        await updateDoc(auditRef, {
-          time: firebaseTimestamp, // Store the time as a timestamp
-        });
+      // Save the selected time along with isCompleted and auditId
+      await updateDoc(acceptedAuditRef, {
+        time: selectedTime,
+        isCompleted: false, // You can set isCompleted to false initially if needed
+        auditId: selectedAudit.id,
+      });
 
-        Alert.alert("Time Set", `Time for this audit is set to ${selectedTime.toLocaleTimeString()}`);
-      } catch (error) {
-        console.error("Error setting time for audit:", error);
-      }
+      Alert.alert("Time Set", `Time for this audit is set to ${selectedTime.toLocaleTimeString()}`);
     }
   };
 
-  // Render each audit
   const renderAudit = ({ item }) => (
     <View style={styles.auditCard}>
-      <Text style={styles.auditText}>Client ID: {item.clientId}</Text>
+      {/* <Text style={styles.auditText}>Client ID: {item.clientId}</Text> */}
       <Text style={styles.auditText}>Branch ID: {item.branchId}</Text>
       <Text style={styles.auditText}>Date: {item.date}</Text>
+      <Text style={styles.auditText}>name: {item.name}</Text>
+      <Text style={styles.auditText}>City: {item.City}</Text>
 
       <View style={styles.buttonContainer}>
         <TouchableOpacity
