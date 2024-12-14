@@ -68,6 +68,9 @@ function BottomTabs({ navigation }) {
           ),
         }}
       />
+
+
+
       <Tab.Screen
         name="Profile"
         component={ProfileScreen}
@@ -98,7 +101,8 @@ export default function App() {
           component={BottomTabs}
           options={{ headerShown: false }}
         />
-        {/* Additional Screens not part of Bottom Tabs */}
+
+      
         <Stack.Screen name="Ongoing" component={Ongoing} />
         <Stack.Screen name="ReportScreen" component={ReportScreen} />
         <Stack.Screen name="CompletedTasks" component={CompletedTasks} />
