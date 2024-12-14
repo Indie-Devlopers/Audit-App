@@ -57,7 +57,30 @@ function BottomTabs({ navigation }) {
         tabBarStyle: { height: 60 },
       }}
     >
- 
+  <Tab.Screen
+  name="DashBoard"
+  component={HomeScreen}
+  options={{
+    headerShown: false, // If you also want to hide the header
+    tabBarLabel: () => null, // Completely removes the label
+    tabBarIcon: ({ color, size }) => (
+      <Ionicons name="home" color={color} size={size} />
+    ),
+  }}
+/>
+
+
+
+      
+      {/* <Tab.Screen
+        name="ReportScreen"
+        component={ReportScreen}  
+        options={{
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="document-text" color={color} size={size} />
+          ),
+        }}
+      /> */}
       
       <Tab.Screen
         name="CompletedTasks"
@@ -68,9 +91,6 @@ function BottomTabs({ navigation }) {
           ),
         }}
       />
-
-
-
       <Tab.Screen
         name="Profile"
         component={ProfileScreen}
@@ -101,8 +121,7 @@ export default function App() {
           component={BottomTabs}
           options={{ headerShown: false }}
         />
-
-      
+        {/* Additional Screens not part of Bottom Tabs */}
         <Stack.Screen name="Ongoing" component={Ongoing} />
         <Stack.Screen name="ReportScreen" component={ReportScreen} />
         <Stack.Screen name="CompletedTasks" component={CompletedTasks} />
