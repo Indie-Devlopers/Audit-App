@@ -29,3 +29,15 @@ const styles = StyleSheet.create({
     width: 128,
   }
 });
+
+
+
+
+
+
+
+
+
+ // "eas": {
+      //   "projectId": "de5bc538-3124-40b1-a91f-c1eba0842cc9"
+      // }
