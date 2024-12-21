@@ -1,405 +1,35 @@
-// import React, { useState, useEffect } from 'react';  // Make sure it's only here, not multiple times
-
-// import { View, Text, TouchableOpacity, StyleSheet, ScrollView, FlatList, Dimensions } from "react-native";
-// import { Ionicons } from "@expo/vector-icons";
-// import { firebase } from './firebaseConfig';
-// import AsyncStorage from '@react-native-async-storage/async-storage';
-// import { getDocs, collection, updateDoc, doc, arrayUnion } from "firebase/firestore";
-// import { db } from "./firebaseConfig";
-// import AuditDetails from "./AuditDetails";
-// import { useEffect, useState } from "react";
-// import AsyncStorage from '@react-native-async-storage/async-storage';
-
-// const { width, height } = Dimensions.get("window");
-
-// const HomeScreen = ({ navigation, route }) => {
-//   const [userId, setUserId] = useState(null);
-//   const userEmail = route?.params?.userEmail || "";
-//   const [greeting, setGreeting] = useState("");
-//   const [userName, setUserName] = useState("");
-//   const [audits, setAudits] = useState([]);
-//   const [ongoingAudits, setOngoingAudits] = useState([]);
-//   const [todayTasks, setTodayTasks] = useState([]);
-//   const [completedTasks, setCompletedTasks] = useState([]);
-//   const [clientsData, setClientsData] = useState({});
-//   const [branchesData, setBranchesData] = useState([]);
-//   const [selectedStatus, setSelectedStatus] = useState("");
-//   const [searchTerm, setSearchTerm] = useState("");
-//   const [filterLocation, setFilterLocation] = useState("");
-//   // const [userId, setUserId] = useState(""); // To store logged-in user's ID
- 
-
-  
-
-//   useEffect(() => {
- 
-//     const loadData = async () => {
-//       try {
-//         // Fetch audits from Firebase collection 'audits'
-//         const auditRef = collection(db, "audits");
-//         const snapshot = await getDocs(auditRef);
-//         const auditData = snapshot.docs.map((doc) => ({
-//           id: doc.id,
-//           ...doc.data(),
-//         }));
-//         setAudits(auditData);
-
-//         // Fetch ongoing audits from AsyncStorage
-//         const ongoingAuditsData = await AsyncStorage.getItem("ongoingAudits");
-//         if (ongoingAuditsData) {
-//           setOngoingAudits(JSON.parse(ongoingAuditsData));
-//         }
-
-//         // Fetch clients from 'clients' collection
-//         const clientsRef = collection(db, "clients");
-//         const clientSnapshot = await getDocs(clientsRef);
-//         const clients = {};
-//         clientSnapshot.docs.forEach((doc) => {
-//           clients[doc.id] = doc.data().name;
-//         });
-//         setClientsData(clients);
-
-//         // Fetch branches from 'branches' collection
-//         const branchesRef = collection(db, "branches");
-//         const branchSnapshot = await getDocs(branchesRef);
-//         const branches = branchSnapshot.docs.map((doc) => ({
-//           id: doc.id,
-//           ...doc.data(),
-//         }));
-//         setBranchesData(branches);
-
-//         // Fetch tasks from 'tasks' collection
-//         const tasksRef = collection(db, "tasks");
-//         const taskSnapshot = await getDocs(tasksRef);
-//         const taskData = taskSnapshot.docs.map((doc) => ({
-//           id: doc.id,
-//           ...doc.data(),
-//         }));
-//         setTodayTasks(taskData.filter(task => task.status === 'today'));
-//         setCompletedTasks(taskData.filter(task => task.status === 'completed'));
-
-//         // Fetch the logged-in user's ID
-//         const userDoc = await firebase.firestore().collection('Profile').where("email", "==", userEmail).get();
-//         if (!userDoc.empty) {
-//           const userId = userDoc.docs[0].id;
-//           setUserId(userId); // Set the logged-in user's document ID
-//         }
-
-//       } catch (error) {
-//         console.error("Error fetching data:", error);
-//       }
-
-//       // Set greeting based on time
-//       const currentTime = new Date().getHours();
-//       setGreeting(currentTime < 12 ? "Good Morning" : currentTime < 19 ? "Good Afternoon " : "Good Evening");
-//       setUserName(userEmail ? userEmail.split("@")[0] : "User");
-//     };
-
-//     loadData();
-//   }, [userEmail]);
-
-//   const getAvatar = (Client) => {
-//     const firstLetter = Client ? Client.charAt(0).toUpperCase() : "Ⓐ";
-//     return firstLetter;
-//   };
-
-//   const acceptAudit = async (auditId) => {
-//     try {
-//       // Update the audit with auditorId and isAccepted status
-//       const auditRef = doc(db, "audits", auditId);
-//       await updateDoc(auditRef, {
-//         auditorId: userId, // Set the auditorId to the logged-in user's ID
-//         isAccepted: true, // Mark the audit as accepted
-//       });
-  
-//       // Update the logged-in user's Profile with the accepted auditId
-//       if (userId) {
-//         const userRef = doc(db, "Profile", userId); // Reference to the specific user document
-//         await updateDoc(userRef, {
-//           AcceptedAudits: arrayUnion(auditId), // Add the auditId to the AcceptedAudits array
-//         });
-  
-//         console.log("Audit accepted successfully!");
-//       } else {
-//         console.log("User ID is not available.");
-//       }
-//     } catch (error) {
-//       console.error("Error accepting audit:", error);
-//     }
-//   };
-  
-
-//   const completeAudit = async (auditId) => {
-//     try {
-//       // Fetch the audit data to check if it's accepted
-//       const auditRef = doc(db, "audits", auditId);
-//       const auditSnapshot = await getDoc(auditRef);
-//       const auditData = auditSnapshot.data();
-  
-//       // Only allow marking as complete if isAccepted is true
-//       if (auditData.isAccepted) {
-//         // Update the audit to mark it as complete
-//         await updateDoc(auditRef, {
-//           isCompleted: true, // Set the isCompleted field to true
-//         });
-  
-//         console.log("Audit marked as complete!");
-//       } else {
-//         console.log("Audit is not accepted, cannot mark as complete.");
-//       }
-//     } catch (error) {
-//       console.error("Error completing audit:", error);
-//     }
-//   };
-  
-
-//   // Filter the audits based on status, location, and search term
-//   const filteredAudits = audits.filter((audit) => {
-//     if (selectedStatus && audit.status !== selectedStatus) {
-//       return false;
-//     }
-//     if (filterLocation && audit.location !== filterLocation) {
-//       return false;
-//     }
-//     if (searchTerm && !audit.name.toLowerCase().includes(searchTerm.toLowerCase())) {
-//       return false;
-//     }
-//     return true;
-//   });
-
-//   return (
-    
-//     <View style={styles.fullScreen}>
-//          <View>
-//       {userId ? (
-//         <Text>Welcome, User ID: {userId}</Text>
-//       ) : (
-//         <Text>Loading...</Text>
-//       )}
-//     </View>
-//       <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
-//         <View style={styles.greetingContainer}>
-//           <Text style={styles.greetingText}>{greeting}, {userName}</Text>
-//         </View>
-
-//         <View style={styles.container}>
-//           {/* Task Boxes Section */}
-//           <View style={styles.taskBoxesContainer}>
-//             <TouchableOpacity style={styles.taskBox}>
-//               <TouchableOpacity onPress={() => navigation.navigate("UserInfo")}>
-//                 <Ionicons name="calendar" size={30} color="black" style={styles.icon} />
-//                 <Text style={styles.taskBoxTitle}>Today's Tasks</Text>
-//                 <Text style={styles.taskBoxContent}>{todayTasks.length} Tasks</Text>
-//               </TouchableOpacity>
-//             </TouchableOpacity>
-
-//             <TouchableOpacity style={styles.taskBox}>
-//               <TouchableOpacity onPress={() => navigation.navigate("Ongoing")}>
-//                 <Ionicons name="play-circle" size={30} color="black" style={styles.icon} />
-//                 <Text style={styles.taskBoxTitle}>Ongoing Tasks</Text>
-//                 <Text style={styles.taskBoxContent}>{ongoingAudits.length} Tasks</Text>
-//               </TouchableOpacity>
-//             </TouchableOpacity>
-//           </View>
-
-//           <TouchableOpacity style={styles.taskBox2}>
-//             <TouchableOpacity onPress={() => navigation.navigate("Completed-Tasks")}>
-//               <Ionicons name="checkmark-circle" size={30} color="black" style={styles.icon} />
-//               <Text style={styles.taskBoxTitle}>Completed Tasks</Text>
-//               <Text style={styles.taskBoxContent}>{completedTasks.length} Tasks</Text>
-//             </TouchableOpacity>
-//           </TouchableOpacity>
-
-//           {/* Upcoming Audits Section */}
-//           <View style={styles.upcomingAuditsContainer}>
-//             <Text style={styles.upcomingAuditsText}>Upcoming Audits</Text>
-
-//             <FlatList
-//               data={filteredAudits}
-//               renderItem={({ item }) => {
-//                 const clientName = clientsData[item.clientId] || "Unknown Client";
-//                 const branch = branchesData.find((branch) => branch.id === item.branchId);
-//                 const branchCity = branch ? branch.city : "Unknown Location";
-
-//                 return (
-//                   <TouchableOpacity
-//                     style={styles.auditItem}
-//                     onPress={() => navigation.navigate("AuditDetails", { audit: item })}
-//                   >
-//                     <View style={styles.clientImageContainer}>
-//                       <Text style={styles.clientImage}>{getAvatar(item.auditorId)}</Text>
-//                     </View>
-//                     <View style={styles.auditContent}>
-//                       <Text style={styles.auditName}>{item.name}</Text>
-//                       <Text style={styles.auditLocation}>{clientName}</Text>
-//                       <Text style={styles.auditLocation}>{branchCity}</Text>
-//                     </View>
-//                     <View style={styles.actionsContainer}>
-                    
-//                         <TouchableOpacity
-//                           style={styles.acceptButton}
-//                           onPress={() => navigation.navigate("AuditDetails", { audit: item })}
-//                         >
-//                           <Text style={styles.buttonText}>See More</Text>
-//                         </TouchableOpacity>
-                      
-//                     </View>
-//                   </TouchableOpacity>
-//                 );
-//               }}
-//               keyExtractor={(item) => item.id}
-//             />
-//           </View>
-//         </View>
-//       </ScrollView>
-//     </View>
-//   );
-// };
-
-// const styles = StyleSheet.create({
-//   fullScreen: {
-//     flex: 1,
-//     backgroundColor: "#f5f5f5",
-//   },
-//   greetingContainer: {
-//     padding: 15,
-//     backgroundColor: "#6200ea",
-//   },
-//   greetingText: {
-//     color: "#fff",
-//     fontSize: 18,
-//     fontWeight: "bold",
-//   },
-//   container: {
-//     padding: 20,
-//   },
-//   taskBoxesContainer: {
-//     flexDirection: "row",
-//     justifyContent: "space-between",
-//     marginBottom: 20,
-//   },
-//   taskBox: {
-//     width: (width - 60) / 2,
-//     backgroundColor: "#fff",
-//     padding: 15,
-//     borderRadius: 10,
-//     elevation: 3,
-//     alignItems: "center",
-//     justifyContent: "center",
-//   },
-//   taskBoxTitle: {
-//     fontSize: 16,
-//     fontWeight: "bold",
-//     marginTop: 10,
-//   },
-//   taskBoxContent: {
-//     fontSize: 14,
-//     marginTop: 5,
-//   },
-//   taskBox2: {
-//     backgroundColor: "#fff",
-//     padding: 15,
-//     borderRadius: 10,
-//     elevation: 3,
-//     marginBottom: 20,
-//   },
-//   upcomingAuditsContainer: {
-//     backgroundColor: "#fff",
-//     padding: 20,
-//     borderRadius: 10,
-//     elevation: 3,
-//   },
-//   upcomingAuditsText: {
-//     fontSize: 18,
-//     fontWeight: "bold",
-//     marginBottom: 15,
-//   },
-//   auditItem: {
-//     flexDirection: "row",
-//     justifyContent: "space-between",
-//     padding: 10,
-//     borderBottomWidth: 1,
-//     borderColor: "#ddd",
-//   },
-//   clientImageContainer: {
-//     width: 50,
-//     height: 50,
-//     borderRadius: 50,
-//     backgroundColor: "#6200ea",
-//     justifyContent: "center",
-//     alignItems: "center",
-//   },
-//   clientImage: {
-//     color: "#fff",
-//     fontSize: 22,
-//     fontWeight: "bold",
-//   },
-//   auditContent: {
-//     flex: 1,
-//     paddingLeft: 10,
-//   },
-//   auditName: {
-//     fontSize: 16,
-//     fontWeight: "bold",
-//   },
-//   auditLocation: {
-//     fontSize: 14,
-//     color: "#888",
-//   },
-//   actionsContainer: {
-//     justifyContent: "center",
-//     alignItems: "center",
-//   },
-//   acceptButton: {
-//     backgroundColor: "#4caf50",
-//     padding: 10,
-//     borderRadius: 5,
-//   },
-//   completeButton: {
-//     backgroundColor: "#4caf50",
-//     padding: 10,
-//     borderRadius: 5,
-//   },
-//   buttonText: {
-//     color: "#fff",
-//     fontSize: 14,
-//     fontWeight: "bold",
-//   },
-// });
-
-// export default HomeScreen;
-
-
-
-
-
-
-
-
-
-
-// import React, { useState, useEffect } from "react";
-// import { View, Text, TouchableOpacity, StyleSheet, ScrollView, FlatList, Dimensions } from "react-native";
-// import { Ionicons } from "@expo/vector-icons";
-// import { firebase } from "./firebaseConfig";
+// import React, { useState, useEffect } from 'react';
+// import { View, Text, TouchableOpacity, ScrollView, FlatList, Modal, TextInput, StyleSheet } from 'react-native';
+// import { Ionicons,MaterialIcons } from '@expo/vector-icons';
+// import { collection, getDocs, doc, updateDoc, arrayUnion } from 'firebase/firestore';
+// import { db } from './firebaseConfig';
 // import AsyncStorage from "@react-native-async-storage/async-storage";
-// import { getDocs, collection, doc, updateDoc, arrayUnion } from "firebase/firestore";
-// import { db } from "./firebaseConfig";
+// import { fetchCompletedAuditsCount } from "./CompletedTasks";
+// import { auth } from './firebaseConfig'; // Correct import for auth
 
-// const { width } = Dimensions.get("window");
 
-// const HomeScreen = ({ navigation, route }) => {
-//   const userEmail = route?.params?.userEmail || "";
-//   const [greeting, setGreeting] = useState("");
-//   const [userName, setUserName] = useState("");
+// const HomeS = ({ navigation, route }) => {
+//   const [userId, setUserId] = useState(null);
+//   const userEmail = route?.params?.userEmail || '';
+//   const [userDetails, setUserDetails] = useState(null);
+//   const [greeting, setGreeting] = useState('');
 //   const [audits, setAudits] = useState([]);
-//   const [ongoingAudits, setOngoingAudits] = useState([]);
-//   const [todayTasks, setTodayTasks] = useState([]);
-//   const [completedTasks, setCompletedTasks] = useState([]);
 //   const [clientsData, setClientsData] = useState({});
 //   const [branchesData, setBranchesData] = useState([]);
+//   const [ongoingCounter, setOngoingCounter] = useState(0); 
+//   const [filterModalVisible, setFilterModalVisible] = useState(false);
+//   const [filters, setFilters] = useState({
+//     date: '',    city: '',    state: '',  });
+//   const [originalAudits, setOriginalAudits] = useState([]); // To store unfiltered audits
+//   const [hasAcceptedAllAudits, setHasAcceptedAllAudits] = useState(false);
+//   const filterAudits = async () => {
+//     if (!userId) return [];
+
+//   const acceptedAudits= await getacceptedAudits(userId);
+//   const completedAudits = await getcompletedAudits(userId); 
 
 //   useEffect(() => {
+ 
 //     const loadData = async () => {
 //       try {
 //         // Fetch audits from Firebase collection 'audits'
@@ -411,358 +41,71 @@
 //         }));
 //         setAudits(auditData);
 
-//         // Fetch ongoing audits from AsyncStorage
-//         const ongoingAuditsData = await AsyncStorage.getItem("ongoingAudits");
-//         if (ongoingAuditsData) {
-//           setOngoingAudits(JSON.parse(ongoingAuditsData));
-//         }
+//           const clientsRef = collection(db, 'clients');
+//           const clientSnapshot = await getDocs(clientsRef);
+//           const clients = {};
+//           clientSnapshot.docs.forEach((doc) => {
+//             clients[doc.id] = doc.data().name;
+//           });
+//           setClientsData(clients);
 
-//         // Fetch clients from 'clients' collection
-//         const clientsRef = collection(db, "clients");
-//         const clientSnapshot = await getDocs(clientsRef);
-//         const clients = {};
-//         clientSnapshot.docs.forEach((doc) => {
-//           clients[doc.id] = doc.data().name;
-//         });
-//         setClientsData(clients);
-
-//         // Fetch branches from 'branches' collection
-//         const branchesRef = collection(db, "branches");
-//         const branchSnapshot = await getDocs(branchesRef);
-//         const branches = branchSnapshot.docs.map((doc) => ({
-//           id: doc.id,
-//           ...doc.data(),
-//         }));
-//         setBranchesData(branches);
-
-//         // Fetch tasks from 'tasks' collection
-//         const tasksRef = collection(db, "tasks");
-//         const taskSnapshot = await getDocs(tasksRef);
-//         const taskData = taskSnapshot.docs.map((doc) => ({
-//           id: doc.id,
-//           ...doc.data(),
-//         }));
-//         setTodayTasks(taskData.filter((task) => task.status === "today"));
-//         setCompletedTasks(taskData.filter((task) => task.status === "completed"));
-//       } catch (error) {
-//         console.error("Error fetching data:", error);
-//       }
-
-//       // Set greeting based on time
-//       const currentTime = new Date().getHours();
-//       setGreeting(currentTime < 12 ? "Good Morning" : currentTime < 19 ? "Good Afternoon " : "Good Evening");
-//       setUserName(userEmail ? userEmail.split("@")[0] : "User");
-//     };
-
-//     loadData();
-//   }, [userEmail]);
-
-//   const getAvatar = (Client) => {
-//     const firstLetter = Client ? Client.charAt(0).toUpperCase() : "Ⓐ";
-//     return firstLetter;
-//   };
-
-//   const acceptAudit = async (auditId) => {
-//     try {
-//       // Retrieve userId from AsyncStorage or any other source
-//       const userId = await AsyncStorage.getItem("userId");
-
-//       if (!userId) {
-//         console.error("User ID not found");
-//         return;
-//       }
-
-//       // Update the auditorId in the audits collection
-//       const auditRef = doc(db, "audits", auditId);
-//       await updateDoc(auditRef, {
-//         auditorId: userId,
-//         isAccepted: true,
-//       });
-
-//       // Update the AcceptedAudits field in the user's Profile document
-//       const userRef = doc(db, "Profile", userId);
-//       await updateDoc(userRef, {
-//         AcceptedAudits: arrayUnion(auditId),
-//       });
-
-//       // Update local state
-//       setAudits((prevAudits) =>
-//         prevAudits.map((audit) =>
-//           audit.id === auditId ? { ...audit, auditorId: userId, isAccepted: true } : audit
-//         )
-//       );
-
-//       console.log("Audit accepted successfully");
-//     } catch (error) {
-//       console.error("Error accepting audit:", error);
-//     }
-//   };
-
-//   return (
-//     <View style={styles.fullScreen}>
-//       <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
-//         <View style={styles.greetingContainer}>
-//           <Text style={styles.greetingText}>{greeting}, {userName}</Text>
-//         </View>
-
-//         <View style={styles.container}>
-//           {/* Task Boxes Section */}
-//           <View style={styles.taskBoxesContainer}>
-//             <TouchableOpacity style={styles.taskBox} onPress={() => navigation.navigate("UserInfo")}>
-//               <Ionicons name="calendar" size={30} color="black" style={styles.icon} />
-//               <Text style={styles.taskBoxTitle}>Today's Tasks</Text>
-//               <Text style={styles.taskBoxContent}>{todayTasks.length} Tasks</Text>
-//             </TouchableOpacity>
-
-//             <TouchableOpacity style={styles.taskBox} onPress={() => navigation.navigate("Ongoing")}>
-//               <Ionicons name="play-circle" size={30} color="black" style={styles.icon} />
-//               <Text style={styles.taskBoxTitle}>Ongoing Tasks</Text>
-//               <Text style={styles.taskBoxContent}>{ongoingAudits.length} Tasks</Text>
-//             </TouchableOpacity>
-//           </View>
-
-//           <TouchableOpacity style={styles.taskBox2} onPress={() => navigation.navigate("Completed-Tasks")}>
-//             <Ionicons name="checkmark-circle" size={30} color="black" style={styles.icon} />
-//             <Text style={styles.taskBoxTitle}>Completed Tasks</Text>
-//             <Text style={styles.taskBoxContent}>{completedTasks.length} Tasks</Text>
-//           </TouchableOpacity>
-
-//           {/* Upcoming Audits Section */}
-//           <View style={styles.upcomingAuditsContainer}>
-//             <Text style={styles.upcomingAuditsText}>Upcoming Audits</Text>
-
-//             <FlatList
-//               data={audits}
-//               renderItem={({ item }) => {
-//                 const clientName = clientsData[item.clientId] || "Unknown Client";
-//                 const branch = branchesData.find((branch) => branch.id === item.branchId);
-//                 const branchCity = branch ? branch.city : "Unknown Location";
-
-//                 return (
-//                   <View style={styles.auditItem}>
-//                     <View style={styles.clientImageContainer}>
-//                       <Text style={styles.clientImage}>{getAvatar(item.auditorId)}</Text>
-//                     </View>
-//                     <View style={styles.auditContent}>
-//                       <Text style={styles.auditName}>{item.name}</Text>
-//                       <Text style={styles.auditDate}>{item.date}</Text>
-//                       <Text style={styles.auditBranchId}>Branch: {branch?.name || "Unknown Branch"}</Text>
-//                       <Text style={styles.auditClientId}>Client: {clientName}</Text>
-//                       <Text style={styles.auditCity}>Location: {branchCity}</Text>
-//                       <Text style={styles.auditAuditorId}>Auditor: {item.auditorId}</Text>
-
-//                       {!item.isAccepted && (
-//                         <TouchableOpacity
-//                           style={styles.acceptButton}
-//                           onPress={() => acceptAudit(item.id)}
-//                         >
-//                           <Text style={styles.acceptButtonText}>Accept</Text>
-//                         </TouchableOpacity>
-//                       )}
-//                     </View>
-//                   </View>
-//                 );
-//               }}
-//               keyExtractor={(item) => item.id}
-//             />
-//           </View>
-//         </View>
-//       </ScrollView>
-//     </View>
-//   );
-// };
-
-// const styles = StyleSheet.create({
-//   fullScreen: {
-//     flex: 1,
-//     backgroundColor: "white",
-//   },
-//   greetingContainer: {
-//     marginTop: 50,
-//     paddingHorizontal: 20,
-//   },
-//   greetingText: {
-//     fontSize: 24,
-//     fontWeight: "bold",
-//   },
-//   container: {
-//     padding: 20,
-//   },
-//   taskBoxesContainer: {
-//     flexDirection: "row",
-//     justifyContent: "space-between",
-//   },
-//   taskBox: {
-//     width: (width - 60) / 2,
-//     height: 120,
-//     backgroundColor: "#f0f0f0",
-//     borderRadius: 10,
-//     padding: 15,
-//     alignItems: "center",
-//     justifyContent: "center",
-//     marginBottom: 20,
-//     borderWidth: 1,
-//     borderColor: "gray",
-//   },
-//   taskBox2: {
-//     width: width - 40,
-//     height: 120,
-//     backgroundColor: "#f0f0f0",
-//     borderRadius: 10,
-//     padding: 15,
-//     alignItems: "center",
-//     justifyContent: "center",
-//     marginBottom: 20,
-//     borderWidth: 1,
-//     borderColor: "gray",
-//   },
-//   taskBoxTitle: {
-//     fontSize: 18,
-//     fontWeight: "bold",
-//   },
-//   taskBoxContent: {
-//     fontSize: 16,
-//   },
-//   upcomingAuditsContainer: {
-//     marginTop: 20,
-//   },
-//   upcomingAuditsText: {
-//     fontSize: 20,
-//     fontWeight: "bold",
-//     marginBottom: 10,
-//   },
-//   auditItem: {
-//     flexDirection: "row",
-//     padding: 10,
-//     marginBottom: 10,
-//     borderRadius: 5,
-//     backgroundColor: "#f9f9f9",
-//     borderWidth: 1,
-//     borderColor: "#ddd",
-//   },
-//   clientImageContainer: {
-//     width: 50,
-//     height: 50,
-//     backgroundColor: "#ccc",
-//     borderRadius: 25,
-//     justifyContent: "center",
-//     alignItems: "center",
-//     marginRight: 10,
-//   },
-//   clientImage: {
-//     fontSize: 20,
-//     fontWeight: "bold",
-//     color: "#fff",
-//   },
-//   auditContent: {
-//     flex: 1,
-//   },
-//   auditName: {
-//     fontSize: 16,
-//     fontWeight: "bold",
-//   },
-//   auditDate: {
-//     fontSize: 14,
-//     color: "gray",
-//   },
-//   auditBranchId: {
-//     fontSize: 14,
-//     color: "gray",
-//   },
-//   auditClientId: {
-//     fontSize: 14,
-//     color: "gray",
-//   },
-//   auditCity: {
-//     fontSize: 14,
-//     color: "gray",
-//   },
-//   auditAuditorId: {
-//     fontSize: 14,
-//     color: "gray",
-//   },
-//   acceptButton: {
-//     marginTop: 10,
-//     padding: 10,
-//     backgroundColor: "#4CAF50",
-//     borderRadius: 5,
-//     alignItems: "center",
-//   },
-//   acceptButtonText: {
-//     color: "#fff",
-//     fontWeight: "bold",
-//   },
-// });
-
-// export default HomeScreen;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// ##############################       Running code #############################################
-
-// import React, { useState, useEffect } from 'react'; 
-// import { View, Text, TouchableOpacity, StyleSheet, ScrollView, FlatList, Dimensions } from "react-native";
-// import { Ionicons } from "@expo/vector-icons";
-// import { firebase } from './firebaseConfig';
-// import AsyncStorage from '@react-native-async-storage/async-storage';
-// import { getDocs, collection, updateDoc, doc, arrayUnion, onSnapshot, getDoc } from "firebase/firestore"; // Import onSnapshot
-
-// import { db } from "./firebaseConfig";
-
-// const { width, height } = Dimensions.get("window");
-
-// const HomeScreen = ({ navigation, route }) => {
-//   const [userId, setUserId] = useState(null);
-//   const userEmail = route?.params?.userEmail || "";
-//   const [greeting, setGreeting] = useState("");
-//   const [userName, setUserName] = useState("");
-//   const [audits, setAudits] = useState([]);
-//   const [ongoingAudits, setOngoingAudits] = useState([]);
-//   const [todayTasks, setTodayTasks] = useState([]);
-//   const [completedTasks, setCompletedTasks] = useState([]);
-//   const [clientsData, setClientsData] = useState({});
-//   const [branchesData, setBranchesData] = useState([]);
-//   const [selectedStatus, setSelectedStatus] = useState("");
-//   const [searchTerm, setSearchTerm] = useState("");
-//   const [filterLocation, setFilterLocation] = useState("");
-
-//   useEffect(() => {
-//     const loadData = async () => {
-//       try {
-//         // Fetch audits from Firebase collection 'audits'
-//         const auditRef = collection(db, "audits");
-
-//         // Real-time listener for updates on audits
-//         const unsubscribe = onSnapshot(auditRef, (snapshot) => {
-//           const auditData = snapshot.docs.map((doc) => ({
+//           // Fetch branches
+//           const branchesRef = collection(db, 'branches');
+//           const branchSnapshot = await getDocs(branchesRef);
+//           const branches = branchSnapshot.docs.map((doc) => ({
 //             id: doc.id,
 //             ...doc.data(),
 //           }));
-//           setAudits(auditData); // Update audits with real-time data
-//         });
+//           setBranchesData(branches);
 
-//         // Fetch ongoing audits from AsyncStorage
-//         const ongoingAuditsData = await AsyncStorage.getItem("ongoingAudits");
-//         if (ongoingAuditsData) {
-//           setOngoingAudits(JSON.parse(ongoingAuditsData));
+        
+//           const userDoc = await db.collection('Profile').where('email', '==', userEmail).get();
+//           if (!userDoc.empty) {
+//             const userId = userDoc.docs[0].id;
+//             setUserId(userId);
+//           }
+//         } catch (error) {
+//           console.error('Error fetching data:', error);
 //         }
+//       };
 
-//         // Fetch clients from 'clients' collection
-//         const clientsRef = collection(db, "clients");
+//       loadData();
+//     }, [userEmail]);
+
+//     // Filter out audits that the user has already accepted or completed
+//     const filteredAudits = originalAudits.filter((audit) => {
+//       return !acceptedAudits.includes(audit.id) && !completedAudits.includes(audit.id);
+//     });
+
+//     return filteredAudits;
+//   };
+//   const getacceptedAudits= async (userId) => {
+//     const acceptedAuditsRef = collection(db, `Profile/${userId}/acceptedAudits`);
+//     const snapshot = await getDocs(acceptedAuditsRef);
+//     const acceptedAudits= snapshot.docs.map((doc) => doc.id);
+//     return acceptedAudits;
+//   };
+//   const getcompletedAudits = async (userId) => {
+//     const completedAuditsRef = collection(db, `Profile/${userId}/completedAudits`);
+//     const snapshot = await getDocs(completedAuditsRef);
+//     const completedAudits = snapshot.docs.map((doc) => doc.id);
+//     return completedAudits;
+//   };
+//   useEffect(() => {
+//     const loadData = async () => {
+//       try {
+//         // Fetch audits
+//         const auditRef = collection(db, 'audits');
+//         const snapshot = await getDocs(auditRef);
+//         const auditData = snapshot.docs.map((doc) => ({
+//           id: doc.id,
+//           ...doc.data(),
+//         }));
+//         setAudits(auditData);
+//         setOriginalAudits(auditData); // Save the unfiltered audits
+
+//         // Fetch clients
+//         const clientsRef = collection(db, 'clients');
 //         const clientSnapshot = await getDocs(clientsRef);
 //         const clients = {};
 //         clientSnapshot.docs.forEach((doc) => {
@@ -770,8 +113,8 @@
 //         });
 //         setClientsData(clients);
 
-//         // Fetch branches from 'branches' collection
-//         const branchesRef = collection(db, "branches");
+//         // Fetch branches
+//         const branchesRef = collection(db, 'branches');
 //         const branchSnapshot = await getDocs(branchesRef);
 //         const branches = branchSnapshot.docs.map((doc) => ({
 //           id: doc.id,
@@ -779,701 +122,886 @@
 //         }));
 //         setBranchesData(branches);
 
-//         // Fetch tasks from 'tasks' collection
-//         const tasksRef = collection(db, "tasks");
-//         const taskSnapshot = await getDocs(tasksRef);
-//         const taskData = taskSnapshot.docs.map((doc) => ({
-//           id: doc.id,
-//           ...doc.data(),
-//         }));
-//         setTodayTasks(taskData.filter(task => task.status === 'today'));
-//         setCompletedTasks(taskData.filter(task => task.status === 'completed'));
-
-//         // Fetch the logged-in user's ID
-//         const userDoc = await firebase.firestore().collection('Profile').where("email", "==", userEmail).get();
+//         // Fetch user ID from Profile collection based on email
+//         const userDoc = await db.collection('Profile').where('email', '==', userEmail).get();
 //         if (!userDoc.empty) {
 //           const userId = userDoc.docs[0].id;
-//           setUserId(userId); // Set the logged-in user's document ID
+//           setUserId(userId);
+
+//           // Set user name for greeting
+//           setUserName(userEmail ? userEmail.split('@')[0] : 'Auditor');
 //         }
-
 //       } catch (error) {
-//         console.error("Error fetching data:", error);
+//         console.error('Error fetching data:', error);
 //       }
 
-//       // Set greeting based on time
 //       const currentTime = new Date().getHours();
-//       setGreeting(currentTime < 12 ? "Good Morning" : currentTime < 19 ? "Good Afternoon " : "Good Evening");
-//       setUserName(userEmail ? userEmail.split("@")[0] : "User");
+//       setGreeting(currentTime < 12 ? 'Good Morning Auditor' : currentTime < 19 ? 'Good Afternoon Auditor ' : 'Good Evening Auditor');
 //     };
-
-//     loadData();
-
-//     // Clean up the listener when the component unmounts
-//     return () => {
-//       if (typeof unsubscribe === "function") {
-//         unsubscribe(); // Make sure unsubscribe is a function before calling it
-//       }
-//     };
-
-//   }, [userEmail]);
-//   const getAvatar = (Client) => {
-//     // Check if 'Client' is a valid string
-//     const firstLetter = Client && typeof Client === 'string' ? Client.charAt(0).toUpperCase() : "Ⓐ";
-//     return firstLetter;
-//   };
   
-//   const acceptAudit = async (auditId) => {
-//     try {
-//       const auditRef = doc(db, "audits", auditId);
-//       await updateDoc(auditRef, {
-//         auditorId: userId,
-//         isAccepted: true,
+//     loadData();
+//   }, [userEmail]);
+
+//   useEffect(() => {
+//     if (userId && originalAudits.length > 0) {
+//       filterAudits().then((filtered) => {
+//         setAudits(filtered); // Update the audits state with the filtered audits
 //       });
+//     }
+//   }, [userId, originalAudits]);
 
+//   useEffect(() => {
+//     const checkIfAcceptedAll = async () => {
 //       if (userId) {
-//         const userRef = doc(db, "Profile", userId);
-//         await updateDoc(userRef, {
-//           AcceptedAudits: arrayUnion(auditId),
-//         });
+//         const userProfileDoc = await db.collection('Profile').doc(userId).get();
+//         const acceptedAudits= userProfileDoc.data()?.acceptedAudits|| [];
 
-//         console.log("Audit accepted successfully!");
-//       } else {
-//         console.log("User ID is not available.");
+//         const allAuditIds = filteredAudits.map((audit) => audit.id);
+
+//         // Check if the user has accepted all upcoming audits
+//         const hasAcceptedAll = allAuditIds.every((id) => acceptedAudits.includes(id));
+
+//         setHasAcceptedAllAudits(hasAcceptedAll);
 //       }
-//     } catch (error) {
-//       console.error("Error accepting audit:", error);
+//     };
+
+//     // Ensure we are only checking when the audits are fully loaded
+//     if (filteredAudits.length > 0 && userId) {
+//       checkIfAcceptedAll();
 //     }
-//   };
+//   }, [filteredAudits, userId]); // Re-run this when filteredAudits or userId changes
 
-//   const completeAudit = async (auditId) => {
-//     try {
-//       const auditRef = doc(db, "audits", auditId);
-//       const auditSnapshot = await getDoc(auditRef);
-//       const auditData = auditSnapshot.data();
-
-//       if (auditData.isAccepted) {
-//         await updateDoc(auditRef, {
-//           isCompleted: true,
-//         });
-
-//         console.log("Audit marked as complete!");
-//       } else {
-//         console.log("Audit is not accepted, cannot mark as complete.");
-//       }
-//     } catch (error) {
-//       console.error("Error completing audit:", error);
-//     }
-//   };
-
+//   // Filtered Audits should exclude the audits that the user has already accepted
 //   const filteredAudits = audits.filter((audit) => {
-//     if (selectedStatus && audit.status !== selectedStatus) {
-//       return false;
-//     }
-//     if (filterLocation && audit.location !== filterLocation) {
-//       return false;
-//     }
-//     if (searchTerm && !audit.name.toLowerCase().includes(searchTerm.toLowerCase())) {
-//       return false;
-//     }
-//     return true;
+//     return !audit.acceptedBy || !audit.acceptedBy.includes(userId);
 //   });
 
+
+//   useEffect(() => {
+//     const fetchAudits = async () => {
+//       // Fetch audits data (assuming data fetching logic from Firebase here)
+//     };
+
+//     fetchAudits();
+//   }, []);
+
+//   const today = new Date().toISOString().split('T')[0]; // Current date in YYYY-MM-DD format
+//   const todayAudits = originalAudits.filter((audit) => {
+//     const auditDate = audit.date || '';
+//     return (
+//       auditDate === today &&
+//       (!audit.acceptedBy || !audit.acceptedBy.includes(userId))
+//     );
+//   });
+
+ 
+
+
+//   // Filter for ongoing audits
+//   // Ongoing component (updated filter logic)
+//   const loadOngoingAudits = async () => {
+//     try {
+//       const auditsQuery = query(collection(db, "audits")); // No filter here
+
+//       const querySnapshot = await getDocs(auditsQuery);
+
+//       const fetchedAudits = [];
+//       for (const docSnap of querySnapshot.docs) {
+//         const auditData = docSnap.data();
+//         const auditId = docSnap.id;
+
+//         // Fetch auditor's accepted audits from Profile collection
+//         const auditorDocRef = doc(db, "Profile", auditData.auditorId); // Assuming auditorId is in auditData
+//         const auditorDocSnap = await getDoc(auditorDocRef);
+
+//         if (auditorDocSnap.exists()) {
+//           const acceptedAudits= auditorDocSnap.data().acceptedAudits|| []; // Default to empty array if no acceptedAuditsfield
+//           if (acceptedAudits.indexOf(auditId) !== -1) { // Check if the auditId is in acceptedAudits
+//             // Fetch branch details
+//             const branchRef = doc(db, "branches", auditData.branchId);
+//             const branchSnap = await getDoc(branchRef);
+
+//             // Fetch client details
+//             const clientRef = doc(db, "clients", auditData.clientId);
+//             const clientSnap = await getDoc(clientRef);
+
+//             if (branchSnap.exists() && clientSnap.exists()) {
+//               const branchDetails = branchSnap.data();
+
+//               // Exclude clientId from branchDetails
+//               delete branchDetails.clientId;
+
+//               fetchedAudits.push({
+//                 id: auditId,
+//                 ...auditData,
+//                 branchDetails,
+//                 clientDetails: clientSnap.data(),
+//               });
+//             } else {
+//               console.log("Missing details for audit:", auditId);
+//             }
+//           }
+//         }
+//       }
+
+//       setOngoingAudits(fetchedAudits);
+//     } catch (error) {
+//       console.error("Failed to load ongoing audits", error);
+//     } finally {
+//       setLoading(false);
+//     }
+//   };
+
+//   useEffect(() => {
+//     const fetchOngoingCounter = async () => {
+//       try {
+//         const userId = auth.currentUser?.uid; // Get the logged-in user's ID
+
+//         if (userId) {
+//           // Get the document in Profile collection based on the logged-in user's ID
+//           const profileRef = doc(firestore, 'Profile', userId); 
+//           const profileDoc = await getDoc(profileRef);
+
+//           if (profileDoc.exists()) {
+//             // Access ongoingCounter from the auditor sub-collection in Profile
+//             const ongoingCount = profileDoc.data()?.ongoingCounter || 0; // Default to 0 if the field doesn't exist
+//             setOngoingCounter(ongoingCount); // Update state with the ongoing counter value
+//           } else {
+//             console.log('User profile not found');
+//           }
+//         } else {
+//           console.log('No user logged in');
+//         }
+//       } catch (error) {
+//         console.error('Error fetching ongoing counter:', error);
+//       }
+//     };
+
+//     fetchOngoingCounter();
+//   }, []);
+
+//   useEffect(() => {
+//     const fetchOngoingAudits = async () => {
+//       const auditsRef = firebase.firestore().collection('audits');
+//       const querySnapshot = await auditsRef.where('status', '==', 'ongoing').get();
+//       setOngoingCounter(querySnapshot.size); //  yha pe it Sets the ongoingCounter to the number of ongoing audits
+//     };
+
+//     fetchOngoingAudits();
+//   }, []);
+
+//   useEffect(() => {
+//     loadOngoingAudits();
+//   }, []);
+
+//   const applyFilters = () => {
+//     let filtered = originalAudits; // Start with unfiltered audits
+
+//     if (filters.date) {
+//       filtered = filtered.filter((audit) => audit.date === filters.date);
+//     }
+
+//     if (filters.city) {
+//       filtered = filtered.filter(
+//         (audit) =>
+//           branchesData.find((branch) => branch.id === audit.branchId)?.city === filters.city
+//       );
+//     }
+
+//     if (filters.state) {
+//       filtered = filtered.filter(
+//         (audit) =>
+//           branchesData.find((branch) => branch.id === audit.branchId)?.state === filters.state
+//       );
+//     }
+
+//     setAudits(filtered);
+//     setFilterModalVisible(false);
+//   };
+
+
+//   // Reset filters
+//   const resetFilters = () => {
+//     setFilters({
+//       date: '',
+//       city: '',
+//       state: '',
+//     });
+//     setAudits(originalAudits); // Reset to unfiltered audits
+//     setFilterModalVisible(false);
+//   };
+//   useEffect(() => {
+//     // Fetch user details from Firestore Profile collection
+//     const fetchUserDetails = async () => {
+//       try {
+//         const userDoc = await firestore()
+//           .collection('Profile')
+//           .doc(userId)
+//           .get();
+        
+//         if (userDoc.exists) {
+//           setUserDetails(userDoc.data());
+//         } else {
+//           console.log('User not found');
+//         }
+//       } catch (error) {
+//         console.error('Error fetching user details:', error);
+//       }
+//     };
+
+//     fetchUserDetails();
+//   }, [userId]);
+
+//   useEffect(() => {
+//     const fetchUserPreferences = async () => {
+//       if (userId) {
+//         try {
+//           const userDoc = await db.collection('Profile').doc(userId).get();
+//           const userData = userDoc.data();
+//           const userCity = userData?.preferredCity;  // Assuming 'preferredCity' is stored in the profile
+//           const userState = userData?.preferredState;  // Assuming 'preferredState' is stored in the profile
+
+//           setFilters((prevFilters) => ({
+//             ...prevFilters,
+//             city: userCity || '',
+//             state: userState || '',
+//           }));
+//         } catch (error) {
+//           console.error('Error fetching user preferences:', error);
+//         }
+//       }
+//     };
+
+//     fetchUserPreferences();
+//   }, [userId]);  // Fetch only when the userId is available
+
+
+//   useEffect(() => {
+//     const loadCompletedAuditsCount = async () => {
+//       const count = await fetchCompletedAuditsCount();
+//       setCompletedAuditsCount(count);
+//     };
+//     loadCompletedAuditsCount();
+//   }, []);
+//   useEffect(() => {
+//     const fetchOngoingAudits = async () => {
+//       try {
+//         const auditsQuery = query(collection(db, 'audits')); // No filter here
+//         const querySnapshot = await getDocs(auditsQuery);
+
+//         const fetchedAudits = [];
+//         for (const docSnap of querySnapshot.docs) {
+//           const auditData = docSnap.data();
+//           const auditId = docSnap.id;
+
+//           // Check if the audit is ongoing
+//           if (auditData.status === 'ongoing') {
+//             fetchedAudits.push(auditData);
+//           }
+//         }
+
+//         setOngoingAudits(fetchedAudits);
+//         setOngoingCounter(fetchedAudits.length); // Set the ongoing counter
+//       } catch (error) {
+//         console.error('Failed to load ongoing audits', error);
+//       } finally {
+//         setLoading(false);
+//       }
+//     };
+
+//     fetchOngoingAudits();
+//   }, []); // Runs once when the component mounts
+
+
 //   return (
-//     <View style={styles.fullScreen}>
-//       <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
-//         <View>
-//           {userId ? (
-//             <Text>Welcome, User ID: {userId}</Text>
-//           ) : (
-//             <Text>.</Text>
-//           )}
-//         </View>
-  
-//         <View style={styles.greetingContainer}>
-//           <Text style={styles.greetingText}>{greeting}, {userName}</Text>
-//         </View>
-  
-//         <View style={styles.container}>
-//           <View style={styles.taskBoxesContainer}>
-//             <TouchableOpacity style={styles.taskBox}>
-//               <TouchableOpacity onPress={() => navigation.navigate("UserInfo")}>
-//                 <Ionicons name="calendar" size={30} color="black" style={styles.icon} />
-//                 <Text style={styles.taskBoxTitle}>Today's Tasks</Text>
-//                 <Text style={styles.taskBoxContent}>{todayTasks.length} Tasks</Text>
+//     <ScrollView contentContainerStyle={styles.container}>
+//     <View style={styles.row}>
+//   <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#333' }}>
+//     {greeting}
+//   </Text>
+
+// </View>
+
+
+//       {/* Filter Modal */}
+//       <Modal visible={filterModalVisible} transparent={true} animationType="slide">
+//         <View style={styles.modalContainer}>
+//           <View style={styles.modalContent}>
+//             <Text style={styles.modalTitle}>Filter Audits</Text>
+//             <TextInput
+//               style={styles.input}
+//               placeholder="Date (YYYY-MM-DD)"
+//               value={filters.date}
+//               onChangeText={(text) => setFilters({ ...filters, date: text })}
+//             />
+//             <TextInput
+//               style={styles.input}
+//               placeholder="City"
+//               value={filters.city}
+//               onChangeText={(text) => setFilters({ ...filters, city: text })}
+//             />
+//             <TextInput
+//               style={styles.input}
+//               placeholder="State"
+//               value={filters.state}
+//               onChangeText={(text) => setFilters({ ...filters, state: text })}
+//             />
+//             <View style={styles.modalActions}>
+//               <TouchableOpacity style={styles.modalButton} onPress={applyFilters}>
+//                 <Text style={styles.modalButtonText}>Apply</Text>
 //               </TouchableOpacity>
-//             </TouchableOpacity>
-  
-//             <TouchableOpacity style={styles.taskBox}>
-//               <TouchableOpacity onPress={() => navigation.navigate("Ongoing")}>
-//                 <Ionicons name="play-circle" size={30} color="black" style={styles.icon} />
-//                 <Text style={styles.taskBoxTitle}>Ongoing Tasks</Text>
-//                 <Text style={styles.taskBoxContent}>{ongoingAudits.length} Tasks</Text>
+//               <TouchableOpacity
+//                 style={[styles.modalButton, styles.resetButton]}
+//                 onPress={resetFilters}
+//               >
+//                 <Text style={styles.modalButtonText}>Reset</Text>
 //               </TouchableOpacity>
-//             </TouchableOpacity>
+//             </View>
 //           </View>
-  
-//           <TouchableOpacity style={styles.taskBox2}>
-//             <TouchableOpacity onPress={() => navigation.navigate("Completed-Tasks")}>
-//               <Ionicons name="checkmark-circle" size={30} color="black" style={styles.icon} />
-//               <Text style={styles.taskBoxTitle}>Completed Tasks</Text>
-//               <Text style={styles.taskBoxContent}>{completedTasks.length} Tasks</Text>
-//             </TouchableOpacity>
-//           </TouchableOpacity>
-  
-//           <View style={styles.upcomingAuditsContainer}>
-//             <Text style={styles.upcomingAuditsText}>Upcoming Audits</Text>
-  
+//         </View>
+//       </Modal>
+
+//       {/* Cards Row */}
+
+//       <Text style={{ fontSize: 18, fontWeight: 'bold', colr: 'black' }}>Categories</Text>
+//       <View style={styles.row}>
+//         <TouchableOpacity
+//           style={[styles.card, styles.todayTasks]}
+//           onPress={() => navigation.navigate('TodaysTasks')}
+//         >
+//           <Ionicons name="calendar" size={30} color="#4A90E2" style={styles.icon} />
+//           <Text style={styles.cardTitle}>Today's Audits</Text>
+//           <Text style={styles.cardContent}>{todayAudits.length > 0 ? todayAudits.length : '0'}</Text>
+//         </TouchableOpacity>
+
+      
+//     <TouchableOpacity
+//       style={[styles.card, styles.ongoingTasks]}
+//       onPress={() => navigation.navigate('Ongoing')}
+//     >
+//       <Ionicons name="play-circle" size={30} color="#FF9F00" style={styles.icon} />
+//       <Text style={styles.cardTitle}>Accepted Audits</Text>
+//       <Text style={styles.cardContent}>
+//         {userDetails ? (
+//           <>
+//             <Text>Email: {userDetails.email}</Text>
+//             <Text>Location: {userDetails.city}, {userDetails.state}</Text>
+//             <Text>Preferred Audits: {userDetails.preferredAudits}</Text>
+//             {/* Add any other fields you want to display */}
+//           </>
+//         ) : (
+//           'Loading user details...'
+//         )}
+//       </Text>
+//     </TouchableOpacity>
+
+
+     
+//       </View>
+
+
+//       {/* Upcoming Audits Section */}
+//       <View style={styles.upcomingAuditsContainer}>
+//         <Text style={styles.upcomingAuditsTitle}>Upcoming Audits</Text>
+//         {hasAcceptedAllAudits ? (
+//           <View style={styles.noAuditsContainer}>
+//             <Image source={require('./Images/nua.jpg')} style={styles.noAuditsImage} />
+//             <Text style={styles.noAuditsText}>You have accepted all upcoming audits</Text>
+//           </View>
+//         ) :
+//           (
 //             <FlatList
-//               data={filteredAudits}
-//               renderItem={({ item }) => {
-//                 const clientName = clientsData[item.clientId] || "Unknown Client";
-//                 const branch = branchesData.find((branch) => branch.id === item.branchId);
-//                 const branchCity = branch ? branch.city : "Unknown Location";
-  
-//                 return (
+//               data={audits}
+//               renderItem={({ item }) => (
+//                 <View style={styles.auditCard}>
+//                   <View style={styles.auditDetails}>
+//                     <Text style={styles.auditTitle}>{item.name}</Text>
+//                     <Text style={styles.auditClient}>
+//                       {clientsData[item.clientId] || 'Unknown Client'}
+//                     </Text>
+//                     <View style={styles.auditLocationContainer}>
+//                       <Ionicons name="location-outline" size={16} color="blue" style={styles.locationIcon} />
+//                       <Text style={styles.auditLocation}>
+//                         {branchesData.find((branch) => branch.id === item.branchId)?.city || 'Unknown Location'}
+//                       </Text>
+//                     </View>
+//                   </View>
 //                   <TouchableOpacity
-//                     style={styles.auditItem}
-//                     onPress={() => navigation.navigate("AuditDetails", { audit: item })}
+//                     style={styles.seeMoreButton}
+//                     onPress={() => navigation.navigate('AuditDetails', { audit: item })}
 //                   >
-//                     <View style={styles.clientImageContainer}>
-//                       <Text style={styles.clientImage}>{getAvatar(item.auditorId)}</Text>
-//                     </View>
-//                     <View style={styles.auditContent}>
-//                       <Text style={styles.auditTitle}>{item.name}</Text>
-//                       <Text style={styles.auditDetails}>Location: {branchCity}</Text>
-//                       <Text style={styles.auditDetails}>Client: {clientName}</Text>
-//                       <Text style={styles.auditDetails}>Date: {item.date}</Text>
-  
-//                       {item.isAccepted ? (
-//                         <Text style={styles.acceptedText}>Accepted</Text>
-//                       ) : (
-//                         <TouchableOpacity
-//                           style={styles.acceptButton}
-//                           onPress={() => acceptAudit(item.id)}
-//                         >
-//                           <Text style={styles.acceptButtonText}>Accept Audit</Text>
-//                         </TouchableOpacity>
-//                       )}
-//                     </View>
+//                     <Text style={styles.seeMoreButtonText}>See More Info</Text>
 //                   </TouchableOpacity>
-//                 );
-//               }}
+//                 </View>
+//               )}
 //               keyExtractor={(item) => item.id}
 //             />
-//           </View>
-//         </View>
-//       </ScrollView>
-//     </View>
+            
+            
+//           )}
+//       </View>
+//     </ScrollView>
 //   );
 // };
 
+
+
 // const styles = StyleSheet.create({
-//     fullScreen: {
-//       flex: 1,
-//       backgroundColor: "#f5f5f5",
+//   container: {
+//     flexGrow: 1,
+//     padding: 16,
+//     backgroundColor: '#F0F4F8',
+//   },
+//   row: {
+//     flexDirection: 'row',
+//     justifyContent: 'space-between',
+//     alignItems: 'center',
+//     marginBottom: 16,
+//     marginTop: 30,
+//   },
+//   greetingText: {
+//     fontSize: 22,
+//     fontWeight: 'bold',
+//     color: '#333',
+//   },
+//   card: {
+//     flex: 1,
+//     backgroundColor: '#FFFFFF',
+//     borderRadius: 12,
+//     padding: 16,
+//     marginHorizontal: 4,
+//     alignItems: 'center',
+//     shadowColor: '#000',
+//     shadowOpacity: 0.2,
+//     shadowOffset: { width: 0, height: 2 },
+//     shadowRadius: 4,
+//     elevation: 3,
+//   },
+//   cardTitle: {
+//     fontSize: 16,
+//     textAlign: 'center',
+//     marginBottom: 8,
+//     color: '#000',
+//   },
+//   cardContent: {
+//     fontSize: 16,
+//     color: '#000',
+//     textAlign: 'center',
+//   },
+//   icon: {
+//     marginBottom: 8,
+//   },
+//   todayTasks: {
+//     backgroundColor: '#EAF4FF',
+//   },
+//   ongoingTasks: {
+//     backgroundColor: '#FFF4E5',
+//   },
+//   completedTasks: {
+//     backgroundColor: '#E8F8E9',
+//   },
+//   upcomingAuditsContainer: {
+//     backgroundColor: '#FFFFFF',
+//     borderRadius: 10,
+//     padding: 15,
+//     marginTop: 20,
+//     marginHorizontal: 10,
+//     shadowColor: '#000',
+//     shadowOpacity: 0.1,
+//     shadowOffset: { width: 0, height: 3 },
+//     shadowRadius: 5,
+//     elevation: 5,
+//   },
+//   upcomingAuditsTitle: {
+//     fontSize: 20,
+//     fontWeight: 'bold',
+//     marginBottom: 10,
+//     color: '#333',
+//   },
+//   auditCard: {
+//     backgroundColor: '#fff',
+//     borderRadius: 8,
+//     padding: 15,
+//     marginBottom: 10,
+//     flexDirection: 'row',
+//     justifyContent: 'space-between',
+//     alignItems: 'center',
+//     shadowColor: '#000',
+//     shadowOpacity: 0.1,
+//     shadowOffset: { width: 0, height: 2 },
+//     shadowRadius: 3,
+//     elevation: 2,
+//   },
+//   auditDetails: {
+//     flex: 1,
+//     paddingLeft: 10,
+//   },
+//   auditTitle: {
+//     fontSize: 16,    
+    
+// fontWeight: '600',
+//       marginBottom: 5,
+//       color: '#4A90E2',
 //     },
-//     greetingContainer: {
-//       padding: 15,
-//       backgroundColor: "#6200ea",
-//     },
-//     greetingText: {
-//       color: "#fff",
-//       fontSize: 18,
-//       fontWeight: "bold",
-//     },
-//     container: {
-//       padding: 20,
-//     },
-//     taskBoxesContainer: {
-//       flexDirection: "row",
-//       justifyContent: "space-between",
-//       marginBottom: 20,
-//     },
-//     taskBox: {
-//       width: (width - 60) / 2,
-//       backgroundColor: "#fff",
-//       padding: 15,
-//       borderRadius: 10,
-//       elevation: 3,
-//       alignItems: "center",
-//       justifyContent: "center",
-//     },
-//     taskBoxTitle: {
-//       fontSize: 16,
-//       fontWeight: "bold",
-//       marginTop: 10,
-//     },
-//     taskBoxContent: {
+//     auditClient: {
 //       fontSize: 14,
-//       marginTop: 5,
+//       color: '#666',
 //     },
-//     taskBox2: {
-//       backgroundColor: "#fff",
-//       padding: 15,
-//       borderRadius: 10,
-//       elevation: 3,
-//       marginBottom: 20,
+//     auditLocationContainer: {
+//       flexDirection: 'row',
+//       alignItems: 'center',
 //     },
-//     upcomingAuditsContainer: {
-//       backgroundColor: "#fff",
-//       padding: 20,
-//       borderRadius: 10,
-//       elevation: 3,
-//     },
-//     upcomingAuditsText: {
-//       fontSize: 18,
-//       fontWeight: "bold",
-//       marginBottom: 15,
-//     },
-//     auditItem: {
-//       flexDirection: "row",
-//       justifyContent: "space-between",
-//       padding: 10,
-//       borderBottomWidth: 1,
-//       borderColor: "#ddd",
-//     },
-//     clientImageContainer: {
-//       width: 50,
-//       height: 50,
-//       borderRadius: 50,
-//       backgroundColor: "#6200ea",
-//       justifyContent: "center",
-//       alignItems: "center",
-//     },
-//     clientImage: {
-//       color: "#fff",
-//       fontSize: 22,
-//       fontWeight: "bold",
-//     },
-//     auditContent: {
-//       flex: 1,
-//       paddingLeft: 10,
-//     },
-//     auditName: {
-//       fontSize: 16,
-//       fontWeight: "bold",
+//     locationIcon: {
+//       marginRight: 4,
 //     },
 //     auditLocation: {
 //       fontSize: 14,
-//       color: "#888",
+//       color: '#666',
 //     },
-//     actionsContainer: {
-//       justifyContent: "center",
-//       alignItems: "center",
+//     seeMoreButton: {
+//       backgroundColor: '#4A90E2',
+//       paddingVertical: 6,
+//       paddingHorizontal: 12,
+//       borderRadius: 8,
+//       alignItems: 'center',
 //     },
-//     acceptButton: {
-//       backgroundColor: "#4caf50",
-//       padding: 10,
-//       borderRadius: 5,
-//     },
-//     completeButton: {
-//       backgroundColor: "#4caf50",
-//       padding: 10,
-//       borderRadius: 5,
-//     },
-//     buttonText: {
-//       color: "#fff",
+//     seeMoreButtonText: {
+//       color: '#fff',
 //       fontSize: 14,
-//       fontWeight: "bold",
+//     },
+//     noAuditsContainer: {
+//       alignItems: 'center',
+//       marginTop: 20,
+//     },
+//     noAuditsImage: {
+//       width: 100,
+//       height: 100,
+//       marginBottom: 10,
+//     },
+//     noAuditsText: {
+//       fontSize: 16,
+//       textAlign: 'center',
+//       color: '#666',
+//     },
+//     filterButton: {
+//       flexDirection: 'row',
+//       alignItems: 'center',
+//       backgroundColor: '#EAF4FF',
+//       padding: 10,
+//       borderRadius: 8,
+//       alignSelf: 'flex-end',
+//     },
+//     modalContainer: {
+//       flex: 1,
+//       justifyContent: 'center',
+//       backgroundColor: 'rgba(0,0,0,0.5)',
+//     },
+//     modalContent: {
+//       backgroundColor: '#fff',
+//       margin: 20,
+//       padding: 20,
+//       borderRadius: 12,
+//       shadowColor: '#000',
+//       shadowOpacity: 0.3,
+//       shadowOffset: { width: 0, height: 2 },
+//       shadowRadius: 4,
+//       elevation: 5,
+//     },
+//     modalTitle: {
+//       fontSize: 18,
+//       fontWeight: 'bold',
+//       marginBottom: 10,
+//       color: '#333',
+//     },
+//     input: {
+//       borderBottomWidth: 1,
+//       borderBottomColor: '#ccc',
+//       marginBottom: 10,
+//       padding: 8,
+//       fontSize: 16,
+//     },
+//     modalActions: {
+//       flexDirection: 'row',
+//       justifyContent: 'space-between',
+//       marginTop: 10,
+//     },
+//     modalButton: {
+//       padding: 10,
+//       backgroundColor: '#4A90E2',
+//       borderRadius: 8,
+//       flex: 1,
+//       marginHorizontal: 5,
+//       alignItems: 'center',
+//     },
+//     modalButtonText: {
+//       color: '#fff',
+//       fontSize: 16,
+//     },
+//     resetButton: {
+//       backgroundColor: '#FF6B6B',
+//     },
+//     categoriesTitle: {
+//       fontSize: 20,
+//       fontWeight: 'bold',
+//       marginBottom: 10,
+//       color: '#333',
 //     },
 //   });
   
-//   export default HomeScreen;
-  
-  
-  
-  
-  
+//   export default HomeS
 
-
-
-
-
-
-  
-  
-import React, { useState, useEffect } from 'react'; 
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, FlatList, Dimensions } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import { firebase } from './firebaseConfig';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getDocs, collection, updateDoc, doc, arrayUnion, onSnapshot, getDoc } from "firebase/firestore"; // Import onSnapshot
-
+import React, { useState, useEffect } from "react";
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image } from "react-native";
+import { doc, getDoc, collection, getDocs } from "firebase/firestore";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { db } from "./firebaseConfig";
+import { Ionicons } from '@expo/vector-icons';
 
-const { width, height } = Dimensions.get("window");
-
-const HomeScreen = ({ navigation, route }) => {
-  const [userId, setUserId] = useState(null);
-  const userEmail = route?.params?.userEmail || "";
-  const [greeting, setGreeting] = useState("");
+const HomeScreen = ({ navigation }) => {
+  const [ongoingCounter, setOngoingCounter] = useState(0);
+  const [upcomingAudits, setUpcomingAudits] = useState([]);
+  const [todaysTasks, setTodaysTasks] = useState(0);
+  const [acceptedTasks, setAcceptedTasks] = useState([]);
   const [userName, setUserName] = useState("");
-  const [audits, setAudits] = useState([]);
-  const [ongoingAudits, setOngoingAudits] = useState([]);
-  const [todayTasks, setTodayTasks] = useState([]);
-  const [completedTasks, setCompletedTasks] = useState([]);
-  const [clientsData, setClientsData] = useState({});
   const [branchesData, setBranchesData] = useState([]);
-  const [selectedStatus, setSelectedStatus] = useState("");
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filterLocation, setFilterLocation] = useState("");
+  const [clientsData, setClientsData] = useState({});
+  const [hasAcceptedAllAudits, setHasAcceptedAllAudits] = useState(false);
 
   useEffect(() => {
-    const loadData = async () => {
+    const fetchData = async () => {
       try {
-        // Fetch audits from Firebase collection 'audits'
-        const auditRef = collection(db, "audits");
-        
-        // Real-time listener for updates on audits
-        const unsubscribe = onSnapshot(auditRef, (snapshot) => {
-          const auditData = snapshot.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-          }));
-          setAudits(auditData); // Update audits with real-time data
-        });
+        const userId = await AsyncStorage.getItem("userId");
 
-        // Fetch ongoing audits from AsyncStorage
-        const ongoingAuditsData = await AsyncStorage.getItem("ongoingAudits");
-        if (ongoingAuditsData) {
-          setOngoingAudits(JSON.parse(ongoingAuditsData));
+        if (userId) {
+          // Fetch Profile document for the logged-in user
+          const profileRef = doc(db, "Profile", userId);
+          const profileDoc = await getDoc(profileRef);
+
+          if (profileDoc.exists()) {
+            // Set ongoingCounter and user name based on the profile data
+            const ongoingCount = profileDoc.data()?.ongoingCounter || 0;
+            setOngoingCounter(ongoingCount);
+
+            const name = profileDoc.data()?.name || "User";
+            setUserName(name);
+
+            // Fetch accepted audits and check for today's tasks
+            const acceptedAuditsSnapshot = await getDocs(
+              collection(db, "Profile", userId, "acceptedAudits")
+            );
+
+            const today = new Date();
+            let todaysAuditCount = 0;
+            let acceptedAuditIds = [];
+
+            acceptedAuditsSnapshot.forEach((doc) => {
+              const auditData = doc.data();
+              const auditDate = new Date(auditData.date);
+              acceptedAuditIds.push(doc.id); // Collect accepted audit IDs
+
+              if (
+                auditDate.getFullYear() === today.getFullYear() &&
+                auditDate.getMonth() === today.getMonth() &&
+                auditDate.getDate() === today.getDate()
+              ) {
+                todaysAuditCount++;
+              }
+            });
+
+            setTodaysTasks(todaysAuditCount); // Update the state with today's audit count
+
+            // Fetch all audits and filter out those already accepted
+            const auditsSnapshot = await getDocs(collection(db, "audits"));
+            const fetchedUpcomingAudits = [];
+            auditsSnapshot.forEach((doc) => {
+              const auditData = doc.data();
+              // Only add audits that are not yet accepted and are not in the accepted audits list
+              if (!auditData.isAccepted && !acceptedAuditIds.includes(doc.id)) {
+                fetchedUpcomingAudits.push({
+                  id: doc.id,
+                  title: auditData.title,
+                  city: auditData.city,
+                  date: auditData.date,
+                  clientId: auditData.clientId,
+                  branchId: auditData.branchId,
+                });
+              }
+            });
+
+            setUpcomingAudits(fetchedUpcomingAudits);
+            setHasAcceptedAllAudits(fetchedUpcomingAudits.length === 0); // Check if all audits have been accepted
+          } else {
+            console.log("User profile not found");
+          }
+        } else {
+          console.log("No user logged in");
         }
-
-        // Fetch clients from 'clients' collection
-        const clientsRef = collection(db, "clients");
-        const clientSnapshot = await getDocs(clientsRef);
-        const clients = {};
-        clientSnapshot.docs.forEach((doc) => {
-          clients[doc.id] = doc.data().name;
-        });
-        setClientsData(clients);
-
-        // Fetch branches from 'branches' collection
-        const branchesRef = collection(db, "branches");
-        const branchSnapshot = await getDocs(branchesRef);
-        const branches = branchSnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-        setBranchesData(branches);
-
-        // Fetch tasks from 'tasks' collection
-        const tasksRef = collection(db, "tasks");
-        const taskSnapshot = await getDocs(tasksRef);
-        const taskData = taskSnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-        setTodayTasks(taskData.filter(task => task.status === 'today'));
-        setCompletedTasks(taskData.filter(task => task.status === 'completed'));
-
-        // Fetch the logged-in user's ID
-        const userDoc = await firebase.firestore().collection('Profile').where("email", "==", userEmail).get();
-        if (!userDoc.empty) {
-          const userId = userDoc.docs[0].id;
-          setUserId(userId); // Set the logged-in user's document ID
-        }
-
       } catch (error) {
         console.error("Error fetching data:", error);
       }
-
-      // Set greeting based on time
-      const currentTime = new Date().getHours();
-      setGreeting(currentTime < 12 ? "Good Morning" : currentTime < 19 ? "Good Afternoon " : "Good Evening");
-      setUserName(userEmail ? userEmail.split("@")[0] : "User");
     };
 
-    loadData();
-
-    // Clean up the listener when the component unmounts
-    return () => {
-      if (unsubscribe) {
-        unsubscribe();
-      }
-    };
-
-  }, [userEmail]);
-
-  const getAvatar = (Client) => {
-    const firstLetter = Client ? Client.charAt(0).toUpperCase() : "Ⓐ";
-    return firstLetter;
-  };
-
-  const acceptAudit = async (auditId) => {
-    try {
-      // Ensure userId is available before proceeding
-      if (!userId) {
-        console.log("User ID is not available.");
-        return;
-      }
-
-      // Update the audit to mark it as accepted
-      const auditRef = doc(db, "audits", auditId);
-      await updateDoc(auditRef, {
-        auditorId: userId, // Update the auditorId in the audit document
-        isAccepted: true, // Mark the audit as accepted
-      });
-
-      // Log audit acceptance
-      console.log(`Audit ${auditId} accepted and marked with auditorId ${userId}`);
-
-      // Add the auditId to the 'AcceptedAudits' array in the user's profile
-      const userRef = doc(db, "Profile", userId);
-
-      // Use arrayUnion to safely add the audit ID to the AcceptedAudits field
-      await updateDoc(userRef, {
-        AcceptedAudits: arrayUnion(auditId),
-      });
-
-      // Log successful update to user's profile
-      console.log(`Audit ID ${auditId} added to user's AcceptedAudits field!`);
-
-    } catch (error) {
-      console.error("Error accepting audit:", error);
-    }
-  };
-
-  const completeAudit = async (auditId) => {
-    try {
-      const auditRef = doc(db, "audits", auditId);
-      const auditSnapshot = await getDoc(auditRef);
-      const auditData = auditSnapshot.data();
-
-      if (auditData.isAccepted) {
-        await updateDoc(auditRef, {
-          isCompleted: true,
-        });
-
-        console.log("Audit marked as complete!");
-      } else {
-        console.log("Audit is not accepted, cannot mark as complete.");
-      }
-    } catch (error) {
-      console.error("Error completing audit:", error);
-    }
-  };
-
-  const filteredAudits = audits.filter((audit) => {
-    if (selectedStatus && audit.status !== selectedStatus) {
-      return false;
-    }
-    if (filterLocation && audit.location !== filterLocation) {
-      return false;
-    }
-    if (searchTerm && !audit.name.toLowerCase().includes(searchTerm.toLowerCase())) {
-      return false;
-    }
-    return true;
-  });
+    fetchData();
+  }, []);
 
   return (
-    <View style={styles.fullScreen}>
-      <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
-        <View>
-          {userId ? (
-            <Text>Welcome, User ID: {userId}</Text>
-          ) : (
-            <Text>.</Text>
-          )}
-        </View>
-  
-        <View style={styles.greetingContainer}>
-          <Text style={styles.greetingText}>{greeting}, {userName}</Text>
-        </View>
-  
-        <View style={styles.container}>
-          <View style={styles.taskBoxesContainer}>
-            <TouchableOpacity style={styles.taskBox}>
-              <TouchableOpacity onPress={() => navigation.navigate("UserInfo")}>
-                <Ionicons name="calendar" size={30} color="black" style={styles.icon} />
-                <Text style={styles.taskBoxTitle}>Today's Tasks</Text>
-                <Text style={styles.taskBoxContent}>{todayTasks.length} Tasks</Text>
-              </TouchableOpacity>
-            </TouchableOpacity>
-  
-            <TouchableOpacity style={styles.taskBox}>
-              <TouchableOpacity onPress={() => navigation.navigate("Ongoing")}>
-                <Ionicons name="play-circle" size={30} color="black" style={styles.icon} />
-                <Text style={styles.taskBoxTitle}>Ongoing Tasks</Text>
-                <Text style={styles.taskBoxContent}>{ongoingAudits.length} Tasks</Text>
-              </TouchableOpacity>
-            </TouchableOpacity>
+    <View style={styles.container}>
+      <Text style={styles.header}>Welcome Auditor!</Text>
+
+      {/* Today's Tasks Section */}
+      <View style={styles.row}>
+        <TouchableOpacity
+          style={[styles.card, styles.completedTasks]}
+          onPress={() => navigation.navigate("TodaysTasks")}
+        >
+          <Ionicons name="calendar" size={30} color="#4A90E2" style={styles.icon} />
+          <Text style={styles.cardTitle}>Today's Tasks</Text>
+          <Text style={styles.cardContent}>
+            {todaysTasks > 0 ? todaysTasks : "0"}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Accepted Tasks Section */}
+      <TouchableOpacity
+        style={[styles.card, styles.ongoingTasks]}
+        onPress={() => navigation.navigate('Ongoing')}
+      >
+        <Ionicons name="play-circle" size={30} color="#FFC107" style={styles.icon} />
+        <Text style={styles.cardTitle}>Accepted Tasks</Text>
+        {ongoingCounter !== null && (
+          <Text style={styles.counter}>{ongoingCounter}</Text>
+        )}
+      </TouchableOpacity>
+
+      {/* Upcoming Audits Section */}
+      <View style={styles.upcomingAuditsContainer}>
+        <Text style={styles.upcomingAuditsTitle}>Upcoming Audits</Text>
+        {hasAcceptedAllAudits ? (
+          <View style={styles.noAuditsContainer}>
+            <Image source={require('./Images/nua.jpg')} style={styles.noAuditsImage} />
+            <Text style={styles.noAuditsText}>You have accepted all upcoming audits</Text>
           </View>
-  
-          <TouchableOpacity style={styles.taskBox2}>
-            <TouchableOpacity onPress={() => navigation.navigate("Completed-Tasks")}>
-              <Ionicons name="checkmark-circle" size={30} color="black" style={styles.icon} />
-              <Text style={styles.taskBoxTitle}>Completed Tasks</Text>
-              <Text style={styles.taskBoxContent}>{completedTasks.length} Tasks</Text>
-            </TouchableOpacity>
-          </TouchableOpacity>
-  
-          <View style={styles.upcomingAuditsContainer}>
-            <Text style={styles.upcomingAuditsText}>Upcoming Audits</Text>
-  
-            <FlatList
-              data={filteredAudits}
-              renderItem={({ item }) => {
-                const clientName = clientsData[item.clientId] || "Unknown Client";
-                const branch = branchesData.find((branch) => branch.id === item.branchId);
-                const branchCity = branch ? branch.city : "Unknown Location";
-  
-                return (
-                  <TouchableOpacity
-                    style={styles.auditItem}
-                    onPress={() => navigation.navigate("AuditDetails", { audit: item })}
-                  >
-                    <View style={styles.clientImageContainer}>
-                      <Text style={styles.clientImage}>{getAvatar(item.auditorId)}</Text>
+        ) : (
+          <FlatList
+            data={upcomingAudits}
+            renderItem={({ item }) => (
+              <View style={styles.auditCard}>
+                <View style={styles.auditDetails}>
+                  <Text style={styles.auditTitle}>{item.name}</Text>
+                  <Text style={styles.auditClient}>
+                      {clientsData[item.clientId] || 'Unknown Client'}
+                    </Text>
+                    <View style={styles.auditLocationContainer}>
+                       <Ionicons name="location-outline" size={16} color="blue" style={styles.locationIcon} />
+                       <Text style={styles.auditLocation}>
+                        {branchesData.find((branch) => branch.id === item.branchId)?.city || 'Unknown Location'}
+                      </Text>
                     </View>
-                    <View style={styles.auditContent}>
-                      <Text style={styles.auditTitle}>Audit: {item.auditName}</Text>
-                      <Text style={styles.clientName}>Client: {clientName}</Text>
-                      <Text style={styles.branch}>Branch: {branchCity}</Text>
-                    </View>
-                    <View style={styles.actionButtonsContainer}>
-                      <TouchableOpacity
-                        style={styles.acceptButton}
-                        onPress={() => acceptAudit(item.id)}
-                      >
-                        <Text style={styles.acceptButtonText}>Accept</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={styles.rejectButton}
-                        onPress={() => console.log("Reject audit")}
-                      >
-                        <Text style={styles.rejectButtonText}>Reject</Text>
-                      </TouchableOpacity>
-                    </View>
-                  </TouchableOpacity>
-                );
-              }}
-              keyExtractor={(item) => item.id}
-            />
-          </View>
-        </View>
-      </ScrollView>
+                </View>
+                <TouchableOpacity
+                  style={styles.seeMoreButton}
+                  onPress={() => navigation.navigate("AuditDetails", { audit: item })}
+                >
+                  <Text style={styles.seeMoreButtonText}>See More Info</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+            keyExtractor={(item) => item.id}
+          />
+        )}
+      </View>
     </View>
   );
 };
-  
+
 const styles = StyleSheet.create({
-  fullScreen: {
-    flex: 1,
-    backgroundColor: "#f5f5f5",
+  container: {
+    flexGrow: 1,
+    padding: 16,
+    backgroundColor: '#F0F4F8',
   },
-  greetingContainer: {
-    padding: 20,
-    backgroundColor: "#fff",
+  row: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+    marginTop: 30,
   },
   greetingText: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  ongoingTasks: {
+    backgroundColor: '#FFF4E5',
+  },
+  completedTasks: {
+    backgroundColor: '#E8F8E9',
+  },
+  auditClient: {
+          fontSize: 14,
+          color: '#666',
+        },
+  header: {
     fontSize: 24,
     fontWeight: "bold",
+    marginBottom: 20,
     color: "#333",
   },
-  container: {
-    flex: 1,
-    margin: 10,
-  },
-  taskBoxesContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 20,
-  },
-  taskBox: {
-    backgroundColor: "#fff",
-    padding: 10,
-    width: "48%",
-    borderRadius: 10,
-    alignItems: "center",
-  },
-  taskBox2: {
-    backgroundColor: "#fff",
-    padding: 10,
-    width: "100%",
-    borderRadius: 10,
-    alignItems: "center",
-    marginBottom: 20,
-  },
-  taskBoxTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-  },
-  taskBoxContent: {
-    fontSize: 14,
-    color: "#555",
-  },
-  upcomingAuditsContainer: {
-    marginBottom: 20,
-  },
-  upcomingAuditsText: {
-    fontSize: 22,
-    fontWeight: "bold",
+  upcomingAuditsTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
     marginBottom: 10,
   },
-  auditItem: {
+  noAuditsContainer: {
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  noAuditsImage: {
+    width: 150,
+    height: 150,
+    resizeMode: 'contain',
+  },
+  noAuditsText: {
+    fontSize: 16,
+    color: '#888',
+    marginTop: 10,
+  },
+  auditCard: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    padding: 15,
-    marginVertical: 5,
-    backgroundColor: "#fff",
-    borderRadius: 10,
     alignItems: "center",
+    marginBottom: 10,
+    backgroundColor: "#f0f8ff", 
+    padding: 10,
+    borderRadius: 8,
   },
-  clientImageContainer: {
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 10,
-  },
-  clientImage: {
-    backgroundColor: "#dcdcdc",
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: "center",
-    alignItems: "center",
-    textAlign: "center",
-    lineHeight: 40,
-    fontSize: 18,
-  },
-  auditContent: {
+  auditDetails: {
     flex: 1,
   },
   auditTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "bold",
+    color: "#4A90E2",
   },
-  clientName: {
+  auditCity: {
     fontSize: 14,
-    color: "#555",
+    color: "#333",
   },
-  branch: {
+  auditDate: {
     fontSize: 14,
-    color: "#555",
+    color: "#333",
   },
-  actionButtonsContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  acceptButton: {
-    backgroundColor: "#4CAF50",
-    padding: 8,
-    borderRadius: 5,
-    marginRight: 10,
-  },
-  rejectButton: {
-    backgroundColor: "#f44336",
-    padding: 8,
+  seeMoreButton: {
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    backgroundColor: '#4A90E2',
     borderRadius: 5,
   },
-  acceptButtonText: {
-    color: "#fff",
-    fontWeight: "bold",
-  },
-  rejectButtonText: {
-    color: "#fff",
-    fontWeight: "bold",
+  seeMoreButtonText: {
+    color: '#fff',
+    fontSize: 14,
   },
 });
 
