@@ -374,6 +374,22 @@ const AuditDetails = ({ route, navigation }) => {
     );
   }
 
+  if (!auditDetails) {
+    return (
+      <View style={styles.container}>
+        <Text>No audit details found</Text>
+      </View>
+    );
+  }
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#0000ff" />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollView}>
@@ -482,6 +498,24 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "bold",
   },
+  scrollView: {
+    paddingBottom: 20,
+  },
+  errorText: {
+    fontSize: 16,
+    color: "#D32F2F", // Red color for error messages
+    textAlign: "center",
+  },
+  ongoingContainer: {
+    marginTop: 20,
+    padding: 10,
+    backgroundColor: "#f4f4f4",
+    borderRadius: 5,
+  },
+  ongoingText: {
+    fontSize: 18,
+    fontWeight: "bold",
+  },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
@@ -489,7 +523,7 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 16,
-    color: "#D32F2F", // Red color for error messages
+    color: "red",
     textAlign: "center",
   },
 });

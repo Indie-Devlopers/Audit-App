@@ -837,12 +837,242 @@ const HomeScreen = ({ navigation }) => {
           console.log("No user logged in");
         }
       } catch (error) {
-        console.error("Error fetching data:", error);
+        console.error('Error fetching data:', error);
       }
     };
 
     fetchData();
   }, []);
+
+
+  useEffect(() => {
+    const fetchAudits = async () => {
+      // Fetch audits data (assuming data fetching logic from Firebase here)
+    };
+
+    fetchAudits();
+  }, []);
+
+
+
+  const today = new Date().toISOString().split('T')[0]; // Current date in YYYY-MM-DD format
+  const todayAudits = originalAudits.filter((audit) => {
+    const auditDate = audit.date || '';
+    return (
+      auditDate === today &&
+      (!audit.acceptedBy || !audit.acceptedBy.includes(userId))
+    );
+  });
+
+  useEffect(() => {
+    if (userId) {
+      // Filter completed audits based on `isCompleted` and check if `acceptedBy` includes the userId
+      const completedByUser = audits.filter((audit) => {
+        return audit.isCompleted && audit.acceptedBy && audit.acceptedBy.includes(userId);
+      });
+      setCompletedAuditsCount(completedByUser.length); // Set the count of completed audits
+    }
+  }, [audits, userId]);
+
+
+  // Filter for ongoing audits
+  // Ongoing component (updated filter logic)
+  const loadOngoingAudits = async () => {
+    try {
+      const auditsQuery = query(collection(db, "audits")); // No filter here
+
+      const querySnapshot = await getDocs(auditsQuery);
+
+      const fetchedAudits = [];
+      for (const docSnap of querySnapshot.docs) {
+        const auditData = docSnap.data();
+        const auditId = docSnap.id;
+
+        // Fetch auditor's accepted audits from Profile collection
+        const auditorDocRef = doc(db, "Profile", auditData.auditorId); // Assuming auditorId is in auditData
+        const auditorDocSnap = await getDoc(auditorDocRef);
+
+        if (auditorDocSnap.exists()) {
+          const acceptedAudits = auditorDocSnap.data().AcceptedAudits || []; // Default to empty array if no AcceptedAudits field
+          if (acceptedAudits.indexOf(auditId) !== -1) { // Check if the auditId is in acceptedAudits
+            // Fetch branch details
+            const branchRef = doc(db, "branches", auditData.branchId);
+            const branchSnap = await getDoc(branchRef);
+
+            // Fetch client details
+            const clientRef = doc(db, "clients", auditData.clientId);
+            const clientSnap = await getDoc(clientRef);
+
+            if (branchSnap.exists() && clientSnap.exists()) {
+              const branchDetails = branchSnap.data();
+
+              // Exclude clientId from branchDetails
+              delete branchDetails.clientId;
+
+              fetchedAudits.push({
+                id: auditId,
+                ...auditData,
+                branchDetails,
+                clientDetails: clientSnap.data(),
+              });
+            } else {
+              console.log("Missing details for audit:", auditId);
+            }
+          }
+        }
+      }
+
+      setOngoingAudits(fetchedAudits);
+    } catch (error) {
+      console.error("Failed to load ongoing audits", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const fetchOngoingCounter = async () => {
+      try {
+        const userId = auth.currentUser?.uid; // Get the logged-in user's ID
+
+        if (userId) {
+          // Get the document in Profile collection based on the logged-in user's ID
+          const profileRef = doc(firestore, 'Profile', userId, 'auditor', userId); 
+          const profileDoc = await getDoc(profileRef);
+
+          if (profileDoc.exists()) {
+            // Access ongoingCounter from the auditor sub-collection in Profile
+            const ongoingCount = profileDoc.data()?.ongoingCounter || 0; // Default to 0 if the field doesn't exist
+            setOngoingCounter(ongoingCount); // Update state with the ongoing counter value
+          } else {
+            console.log('User profile not found');
+          }
+        } else {
+          console.log('No user logged in');
+        }
+      } catch (error) {
+        console.error('Error fetching ongoing counter:', error);
+      }
+    };
+
+    fetchOngoingCounter();
+  }, []);
+
+  useEffect(() => {
+    const fetchOngoingAudits = async () => {
+      const auditsRef = firebase.firestore().collection('audits');
+      const querySnapshot = await auditsRef.where('status', '==', 'ongoing').get();
+      setOngoingCounter(querySnapshot.size); //  yha pe it Sets the ongoingCounter to the number of ongoing audits
+    };
+
+    fetchOngoingAudits();
+  }, []);
+
+
+
+  useEffect(() => {
+    loadOngoingAudits();
+  }, []);
+
+
+
+  const applyFilters = () => {
+    let filtered = originalAudits; // Start with unfiltered audits
+
+    if (filters.date) {
+      filtered = filtered.filter((audit) => audit.date === filters.date);
+    }
+
+    if (filters.city) {
+      filtered = filtered.filter(
+        (audit) =>
+          branchesData.find((branch) => branch.id === audit.branchId)?.city === filters.city
+      );
+    }
+
+    if (filters.state) {
+      filtered = filtered.filter(
+        (audit) =>
+          branchesData.find((branch) => branch.id === audit.branchId)?.state === filters.state
+      );
+    }
+
+    setAudits(filtered);
+    setFilterModalVisible(false);
+  };
+
+
+  // Reset filters
+  const resetFilters = () => {
+    setFilters({
+      date: '',
+      city: '',
+      state: '',
+    });
+    setAudits(originalAudits); // Reset to unfiltered audits
+    setFilterModalVisible(false);
+  };
+
+  useEffect(() => {
+    const fetchUserPreferences = async () => {
+      if (userId) {
+        try {
+          const userDoc = await db.collection('Profile').doc(userId).get();
+          const userData = userDoc.data();
+          const userCity = userData?.preferredCity;  // Assuming 'preferredCity' is stored in the profile
+          const userState = userData?.preferredState;  // Assuming 'preferredState' is stored in the profile
+
+          setFilters((prevFilters) => ({
+            ...prevFilters,
+            city: userCity || '',
+            state: userState || '',
+          }));
+        } catch (error) {
+          console.error('Error fetching user preferences:', error);
+        }
+      }
+    };
+
+    fetchUserPreferences();
+  }, [userId]);  // Fetch only when the userId is available
+
+
+  useEffect(() => {
+    const loadCompletedAuditsCount = async () => {
+      const count = await fetchCompletedAuditsCount();
+      setCompletedAuditsCount(count);
+    };
+    loadCompletedAuditsCount();
+  }, []);
+  useEffect(() => {
+    const fetchOngoingAudits = async () => {
+      try {
+        const auditsQuery = query(collection(db, 'audits')); // No filter here
+        const querySnapshot = await getDocs(auditsQuery);
+
+        const fetchedAudits = [];
+        for (const docSnap of querySnapshot.docs) {
+          const auditData = docSnap.data();
+          const auditId = docSnap.id;
+
+          // Check if the audit is ongoing
+          if (auditData.status === 'ongoing') {
+            fetchedAudits.push(auditData);
+          }
+        }
+
+        setOngoingAudits(fetchedAudits);
+        setOngoingCounter(fetchedAudits.length); // Set the ongoing counter
+      } catch (error) {
+        console.error('Failed to load ongoing audits', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchOngoingAudits();
+  }, []); // Runs once when the component mounts
+
 
   return (
     <View style={styles.container}>
@@ -954,6 +1184,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#333',
     marginBottom: 10,
+    color: '#333',
   },
   noAuditsContainer: {
     alignItems: 'center',
@@ -979,7 +1210,36 @@ const styles = StyleSheet.create({
   },
   auditDetails: {
     flex: 1,
+    paddingLeft: 10,
   },
+  filterButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EAF4FF',
+    padding: 10,
+    
+    borderRadius: 8,
+    alignSelf: 'flex-end',
+  },
+  filterButtonText: { color: '#4A90E2', marginLeft: 8 },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    margin: 20,
+    padding: 20,
+    borderRadius: 8,
+  },
+  modalTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 10 },
+  input: { borderBottomWidth: 1, marginBottom: 10 },
+  modalButtons: { flexDirection: 'row', justifyContent: 'space-around' },
+  modalButton: { padding: 10 },
+  modalButtonText: { color: '#4A90E2' },
+  
+
   auditTitle: {
     fontSize: 18,
     fontWeight: "bold",
@@ -1003,6 +1263,16 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 14,
   },
+  modalTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 10 },
+  input: { borderBottomWidth: 1, marginBottom: 10 },
+  modalButtons: { flexDirection: 'row', justifyContent: 'space-around' },
+  modalButton: { padding: 10 },
+  modalButtonText: { color: '#4A90E2' },
+  
+
 });
 
 export default HomeScreen;
+
+
+

@@ -1,4 +1,20 @@
 
+<<<<<<< HEAD
+=======
+
+
+
+
+
+
+
+
+
+
+
+
+
+>>>>>>> 197a4495cbcf7ce590ea0c9dac71fb09b3fd08d3
 import React, { useState, useEffect } from "react";
 import {
   StyleSheet,
@@ -16,7 +32,10 @@ import Svg, { Circle } from "react-native-svg";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { db } from "./firebaseConfig";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+<<<<<<< HEAD
 import { Ionicons } from "react-native-vector-icons"; // Import Ionicons
+=======
+>>>>>>> 197a4495cbcf7ce590ea0c9dac71fb09b3fd08d3
 
 const { width, height } = Dimensions.get("window");
 
@@ -24,7 +43,10 @@ export default function LoginScreen({ navigation }) {
   const [language, setLanguage] = useState("en"); // Default to English
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+<<<<<<< HEAD
   const [passwordVisible, setPasswordVisible] = useState(false); // State for password visibility
+=======
+>>>>>>> 197a4495cbcf7ce590ea0c9dac71fb09b3fd08d3
 
   useEffect(() => {
     const checkUserLogin = async () => {
@@ -36,6 +58,22 @@ export default function LoginScreen({ navigation }) {
 
     checkUserLogin();
   }, [navigation]);
+<<<<<<< HEAD
+=======
+
+  useEffect(() => {
+    // Check if user is already logged in
+    const checkUserLogin = async () => {
+      const userId = await AsyncStorage.getItem("userId");
+      if (userId) {
+        // If user is already logged in, navigate to HomeScreen
+        navigation.navigate("HomeScreen");
+      }
+    };
+
+    checkUserLogin();
+  }, [navigation]);
+>>>>>>> 197a4495cbcf7ce590ea0c9dac71fb09b3fd08d3
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -54,7 +92,10 @@ export default function LoginScreen({ navigation }) {
 
       if (!querySnapshot.empty) {
         querySnapshot.forEach(async (doc) => {
+<<<<<<< HEAD
           
+=======
+>>>>>>> 197a4495cbcf7ce590ea0c9dac71fb09b3fd08d3
           console.log("Document ID (User ID):", doc.id);
           await AsyncStorage.setItem("userId", doc.id);
         });
@@ -124,6 +165,7 @@ export default function LoginScreen({ navigation }) {
           keyboardType="email-address"
         />
 
+<<<<<<< HEAD
         <View style={styles.passwordContainer}>
           <TextInput
             style={styles.input}
@@ -144,6 +186,16 @@ export default function LoginScreen({ navigation }) {
             />
           </TouchableOpacity>
         </View>
+=======
+        <TextInput
+          style={styles.input}
+          placeholder={texts[language].passwordPlaceholder}
+          placeholderTextColor="#a9a9a9"
+          secureTextEntry
+          value={password}
+          onChangeText={setPassword}
+        />
+>>>>>>> 197a4495cbcf7ce590ea0c9dac71fb09b3fd08d3
 
         <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
           <Text style={styles.loginText}>{texts[language].loginButton}</Text>
@@ -213,6 +265,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#f9f9f9",
     fontSize: 16,
   },
+<<<<<<< HEAD
   passwordContainer: {
     position: "relative", // Position for the eye icon inside the TextInput container
     width: "100%",
@@ -222,6 +275,8 @@ const styles = StyleSheet.create({
     top: 15,
     right: 15,
   },
+=======
+>>>>>>> 197a4495cbcf7ce590ea0c9dac71fb09b3fd08d3
   loginButton: {
     width: "100%",
     height: 50,
@@ -240,4 +295,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "bold",
   },
+<<<<<<< HEAD
 });
+=======
+});
+>>>>>>> 197a4495cbcf7ce590ea0c9dac71fb09b3fd08d3

@@ -607,7 +607,7 @@ const Ongoing = ({ navigation }) => {
     };
 
     loadOngoingAudits();
-  }, []);
+  }, []); 
 
   const handleRemove = async (auditId, auditName) => {
     try {
