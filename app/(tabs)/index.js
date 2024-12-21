@@ -8,11 +8,8 @@ import { createStackNavigator } from "@react-navigation/stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
 
-<<<<<<< HEAD
 
 
-=======
->>>>>>> 197a4495cbcf7ce590ea0c9dac71fb09b3fd08d3
 // Import your screens
 import LoginScreen from "./LoginScreen";
 import HomeScreen from "./HomeScreen";
@@ -77,19 +74,7 @@ function BottomTabs({ navigation }) {
 
 
       
-<<<<<<< HEAD
       
-=======
-      {/* <Tab.Screen
-        name="ReportScreen"
-        component={ReportScreen}  
-        options={{
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="document-text" color={color} size={size} />
-          ),
-        }}
-      /> */}
->>>>>>> 197a4495cbcf7ce590ea0c9dac71fb09b3fd08d3
       
       <Tab.Screen
         name="CompletedTasks"
@@ -131,7 +116,6 @@ export default function App() {
           options={{ headerShown: false }}
         />
         {/* Additional Screens not part of Bottom Tabs */}
-<<<<<<< HEAD
         <Stack.Screen name="Ongoing" component={Ongoing}  options={{ headerShown: false }}  />
      
         <Stack.Screen name="ReportScreen" component={ReportScreen}  options={{ headerShown: false }}  />
@@ -140,15 +124,6 @@ export default function App() {
         <Stack.Screen name="AuditDetails" component={AuditDetails}   />
         <Stack.Screen name="ClientDetails" component={ClientDetails}  options={{ headerShown: false }}  />
         <Stack.Screen name="RejectedAudits" component={RejectedAudits}  options={{ headerShown: false }}  />
-=======
-        <Stack.Screen name="Ongoing" component={Ongoing} />
-        <Stack.Screen name="ReportScreen" component={ReportScreen} />
-        <Stack.Screen name="CompletedTasks" component={CompletedTasks} />
-        <Stack.Screen name="TodaysTasks" component={TodaysTasks} />
-        <Stack.Screen name="AuditDetails" component={AuditDetails} />
-        <Stack.Screen name="ClientDetails" component={ClientDetails} />
-        <Stack.Screen name="RejectedAudits" component={RejectedAudits} />
->>>>>>> 197a4495cbcf7ce590ea0c9dac71fb09b3fd08d3
       </Stack.Navigator>
     </NavigationContainer>
   );
