@@ -751,26 +751,23 @@
 //   export default HomeS
 
 import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image } from "react-native";
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from "react-native";
 import { doc, getDoc, collection, getDocs } from "firebase/firestore";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { db } from "./firebaseConfig";
 import { Ionicons } from '@expo/vector-icons';
 
-const HomeScreen = ({ navigation }) => {
+const HomeScreen = ({navigation}) => {
   const [ongoingCounter, setOngoingCounter] = useState(0);
   const [upcomingAudits, setUpcomingAudits] = useState([]);
-  const [todaysTasks, setTodaysTasks] = useState(0);
-  const [acceptedTasks, setAcceptedTasks] = useState([]);
+  const [todaysTasks, setTodaysTasks] = useState([]); // Kept as it is
+  const [acceptedTasks, setAcceptedTasks] = useState([]); // Kept as it is
   const [userName, setUserName] = useState("");
-  const [branchesData, setBranchesData] = useState([]);
-  const [clientsData, setClientsData] = useState({});
-  const [hasAcceptedAllAudits, setHasAcceptedAllAudits] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const userId = await AsyncStorage.getItem("userId");
+        const userId = await AsyncStorage.getItem("userId"); // Get userId from AsyncStorage
 
         if (userId) {
           // Fetch Profile document for the logged-in user
@@ -782,23 +779,25 @@ const HomeScreen = ({ navigation }) => {
             const ongoingCount = profileDoc.data()?.ongoingCounter || 0;
             setOngoingCounter(ongoingCount);
 
-            const name = profileDoc.data()?.name || "User";
+            const name = profileDoc.data()?.name || "User"; // Assuming 'name' field in Profile
             setUserName(name);
 
-            // Fetch accepted audits and check for today's tasks
+            // Fetch accepted audits for the user
             const acceptedAuditsSnapshot = await getDocs(
               collection(db, "Profile", userId, "acceptedAudits")
             );
+            const acceptedTasksList = [];
+            acceptedAuditsSnapshot.forEach((doc) => {
+              acceptedTasksList.push(doc.data().auditId); // Storing the auditIds of accepted audits
+            });
+            setAcceptedTasks(acceptedTasksList); // Store accepted audits' IDs
 
+            // Fetch today's tasks (Unchanged)
             const today = new Date();
             let todaysAuditCount = 0;
-            let acceptedAuditIds = [];
-
             acceptedAuditsSnapshot.forEach((doc) => {
               const auditData = doc.data();
-              const auditDate = new Date(auditData.date);
-              acceptedAuditIds.push(doc.id); // Collect accepted audit IDs
-
+              const auditDate = new Date(auditData.date); // Assuming 'date' is a timestamp
               if (
                 auditDate.getFullYear() === today.getFullYear() &&
                 auditDate.getMonth() === today.getMonth() &&
@@ -807,29 +806,24 @@ const HomeScreen = ({ navigation }) => {
                 todaysAuditCount++;
               }
             });
+            setTodaysTasks(todaysAuditCount); // Update today's tasks count
 
-            setTodaysTasks(todaysAuditCount); // Update the state with today's audit count
-
-            // Fetch all audits and filter out those already accepted
+            // Fetch all audits, and filter out the accepted ones
             const auditsSnapshot = await getDocs(collection(db, "audits"));
             const fetchedUpcomingAudits = [];
             auditsSnapshot.forEach((doc) => {
               const auditData = doc.data();
-              // Only add audits that are not yet accepted and are not in the accepted audits list
-              if (!auditData.isAccepted && !acceptedAuditIds.includes(doc.id)) {
+              // Only add audits that are not accepted yet (by checking against accepted tasks)
+              if (!auditData.isAccepted && !acceptedTasksList.includes(doc.id)) {
                 fetchedUpcomingAudits.push({
                   id: doc.id,
                   title: auditData.title,
                   city: auditData.city,
                   date: auditData.date,
-                  clientId: auditData.clientId,
-                  branchId: auditData.branchId,
                 });
               }
             });
-
-            setUpcomingAudits(fetchedUpcomingAudits);
-            setHasAcceptedAllAudits(fetchedUpcomingAudits.length === 0); // Check if all audits have been accepted
+            setUpcomingAudits(fetchedUpcomingAudits); // Update the upcoming audits list
           } else {
             console.log("User profile not found");
           }
@@ -837,310 +831,65 @@ const HomeScreen = ({ navigation }) => {
           console.log("No user logged in");
         }
       } catch (error) {
-        console.error('Error fetching data:', error);
+        console.error("Error fetching data:", error);
       }
     };
 
     fetchData();
-  }, []);
-
-
-  useEffect(() => {
-    const fetchAudits = async () => {
-      // Fetch audits data (assuming data fetching logic from Firebase here)
-    };
-
-    fetchAudits();
-  }, []);
-
-
-
-  const today = new Date().toISOString().split('T')[0]; // Current date in YYYY-MM-DD format
-  const todayAudits = originalAudits.filter((audit) => {
-    const auditDate = audit.date || '';
-    return (
-      auditDate === today &&
-      (!audit.acceptedBy || !audit.acceptedBy.includes(userId))
-    );
-  });
-
-  useEffect(() => {
-    if (userId) {
-      // Filter completed audits based on `isCompleted` and check if `acceptedBy` includes the userId
-      const completedByUser = audits.filter((audit) => {
-        return audit.isCompleted && audit.acceptedBy && audit.acceptedBy.includes(userId);
-      });
-      setCompletedAuditsCount(completedByUser.length); // Set the count of completed audits
-    }
-  }, [audits, userId]);
-
-
-  // Filter for ongoing audits
-  // Ongoing component (updated filter logic)
-  const loadOngoingAudits = async () => {
-    try {
-      const auditsQuery = query(collection(db, "audits")); // No filter here
-
-      const querySnapshot = await getDocs(auditsQuery);
-
-      const fetchedAudits = [];
-      for (const docSnap of querySnapshot.docs) {
-        const auditData = docSnap.data();
-        const auditId = docSnap.id;
-
-        // Fetch auditor's accepted audits from Profile collection
-        const auditorDocRef = doc(db, "Profile", auditData.auditorId); // Assuming auditorId is in auditData
-        const auditorDocSnap = await getDoc(auditorDocRef);
-
-        if (auditorDocSnap.exists()) {
-          const acceptedAudits = auditorDocSnap.data().AcceptedAudits || []; // Default to empty array if no AcceptedAudits field
-          if (acceptedAudits.indexOf(auditId) !== -1) { // Check if the auditId is in acceptedAudits
-            // Fetch branch details
-            const branchRef = doc(db, "branches", auditData.branchId);
-            const branchSnap = await getDoc(branchRef);
-
-            // Fetch client details
-            const clientRef = doc(db, "clients", auditData.clientId);
-            const clientSnap = await getDoc(clientRef);
-
-            if (branchSnap.exists() && clientSnap.exists()) {
-              const branchDetails = branchSnap.data();
-
-              // Exclude clientId from branchDetails
-              delete branchDetails.clientId;
-
-              fetchedAudits.push({
-                id: auditId,
-                ...auditData,
-                branchDetails,
-                clientDetails: clientSnap.data(),
-              });
-            } else {
-              console.log("Missing details for audit:", auditId);
-            }
-          }
-        }
-      }
-
-      setOngoingAudits(fetchedAudits);
-    } catch (error) {
-      console.error("Failed to load ongoing audits", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    const fetchOngoingCounter = async () => {
-      try {
-        const userId = auth.currentUser?.uid; // Get the logged-in user's ID
-
-        if (userId) {
-          // Get the document in Profile collection based on the logged-in user's ID
-          const profileRef = doc(firestore, 'Profile', userId, 'auditor', userId); 
-          const profileDoc = await getDoc(profileRef);
-
-          if (profileDoc.exists()) {
-            // Access ongoingCounter from the auditor sub-collection in Profile
-            const ongoingCount = profileDoc.data()?.ongoingCounter || 0; // Default to 0 if the field doesn't exist
-            setOngoingCounter(ongoingCount); // Update state with the ongoing counter value
-          } else {
-            console.log('User profile not found');
-          }
-        } else {
-          console.log('No user logged in');
-        }
-      } catch (error) {
-        console.error('Error fetching ongoing counter:', error);
-      }
-    };
-
-    fetchOngoingCounter();
-  }, []);
-
-  useEffect(() => {
-    const fetchOngoingAudits = async () => {
-      const auditsRef = firebase.firestore().collection('audits');
-      const querySnapshot = await auditsRef.where('status', '==', 'ongoing').get();
-      setOngoingCounter(querySnapshot.size); //  yha pe it Sets the ongoingCounter to the number of ongoing audits
-    };
-
-    fetchOngoingAudits();
-  }, []);
-
-
-
-  useEffect(() => {
-    loadOngoingAudits();
-  }, []);
-
-
-
-  const applyFilters = () => {
-    let filtered = originalAudits; // Start with unfiltered audits
-
-    if (filters.date) {
-      filtered = filtered.filter((audit) => audit.date === filters.date);
-    }
-
-    if (filters.city) {
-      filtered = filtered.filter(
-        (audit) =>
-          branchesData.find((branch) => branch.id === audit.branchId)?.city === filters.city
-      );
-    }
-
-    if (filters.state) {
-      filtered = filtered.filter(
-        (audit) =>
-          branchesData.find((branch) => branch.id === audit.branchId)?.state === filters.state
-      );
-    }
-
-    setAudits(filtered);
-    setFilterModalVisible(false);
-  };
-
-
-  // Reset filters
-  const resetFilters = () => {
-    setFilters({
-      date: '',
-      city: '',
-      state: '',
-    });
-    setAudits(originalAudits); // Reset to unfiltered audits
-    setFilterModalVisible(false);
-  };
-
-  useEffect(() => {
-    const fetchUserPreferences = async () => {
-      if (userId) {
-        try {
-          const userDoc = await db.collection('Profile').doc(userId).get();
-          const userData = userDoc.data();
-          const userCity = userData?.preferredCity;  // Assuming 'preferredCity' is stored in the profile
-          const userState = userData?.preferredState;  // Assuming 'preferredState' is stored in the profile
-
-          setFilters((prevFilters) => ({
-            ...prevFilters,
-            city: userCity || '',
-            state: userState || '',
-          }));
-        } catch (error) {
-          console.error('Error fetching user preferences:', error);
-        }
-      }
-    };
-
-    fetchUserPreferences();
-  }, [userId]);  // Fetch only when the userId is available
-
-
-  useEffect(() => {
-    const loadCompletedAuditsCount = async () => {
-      const count = await fetchCompletedAuditsCount();
-      setCompletedAuditsCount(count);
-    };
-    loadCompletedAuditsCount();
-  }, []);
-  useEffect(() => {
-    const fetchOngoingAudits = async () => {
-      try {
-        const auditsQuery = query(collection(db, 'audits')); // No filter here
-        const querySnapshot = await getDocs(auditsQuery);
-
-        const fetchedAudits = [];
-        for (const docSnap of querySnapshot.docs) {
-          const auditData = docSnap.data();
-          const auditId = docSnap.id;
-
-          // Check if the audit is ongoing
-          if (auditData.status === 'ongoing') {
-            fetchedAudits.push(auditData);
-          }
-        }
-
-        setOngoingAudits(fetchedAudits);
-        setOngoingCounter(fetchedAudits.length); // Set the ongoing counter
-      } catch (error) {
-        console.error('Failed to load ongoing audits', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchOngoingAudits();
-  }, []); // Runs once when the component mounts
-
+  }, [acceptedTasks]); // Re-fetch data when accepted tasks list changes
 
   return (
     <View style={styles.container}>
       <Text style={styles.header}>Welcome Auditor!</Text>
 
-      {/* Today's Tasks Section */}
-      <View style={styles.row}>
-        <TouchableOpacity
-          style={[styles.card, styles.completedTasks]}
-          onPress={() => navigation.navigate("TodaysTasks")}
-        >
-          <Ionicons name="calendar" size={30} color="#4A90E2" style={styles.icon} />
-          <Text style={styles.cardTitle}>Today's Tasks</Text>
-          <Text style={styles.cardContent}>
-            {todaysTasks > 0 ? todaysTasks : "0"}
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Accepted Tasks Section */}
-      <TouchableOpacity
-        style={[styles.card, styles.ongoingTasks]}
-        onPress={() => navigation.navigate('Ongoing')}
-      >
-        <Ionicons name="play-circle" size={30} color="#FFC107" style={styles.icon} />
-        <Text style={styles.cardTitle}>Accepted Tasks</Text>
-        {ongoingCounter !== null && (
-          <Text style={styles.counter}>{ongoingCounter}</Text>
-        )}
-      </TouchableOpacity>
-
-      {/* Upcoming Audits Section */}
-      <View style={styles.upcomingAuditsContainer}>
-        <Text style={styles.upcomingAuditsTitle}>Upcoming Audits</Text>
-        {hasAcceptedAllAudits ? (
-          <View style={styles.noAuditsContainer}>
-            <Image source={require('./Images/nua.jpg')} style={styles.noAuditsImage} />
-            <Text style={styles.noAuditsText}>You have accepted all upcoming audits</Text>
+      <ScrollView>
+        <View style={styles.container}>
+          {/* Today's Tasks Section (Unchanged) */}
+          <View style={styles.row}>
+            <TouchableOpacity
+              style={[styles.card, styles.completedTasks]}
+              onPress={() => navigation.navigate("TodaysTasks")}
+            >
+              <Ionicons name="calendar" size={30} color="#4A90E2" style={styles.icon} />
+              <Text style={styles.cardTitle}>Today's Tasks</Text>
+              <Text style={styles.cardContent}>
+                {todaysTasks > 0 ? todaysTasks : "0"}
+              </Text>
+            </TouchableOpacity>
           </View>
-        ) : (
-          <FlatList
-            data={upcomingAudits}
-            renderItem={({ item }) => (
-              <View style={styles.auditCard}>
-                <View style={styles.auditDetails}>
-                  <Text style={styles.auditTitle}>{item.name}</Text>
-                  <Text style={styles.auditClient}>
-                      {clientsData[item.clientId] || 'Unknown Client'}
-                    </Text>
-                    <View style={styles.auditLocationContainer}>
-                       <Ionicons name="location-outline" size={16} color="blue" style={styles.locationIcon} />
-                       <Text style={styles.auditLocation}>
-                        {branchesData.find((branch) => branch.id === item.branchId)?.city || 'Unknown Location'}
-                      </Text>
-                    </View>
+        </View>
+
+        {/* Ongoing Tasks Section (Unchanged) */}
+        <TouchableOpacity
+          style={[styles.card, styles.ongoingTasks]}
+          onPress={() => navigation.navigate('Ongoing')}
+        >
+          <Ionicons name="play-circle" size={30} color="#FFC107" style={styles.icon} />
+          <Text style={styles.cardTitle}>Accepted Tasks</Text>
+          {ongoingCounter !== null && (
+            <Text style={styles.counter}> {ongoingCounter}</Text>
+          )}
+        </TouchableOpacity>
+
+        {/* Upcoming Audits Section (Modified) */}
+        <Text style={styles.subHeader}>Upcoming Audits</Text>
+        <View style={styles.card}>
+          {upcomingAudits.length > 0 ? (
+            upcomingAudits.map((audit) => (
+              <View key={audit.id} style={styles.auditItem}>
+                <Ionicons name="document-text" size={24} color="#4A90E2" />
+                <View style={styles.auditContent}>
+                  <Text style={styles.auditTitle}>{audit.title}</Text>
+                  <Text style={styles.auditCity}>City: {audit.city}</Text>
+                  <Text style={styles.auditDate}>Date: {audit.date}</Text>
                 </View>
-                <TouchableOpacity
-                  style={styles.seeMoreButton}
-                  onPress={() => navigation.navigate("AuditDetails", { audit: item })}
-                >
-                  <Text style={styles.seeMoreButtonText}>See More Info</Text>
-                </TouchableOpacity>
               </View>
-            )}
-            keyExtractor={(item) => item.id}
-          />
-        )}
-      </View>
+            ))
+          ) : (
+            <Text>No upcoming audits available</Text>
+          )}
+        </View>
+      </ScrollView>
     </View>
   );
 };
@@ -1169,80 +918,92 @@ const styles = StyleSheet.create({
   completedTasks: {
     backgroundColor: '#E8F8E9',
   },
-  auditClient: {
-          fontSize: 14,
-          color: '#666',
-        },
   header: {
     fontSize: 24,
     fontWeight: "bold",
     marginBottom: 20,
-    color: "#333",
+    color: "#333", // Dark text for better contrast
   },
-  upcomingAuditsTitle: {
+  subHeader: {
     fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
+    fontWeight: "bold",
     marginBottom: 10,
-    color: '#333',
+    color: "#333",
+    marginTop:20,
   },
-  noAuditsContainer: {
+  counter: {
+    fontSize: 18,
+    marginBottom: 20,
+    color: "#777",
+  },
+  card: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginHorizontal: 4,
     alignItems: 'center',
-    marginTop: 20,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
+    elevation: 3,
   },
-  noAuditsImage: {
-    width: 150,
-    height: 150,
-    resizeMode: 'contain',
-  },
-  noAuditsText: {
+  cardTitle: {
     fontSize: 16,
-    color: '#888',
-    marginTop: 10,
+    textAlign: 'center',
+    marginBottom: 8,
+    color: '#000',
   },
-  auditCard: {
+  cardContent: {
+    fontSize: 16,
+    color: '#000',
+    textAlign: 'center',
+  },
+  icon: {
+    marginBottom: 8,
+  },
+  auditItem: {
     flexDirection: "row",
     alignItems: "center",
     marginBottom: 10,
-    backgroundColor: "#f0f8ff", 
+    backgroundColor: "#f0f8ff", // Light background for audit items
     padding: 10,
     borderRadius: 8,
   },
-  auditDetails: {
-    flex: 1,
-    paddingLeft: 10,
+  upcomingAuditsContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    padding: 15,
+    marginTop: 20,
+    marginHorizontal: 10,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 3 },
+    shadowRadius: 5,
+    elevation: 5,
   },
-  filterButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#EAF4FF',
-    padding: 10,
-    
+  taskItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#e0f7fa", // Light cyan background for tasks
+    padding: 15,
     borderRadius: 8,
-    alignSelf: 'flex-end',
+    marginBottom: 10,
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
   },
-  filterButtonText: { color: '#4A90E2', marginLeft: 8 },
-  modalContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    backgroundColor: 'rgba(0,0,0,0.5)',
+  auditContent: {
+    marginLeft: 10,
   },
-  modalContent: {
-    backgroundColor: '#fff',
-    margin: 20,
-    padding: 20,
-    borderRadius: 8,
+  taskContent: {
+    marginLeft: 10,
   },
-  modalTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 10 },
-  input: { borderBottomWidth: 1, marginBottom: 10 },
-  modalButtons: { flexDirection: 'row', justifyContent: 'space-around' },
-  modalButton: { padding: 10 },
-  modalButtonText: { color: '#4A90E2' },
-  
-
   auditTitle: {
-    fontSize: 18,
     fontWeight: "bold",
+    fontSize: 16,
     color: "#4A90E2",
   },
   auditCity: {
@@ -1253,26 +1014,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#333",
   },
-  seeMoreButton: {
-    paddingVertical: 5,
-    paddingHorizontal: 10,
-    backgroundColor: '#4A90E2',
-    borderRadius: 5,
-  },
-  seeMoreButtonText: {
-    color: '#fff',
-    fontSize: 14,
-  },
-  modalTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 10 },
-  input: { borderBottomWidth: 1, marginBottom: 10 },
-  modalButtons: { flexDirection: 'row', justifyContent: 'space-around' },
-  modalButton: { padding: 10 },
-  modalButtonText: { color: '#4A90E2' },
-  
-
 });
 
 export default HomeScreen;
-
-
-
