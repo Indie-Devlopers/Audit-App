@@ -843,24 +843,58 @@ const HomeScreen = ({navigation}) => {
       <Text style={styles.header}>Welcome Auditor!</Text>
 
       <ScrollView>
-        <View style={styles.container}>
-          {/* Today's Tasks Section (Unchanged) */}
-          <View style={styles.row}>
-            <TouchableOpacity
-              style={[styles.card, styles.completedTasks]}
-              onPress={() => navigation.navigate("TodaysTasks")}
-            >
-              <Ionicons name="calendar" size={30} color="#4A90E2" style={styles.icon} />
-              <Text style={styles.cardTitle}>Today's Tasks</Text>
-              <Text style={styles.cardContent}>
-                {todaysTasks > 0 ? todaysTasks : "0"}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+      <View style={styles.row}>
+  {/* Today's Tasks */}
+  <TouchableOpacity
+    style={[styles.card, styles.todaysTasks]}
+    onPress={() => navigation.navigate("TodaysTasks")}
+    activeOpacity={0.8}
+  >
+    <View style={styles.cardContentHorizontal}>
+      <Ionicons
+        name="calendar-outline"
+        size={60}
+        color="#00B4D8"
+        style={styles.icon}
+      />
+      <Text style={styles.cardCounter}>
+        {todaysTasks > 0 ? todaysTasks : "0"}
+      </Text>
+    </View>
+    <Text style={styles.cardTitle} numberOfLines={1}>
+      Today's Audits
+    </Text>
+  </TouchableOpacity>
+
+  {/* Accepted Audits */}
+  <TouchableOpacity
+    style={[styles.card, styles.acceptedAudits]}
+    onPress={() => navigation.navigate("Ongoing")}
+    activeOpacity={0.8}
+  >
+    <View style={styles.cardContentHorizontal}>
+      <Ionicons
+        name="checkmark-done-circle-outline"
+        size={60}
+        color="#FF6F61"
+        style={styles.icon}
+      />
+      <Text style={styles.cardCounter}>
+        {ongoingCounter !== null ? ongoingCounter : "0"}
+      </Text>
+    </View>
+    <Text style={styles.cardTitle} numberOfLines={1}>
+      Accepted Audits
+    </Text>
+  </TouchableOpacity>
+</View>
+
+
+
+
 
         {/* Ongoing Tasks Section (Unchanged) */}
-        <TouchableOpacity
+        {/* <TouchableOpacity
           style={[styles.card, styles.ongoingTasks]}
           onPress={() => navigation.navigate('Ongoing')}
         >
@@ -869,7 +903,7 @@ const HomeScreen = ({navigation}) => {
           {ongoingCounter !== null && (
             <Text style={styles.counter}> {ongoingCounter}</Text>
           )}
-        </TouchableOpacity>
+        </TouchableOpacity> */}
 
         {/* Upcoming Audits Section (Modified) */}
         <Text style={styles.subHeader}>Upcoming Audits</Text>
@@ -901,47 +935,17 @@ const styles = StyleSheet.create({
     backgroundColor: '#F0F4F8',
   },
   row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 16,
-    marginTop: 30,
-  },
-  greetingText: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  ongoingTasks: {
-    backgroundColor: '#FFF4E5',
-  },
-  completedTasks: {
-    backgroundColor: '#E8F8E9',
-  },
-  header: {
-    fontSize: 24,
-    fontWeight: "bold",
-    marginBottom: 20,
-    color: "#333", // Dark text for better contrast
-  },
-  subHeader: {
-    fontSize: 20,
-    fontWeight: "bold",
-    marginBottom: 10,
-    color: "#333",
-    marginTop:20,
-  },
-  counter: {
-    fontSize: 18,
-    marginBottom: 20,
-    color: "#777",
   },
   card: {
     flex: 1,
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
-    padding: 16,
-    marginHorizontal: 4,
+    padding: 10,
+    marginHorizontal: 8,
     alignItems: 'center',
     shadowColor: '#000',
     shadowOpacity: 0.2,
@@ -949,25 +953,60 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
-  cardTitle: {
-    fontSize: 16,
-    textAlign: 'center',
-    marginBottom: 8,
-    color: '#000',
+  todaysTasks: {
+    backgroundColor: "#D1E7FF", // Light Blue Background
+    borderColor: "#4A90E2", // Blue Border
+    borderWidth: 1,
   },
-  cardContent: {
-    fontSize: 16,
-    color: '#000',
-    textAlign: 'center',
+  acceptedAudits: {
+    backgroundColor: "#FFE2D3", // Soft Peach Background
+    borderColor: "#FF6F61", // Coral Border
+    borderWidth: 1,
+  },
+  cardContentHorizontal: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    width: "100%",
+    marginBottom: 8, // Space between the row and title
   },
   icon: {
-    marginBottom: 8,
+    marginRight: 16, // Spacing between icon and counter
+  },
+  cardCounter: {
+    fontSize: 22,
+    fontWeight: "bold",
+    color: "#333",
+  },
+  cardTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#555",
+    textAlign: "center",
+  },
+  header: {
+    fontSize: 24,
+    fontWeight: "bold",
+    marginBottom: 20,
+    color: "#333",
+  },
+  subHeader: {
+    fontSize: 20,
+    fontWeight: "bold",
+    marginBottom: 10,
+    color: "#333",
+    marginTop: 20,
+  },
+  counter: {
+    fontSize: 18,
+    marginBottom: 20,
+    color: "#777",
   },
   auditItem: {
     flexDirection: "row",
     alignItems: "center",
     marginBottom: 10,
-    backgroundColor: "#f0f8ff", // Light background for audit items
+    backgroundColor: "#E8F6FF", // Light Blue Background for audit items
     padding: 10,
     borderRadius: 8,
   },
@@ -986,7 +1025,7 @@ const styles = StyleSheet.create({
   taskItem: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#e0f7fa", // Light cyan background for tasks
+    backgroundColor: "#E3F7FD", // Light Sky Blue for task items
     padding: 15,
     borderRadius: 8,
     marginBottom: 10,
@@ -1004,7 +1043,7 @@ const styles = StyleSheet.create({
   auditTitle: {
     fontWeight: "bold",
     fontSize: 16,
-    color: "#4A90E2",
+    color: "#4A90E2", // Blue for the audit title
   },
   auditCity: {
     fontSize: 14,
@@ -1015,5 +1054,7 @@ const styles = StyleSheet.create({
     color: "#333",
   },
 });
+
+
 
 export default HomeScreen;
