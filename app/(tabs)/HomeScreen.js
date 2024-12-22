@@ -750,54 +750,337 @@
   
 //   export default HomeS
 
+
+
+
+// import React, { useState, useEffect } from "react";
+// import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from "react-native";
+// import { doc, getDoc, collection, getDocs } from "firebase/firestore";
+// import AsyncStorage from "@react-native-async-storage/async-storage";
+// import { db } from "./firebaseConfig";
+// import { Ionicons } from '@expo/vector-icons';
+
+// const HomeScreen = ({navigation}) => {
+//   const [ongoingCounter, setOngoingCounter] = useState(0);
+//   const [upcomingAudits, setUpcomingAudits] = useState([]);
+//   const [todaysTasks, setTodaysTasks] = useState([]); // Kept as it is
+//   const [acceptedTasks, setAcceptedTasks] = useState([]); // Kept as it is
+//   const [userName, setUserName] = useState("");
+
+//   useEffect(() => {
+//     const fetchData = async () => {
+//       try {
+//         const userId = await AsyncStorage.getItem("userId"); // Get userId from AsyncStorage
+
+//         if (userId) {
+//           // Fetch Profile document for the logged-in user
+//           const profileRef = doc(db, "Profile", userId);
+//           const profileDoc = await getDoc(profileRef);
+
+//           if (profileDoc.exists()) {
+//             // Set ongoingCounter and user name based on the profile data
+//             const ongoingCount = profileDoc.data()?.ongoingCounter || 0;
+//             setOngoingCounter(ongoingCount);
+
+//             const name = profileDoc.data()?.name || "User"; // Assuming 'name' field in Profile
+//             setUserName(name);
+
+//             // Fetch accepted audits for the user
+//             const acceptedAuditsSnapshot = await getDocs(
+//               collection(db, "Profile", userId, "acceptedAudits")
+//             );
+//             const acceptedTasksList = [];
+//             acceptedAuditsSnapshot.forEach((doc) => {
+//               acceptedTasksList.push(doc.data().auditId); // Storing the auditIds of accepted audits
+//             });
+//             setAcceptedTasks(acceptedTasksList); // Store accepted audits' IDs
+
+//             // Fetch today's tasks (Unchanged)
+//             const today = new Date();
+//             let todaysAuditCount = 0;
+//             acceptedAuditsSnapshot.forEach((doc) => {
+//               const auditData = doc.data();
+//               const auditDate = new Date(auditData.date); // Assuming 'date' is a timestamp
+//               if (
+//                 auditDate.getFullYear() === today.getFullYear() &&
+//                 auditDate.getMonth() === today.getMonth() &&
+//                 auditDate.getDate() === today.getDate()
+//               ) {
+//                 todaysAuditCount++;
+//               }
+//             });
+//             setTodaysTasks(todaysAuditCount); // Update today's tasks count
+
+//             // Fetch all audits, and filter out the accepted ones
+//             const auditsSnapshot = await getDocs(collection(db, "audits"));
+//             const fetchedUpcomingAudits = [];
+//             auditsSnapshot.forEach((doc) => {
+//               const auditData = doc.data();
+//               // Only add audits that are not accepted yet (by checking against accepted tasks)
+//               if (!auditData.isAccepted && !acceptedTasksList.includes(doc.id)) {
+//                 fetchedUpcomingAudits.push({
+//                   id: doc.id,
+//                   title: auditData.title,
+//                   city: auditData.city,
+//                   date: auditData.date,
+//                 });
+//               }
+//             });
+//             setUpcomingAudits(fetchedUpcomingAudits); // Update the upcoming audits list
+//           } else {
+//             console.log("User profile not found");
+//           }
+//         } else {
+//           console.log("No user logged in");
+//         }
+//       } catch (error) {
+//         console.error("Error fetching data:", error);
+//       }
+//     };
+
+//     fetchData();
+//   }, [acceptedTasks]); // Re-fetch data when accepted tasks list changes
+
+//   return (
+//     <View style={styles.container}>
+//       <Text style={styles.header}>Welcome Auditor!</Text>
+
+//       <ScrollView>
+//         <View style={styles.container}>
+//           {/* Today's Tasks Section (Unchanged) */}
+//           <View style={styles.row}>
+//             <TouchableOpacity
+//               style={[styles.card, styles.completedTasks]}
+//               onPress={() => navigation.navigate("TodaysTasks")}
+//             >
+//               <Ionicons name="calendar" size={30} color="#4A90E2" style={styles.icon} />
+//               <Text style={styles.cardTitle}>Today's Tasks</Text>
+//               <Text style={styles.cardContent}>
+//                 {todaysTasks > 0 ? todaysTasks : "0"}
+//               </Text>
+//             </TouchableOpacity>
+//           </View>
+//         </View>
+
+//         {/* Ongoing Tasks Section (Unchanged) */}
+//         <TouchableOpacity
+//           style={[styles.card, styles.ongoingTasks]}
+//           onPress={() => navigation.navigate('Ongoing')}
+//         >
+//           <Ionicons name="play-circle" size={30} color="#FFC107" style={styles.icon} />
+//           <Text style={styles.cardTitle}>Accepted Tasks</Text>
+//           {ongoingCounter !== null && (
+//             <Text style={styles.counter}> {ongoingCounter}</Text>
+//           )}
+//         </TouchableOpacity>
+
+//         {/* Upcoming Audits Section (Modified) */}
+//         <Text style={styles.subHeader}>Upcoming Audits</Text>
+//         <View style={styles.card}>
+//           {upcomingAudits.length > 0 ? (
+//             upcomingAudits.map((audit) => (
+//               <View key={audit.id} style={styles.auditItem}>
+//                 <Ionicons name="document-text" size={24} color="#4A90E2" />
+//                 <View style={styles.auditContent}>
+//                   <Text style={styles.auditTitle}>{audit.title}</Text>
+//                   <Text style={styles.auditCity}>City: {audit.city}</Text>
+//                   <Text style={styles.auditDate}>Date: {audit.date}</Text>
+//                 </View>
+//               </View>
+//             ))
+//           ) : (
+//             <Text>No upcoming audits available</Text>
+//           )}
+//         </View>
+//       </ScrollView>
+//     </View>
+//   );
+// };
+
+// const styles = StyleSheet.create({
+//   container: {
+//     flexGrow: 1,
+//     padding: 16,
+//     backgroundColor: '#F0F4F8',
+//   },
+//   row: {
+//     flexDirection: 'row',
+//     justifyContent: 'space-between',
+//     alignItems: 'center',
+//     marginBottom: 16,
+//     marginTop: 30,
+//   },
+//   greetingText: {
+//     fontSize: 22,
+//     fontWeight: 'bold',
+//     color: '#333',
+//   },
+//   ongoingTasks: {
+//     backgroundColor: '#FFF4E5',
+//   },
+//   completedTasks: {
+//     backgroundColor: '#E8F8E9',
+//   },
+//   header: {
+//     fontSize: 24,
+//     fontWeight: "bold",
+//     marginBottom: 20,
+//     color: "#333", // Dark text for better contrast
+//   },
+//   subHeader: {
+//     fontSize: 20,
+//     fontWeight: "bold",
+//     marginBottom: 10,
+//     color: "#333",
+//     marginTop:20,
+//   },
+//   counter: {
+//     fontSize: 18,
+//     marginBottom: 20,
+//     color: "#777",
+//   },
+//   card: {
+//     flex: 1,
+//     backgroundColor: '#FFFFFF',
+//     borderRadius: 12,
+//     padding: 16,
+//     marginHorizontal: 4,
+//     alignItems: 'center',
+//     shadowColor: '#000',
+//     shadowOpacity: 0.2,
+//     shadowOffset: { width: 0, height: 2 },
+//     shadowRadius: 4,
+//     elevation: 3,
+//   },
+//   cardTitle: {
+//     fontSize: 16,
+//     textAlign: 'center',
+//     marginBottom: 8,
+//     color: '#000',
+//   },
+//   cardContent: {
+//     fontSize: 16,
+//     color: '#000',
+//     textAlign: 'center',
+//   },
+//   icon: {
+//     marginBottom: 8,
+//   },
+//   auditItem: {
+//     flexDirection: "row",
+//     alignItems: "center",
+//     marginBottom: 10,
+//     backgroundColor: "#f0f8ff", // Light background for audit items
+//     padding: 10,
+//     borderRadius: 8,
+//   },
+//   upcomingAuditsContainer: {
+//     backgroundColor: '#FFFFFF',
+//     borderRadius: 10,
+//     padding: 15,
+//     marginTop: 20,
+//     marginHorizontal: 10,
+//     shadowColor: '#000',
+//     shadowOpacity: 0.1,
+//     shadowOffset: { width: 0, height: 3 },
+//     shadowRadius: 5,
+//     elevation: 5,
+//   },
+//   taskItem: {
+//     flexDirection: "row",
+//     alignItems: "center",
+//     backgroundColor: "#e0f7fa", // Light cyan background for tasks
+//     padding: 15,
+//     borderRadius: 8,
+//     marginBottom: 10,
+//     shadowColor: "#000",
+//     shadowOpacity: 0.1,
+//     shadowRadius: 8,
+//     elevation: 3,
+//   },
+//   auditContent: {
+//     marginLeft: 10,
+//   },
+//   taskContent: {
+//     marginLeft: 10,
+//   },
+//   auditTitle: {
+//     fontWeight: "bold",
+//     fontSize: 16,
+//     color: "#4A90E2",
+//   },
+//   auditCity: {
+//     fontSize: 14,
+//     color: "#333",
+//   },
+//   auditDate: {
+//     fontSize: 14,
+//     color: "#333",
+//   },
+// });
+
+// export default HomeScreen;
+
+
+
+
+
+
+
+
 import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,FlatList
+} from "react-native";
 import { doc, getDoc, collection, getDocs } from "firebase/firestore";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { db } from "./firebaseConfig";
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from "@expo/vector-icons";
 
-const HomeScreen = ({navigation}) => {
+const HomeScreen = ({ navigation }) => {
   const [ongoingCounter, setOngoingCounter] = useState(0);
   const [upcomingAudits, setUpcomingAudits] = useState([]);
-  const [todaysTasks, setTodaysTasks] = useState([]); // Kept as it is
-  const [acceptedTasks, setAcceptedTasks] = useState([]); // Kept as it is
+  const [todaysTasks, setTodaysTasks] = useState([]);
+  const [acceptedTasks, setAcceptedTasks] = useState([]);
   const [userName, setUserName] = useState("");
+  const [greeting, setGreeting] = useState("");
+  const [branchesData, setBranchesData] = useState([]);
+  const [clientsData, setClientsData] = useState({});
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const userId = await AsyncStorage.getItem("userId"); // Get userId from AsyncStorage
+        const userId = await AsyncStorage.getItem("userId");
 
         if (userId) {
-          // Fetch Profile document for the logged-in user
           const profileRef = doc(db, "Profile", userId);
           const profileDoc = await getDoc(profileRef);
 
           if (profileDoc.exists()) {
-            // Set ongoingCounter and user name based on the profile data
             const ongoingCount = profileDoc.data()?.ongoingCounter || 0;
             setOngoingCounter(ongoingCount);
 
-            const name = profileDoc.data()?.name || "User"; // Assuming 'name' field in Profile
+            const name = profileDoc.data()?.name || "User";
             setUserName(name);
 
-            // Fetch accepted audits for the user
             const acceptedAuditsSnapshot = await getDocs(
               collection(db, "Profile", userId, "acceptedAudits")
             );
             const acceptedTasksList = [];
             acceptedAuditsSnapshot.forEach((doc) => {
-              acceptedTasksList.push(doc.data().auditId); // Storing the auditIds of accepted audits
+              acceptedTasksList.push(doc.data().auditId);
             });
-            setAcceptedTasks(acceptedTasksList); // Store accepted audits' IDs
+            setAcceptedTasks(acceptedTasksList);
 
-            // Fetch today's tasks (Unchanged)
             const today = new Date();
             let todaysAuditCount = 0;
             acceptedAuditsSnapshot.forEach((doc) => {
               const auditData = doc.data();
-              const auditDate = new Date(auditData.date); // Assuming 'date' is a timestamp
+              const auditDate = new Date(auditData.date);
               if (
                 auditDate.getFullYear() === today.getFullYear() &&
                 auditDate.getMonth() === today.getMonth() &&
@@ -806,14 +1089,12 @@ const HomeScreen = ({navigation}) => {
                 todaysAuditCount++;
               }
             });
-            setTodaysTasks(todaysAuditCount); // Update today's tasks count
+            setTodaysTasks(todaysAuditCount);
 
-            // Fetch all audits, and filter out the accepted ones
             const auditsSnapshot = await getDocs(collection(db, "audits"));
             const fetchedUpcomingAudits = [];
             auditsSnapshot.forEach((doc) => {
               const auditData = doc.data();
-              // Only add audits that are not accepted yet (by checking against accepted tasks)
               if (!auditData.isAccepted && !acceptedTasksList.includes(doc.id)) {
                 fetchedUpcomingAudits.push({
                   id: doc.id,
@@ -823,7 +1104,7 @@ const HomeScreen = ({navigation}) => {
                 });
               }
             });
-            setUpcomingAudits(fetchedUpcomingAudits); // Update the upcoming audits list
+            setUpcomingAudits(fetchedUpcomingAudits);
           } else {
             console.log("User profile not found");
           }
@@ -836,59 +1117,113 @@ const HomeScreen = ({navigation}) => {
     };
 
     fetchData();
-  }, [acceptedTasks]); // Re-fetch data when accepted tasks list changes
+
+    const updateGreeting = () => {
+      const hour = new Date().getHours();
+      if (hour < 12) {
+        setGreeting("Good Morning");
+      } else if (hour < 18) {
+        setGreeting("Good Afternoon");
+      } else {
+        setGreeting("Good Evening");
+      }
+    };
+
+    updateGreeting();
+  }, [acceptedTasks]);
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>Welcome Auditor!</Text>
+      <Text style={styles.header}>
+        {greeting}, Auditor!
+      </Text>
 
       <ScrollView>
-        <View style={styles.container}>
-          {/* Today's Tasks Section (Unchanged) */}
-          <View style={styles.row}>
-            <TouchableOpacity
-              style={[styles.card, styles.completedTasks]}
-              onPress={() => navigation.navigate("TodaysTasks")}
-            >
-              <Ionicons name="calendar" size={30} color="#4A90E2" style={styles.icon} />
-              <Text style={styles.cardTitle}>Today's Tasks</Text>
-              <Text style={styles.cardContent}>
-                {todaysTasks > 0 ? todaysTasks : "0"}
-              </Text>
-            </TouchableOpacity>
-          </View>
+        <View style={styles.cardRow}>
+          <TouchableOpacity
+            style={[styles.card, styles.completedTasks]}
+            onPress={() => navigation.navigate("TodaysTasks")}
+          >
+            <Ionicons name="calendar" size={30} color="#4A90E2" />
+            <Text style={styles.cardTitle}>Today's Tasks</Text>
+            <Text style={styles.cardContent}>
+              {todaysTasks > 0 ? todaysTasks : "0"}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.card, styles.ongoingTasks]}
+            onPress={() => navigation.navigate("Ongoing")}
+          >
+            <Ionicons name="play-circle" size={30} color="#FFC107" />
+            <Text style={styles.cardTitle}>Accepted Tasks</Text>
+            <Text style={styles.cardContent}>{ongoingCounter}</Text>
+          </TouchableOpacity>
         </View>
+         
 
-        {/* Ongoing Tasks Section (Unchanged) */}
-        <TouchableOpacity
-          style={[styles.card, styles.ongoingTasks]}
-          onPress={() => navigation.navigate('Ongoing')}
-        >
-          <Ionicons name="play-circle" size={30} color="#FFC107" style={styles.icon} />
-          <Text style={styles.cardTitle}>Accepted Tasks</Text>
-          {ongoingCounter !== null && (
-            <Text style={styles.counter}> {ongoingCounter}</Text>
-          )}
-        </TouchableOpacity>
 
-        {/* Upcoming Audits Section (Modified) */}
-        <Text style={styles.subHeader}>Upcoming Audits</Text>
-        <View style={styles.card}>
-          {upcomingAudits.length > 0 ? (
-            upcomingAudits.map((audit) => (
-              <View key={audit.id} style={styles.auditItem}>
+       {/* <Text style={styles.subHeader}>Upcoming Audits</Text>
+<View style={styles.upcomingAuditsContainer}>
+  {upcomingAudits.length > 0 ? (
+    upcomingAudits.map((audit) => (
+      <View key={audit.id} style={styles.auditItem}>
+        <Ionicons name="document-text" size={24} color="#4A90E2" />
+        <View style={styles.auditContent}>
+          <Text style={styles.auditTitle}>{audit.title}</Text>
+          <Text style={styles.auditCity}>City: {audit.city}</Text>
+          <Text style={styles.auditDate}>Date: {audit.date}</Text>
+        </View>
+      </View>
+    ))
+  ) : (
+    <Text>No upcoming audits available</Text>
+  )}
+    
+</View> */}
+
+
+   
+      <Text style={styles.subHeader}>Upcoming Audits</Text>
+      <View style={styles.upcomingAuditsContainer}>
+        {upcomingAudits.length > 0 ? (
+          <FlatList
+            data={upcomingAudits}
+            renderItem={({ item }) => (
+              <View style={styles.auditItem}>
                 <Ionicons name="document-text" size={24} color="#4A90E2" />
                 <View style={styles.auditContent}>
-                  <Text style={styles.auditTitle}>{audit.title}</Text>
-                  <Text style={styles.auditCity}>City: {audit.city}</Text>
-                  <Text style={styles.auditDate}>Date: {audit.date}</Text>
+                  <Text style={styles.auditTitle}>{item.title}</Text>
+                  <Text style={styles.auditCity}>City: {item.city}</Text>
+                  <Text style={styles.auditDate}>Date: {item.date}</Text>
+                  <View style={styles.auditLocationContainer}>
+                    <Ionicons name="location-outline" size={16} color="blue" style={styles.locationIcon} />
+                    <Text style={styles.auditLocation}>
+                      {branchesData.find((branch) => branch.id === item.branchId)?.city || 'Unknown Location'}
+                    </Text>
+                  </View>
+                  <Text style={styles.auditClient}>
+                    {clientsData[item.clientId] || 'Unknown Client'}
+                  </Text>
                 </View>
+                <TouchableOpacity
+                  style={styles.seeMoreButton}
+                  onPress={() => navigation.navigate('AuditDetails', { audit: item })}
+                >
+                  <Text style={styles.seeMoreButtonText}>See More Info</Text>
+                </TouchableOpacity>
               </View>
-            ))
-          ) : (
-            <Text>No upcoming audits available</Text>
-          )}
-        </View>
+            )}
+            keyExtractor={(item) => item.id}
+          />
+        ) : (
+          <Text>No upcoming audits available</Text>
+        )}
+      </View>
+   
+
+
+
       </ScrollView>
     </View>
   );
@@ -898,107 +1233,129 @@ const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
     padding: 16,
-    backgroundColor: '#F0F4F8',
-  },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-    marginTop: 30,
-  },
-  greetingText: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  ongoingTasks: {
-    backgroundColor: '#FFF4E5',
-  },
-  completedTasks: {
-    backgroundColor: '#E8F8E9',
+    backgroundColor: "#fff",
   },
   header: {
     fontSize: 24,
     fontWeight: "bold",
     marginBottom: 20,
-    color: "#333", // Dark text for better contrast
+    color: "#333",
   },
   subHeader: {
     fontSize: 20,
     fontWeight: "bold",
     marginBottom: 10,
     color: "#333",
-    marginTop:20,
+    marginTop: 20,
   },
-  counter: {
-    fontSize: 18,
+  cardRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
     marginBottom: 20,
-    color: "#777",
   },
+ 
+    subHeader: {
+      fontSize: 18,
+      fontWeight: 'bold',
+      marginBottom: 10,
+    },
+    upcomingAuditsContainer: {
+      paddingHorizontal: 10,
+    },
+    auditItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 10,
+      padding: 10,
+      backgroundColor: '#f9f9f9',
+      borderRadius: 8,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+    },
+    auditContent: {
+      marginLeft: 10,
+      flex: 1,
+    },
+    auditTitle: {
+      fontSize: 16,
+      fontWeight: 'bold',
+    },
+    auditCity: {
+      fontSize: 14,
+      color: '#555',
+    },
+    auditDate: {
+      fontSize: 14,
+      color: '#555',
+    },
+    auditLocationContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    auditLocation: {
+      fontSize: 14,
+      color: '#555',
+      marginLeft: 5,
+    },
+    auditClient: {
+      fontSize: 14,
+      color: '#555',
+    },
+    seeMoreButton: {
+      marginTop: 10,
+      alignSelf: 'flex-start',
+      paddingVertical: 5,
+      paddingHorizontal: 10,
+      backgroundColor: '#4A90E2',
+      borderRadius: 5,
+    },
+    seeMoreButtonText: {
+      color: '#fff',
+      fontSize: 14,
+    },
+  
+  
   card: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderRadius: 12,
     padding: 16,
-    marginHorizontal: 4,
-    alignItems: 'center',
-    shadowColor: '#000',
+    marginHorizontal: 8,
+    alignItems: "center",
+    shadowColor: "#000",
     shadowOpacity: 0.2,
     shadowOffset: { width: 0, height: 2 },
     shadowRadius: 4,
     elevation: 3,
   },
+  completedTasks: {
+    backgroundColor: "#EAF4FF",
+  },
+  ongoingTasks: {
+    backgroundColor: "#FFF4E5",
+  },
   cardTitle: {
     fontSize: 16,
-    textAlign: 'center',
+    textAlign: "center",
     marginBottom: 8,
-    color: '#000',
+    color: "#000",
   },
   cardContent: {
     fontSize: 16,
-    color: '#000',
-    textAlign: 'center',
-  },
-  icon: {
-    marginBottom: 8,
+    color: "#000",
+    textAlign: "center",
   },
   auditItem: {
     flexDirection: "row",
     alignItems: "center",
     marginBottom: 10,
-    backgroundColor: "#f0f8ff", // Light background for audit items
+    backgroundColor: "#f0f8ff",
     padding: 10,
     borderRadius: 8,
   },
-  upcomingAuditsContainer: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 10,
-    padding: 15,
-    marginTop: 20,
-    marginHorizontal: 10,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: 3 },
-    shadowRadius: 5,
-    elevation: 5,
-  },
-  taskItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#e0f7fa", // Light cyan background for tasks
-    padding: 15,
-    borderRadius: 8,
-    marginBottom: 10,
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
-  },
   auditContent: {
-    marginLeft: 10,
-  },
-  taskContent: {
     marginLeft: 10,
   },
   auditTitle: {
