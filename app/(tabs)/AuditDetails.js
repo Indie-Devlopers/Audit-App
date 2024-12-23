@@ -22,7 +22,7 @@ const AuditDetails = ({ route, navigation }) => {
   const [loading, setLoading] = useState(true);
   const [showCalendar, setShowCalendar] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date());
-  
+
   const handleDateConfirm = async (event, date) => {
     if (event.type === "set" && date) {
       setShowCalendar(false);
@@ -78,7 +78,6 @@ const AuditDetails = ({ route, navigation }) => {
           if (branchSnap.exists()) {
             setBranchDetails(branchSnap.data());
           }
-          console.log("dffdfdfdf",branchSnap.data());
 
           const clientRef = doc(db, "clients", auditData.clientId);
           const clientSnap = await getDoc(clientRef);
@@ -123,35 +122,22 @@ const AuditDetails = ({ route, navigation }) => {
       <ScrollView contentContainerStyle={styles.scrollView}>
         {auditDetails && branchDetails && clientDetails ? (
           <>
-            <View style={styles.header}>
-              <Text style={styles.title}>{auditDetails.title}</Text>
-              <Ionicons
-                name="clipboard"
-                size={32}
-                color="#4A90E2"
-                style={styles.headerIcon}
-              />
-            </View>
+
 
             <View style={styles.card}>
-              <Text style={styles.subTitle}>Client Details</Text>
+              
               {renderFields(clientDetails, ["name"])}
-            </View>
-
-            <View style={styles.card}>
-              <Text style={styles.subTitle}>Branch Details</Text>
               {renderFields(branchDetails, ["name", "city"])}
             </View>
 
-            <View style={styles.card}>
-              <Text style={styles.subTitle}>Audit Information</Text>
-              {renderFields(auditDetails, ["description", "schedule"])}
-            </View>
+
+
+
 
             <View style={styles.buttonsContainer}>
               {!isAcceptedByUser ? (
                 <TouchableOpacity style={styles.acceptButton} onPress={handleAccept}>
-                  <Ionicons name="checkmark-done" size={20} color="white" />
+                  <Ionicons name="checkmark-circle" size={20} color="white" />
                   <Text style={styles.buttonText}>Accept Audit</Text>
                 </TouchableOpacity>
               ) : (
@@ -181,75 +167,74 @@ const AuditDetails = ({ route, navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f9fafc",
+    backgroundColor: "#f3f4f6",
   },
   scrollView: {
-    padding: 20,
+    padding: 15,
   },
   header: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
     marginBottom: 20,
-  },
-  headerIcon: {
-    marginLeft: 10,
+    borderBottomWidth: 1,
+    borderColor: "#e4e4e4",
+    paddingBottom: 10,
   },
   title: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: "700",
-    color: "#2E3A59",
+    color: "#374151",
+    marginLeft: 10,
   },
   card: {
-    backgroundColor: "#ffffff",
-    padding: 20,
-    borderRadius: 12,
+    backgroundColor: "white",
+    padding: 15,
+    borderRadius: 10,
     marginBottom: 20,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 2,
   },
   subTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: "600",
-    color: "#4A90E2",
-    marginBottom: 10,
+    color: "#1f2937",
+    marginBottom: 8,
   },
   detailText: {
-    fontSize: 16,
-    color: "#3A3A3A",
+    fontSize: 15,
+    color: "#374151",
     marginBottom: 5,
   },
   fieldTitle: {
     fontWeight: "600",
-    color: "#555",
+    color: "#6b7280",
   },
   buttonsContainer: {
     alignItems: "center",
-    marginTop: 30,
+    marginTop: 20,
   },
   acceptButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#4CAF50",
-    padding: 15,
-    borderRadius: 30,
-    elevation: 5,
+    backgroundColor: "#16a34a",
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
   },
   buttonText: {
     color: "white",
     fontSize: 16,
-    fontWeight: "bold",
+    fontWeight: "600",
     marginLeft: 10,
   },
   statusText: {
     fontSize: 16,
-    color: "#4CAF50",
+    color: "#10b981",
     fontWeight: "600",
-    textAlign: "center",
   },
   loadingContainer: {
     flex: 1,
@@ -258,7 +243,7 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 16,
-    color: "#D32F2F",
+    color: "#ef4444",
     textAlign: "center",
   },
 });
