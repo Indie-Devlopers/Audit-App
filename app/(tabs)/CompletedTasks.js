@@ -553,9 +553,9 @@
 
 
 import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from "react-native";
-import { getFirestore, collection, query, where, getDocs, doc } from "firebase/firestore";
-import { getAuth } from "firebase/auth";
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Image } from "react-native";
+import { getFirestore, collection, query, where, getDocs, doc, getDoc } from "firebase/firestore";
+import AsyncStorage from "@react-native-async-storage/async-storage"; // Import AsyncStorage
 import { app } from "./firebaseConfig"; // Firebase configuration
 
 const db = getFirestore(app);
@@ -579,7 +579,9 @@ const CompletedTasks = () => {
   const [completedAudits, setCompletedAudits] = useState([]);
   const [loading, setLoading] = useState(true);
   const [completedCounter, setCompletedCounter] = useState(0);
+  const [userId, setUserId] = useState(null); // State for userId
 
+  // Fetch the completed audit IDs for the logged-in user
   const fetchCompletedAuditIds = async (userId) => {
     try {
       const completedRef = collection(db, "Profile", userId, "completedAudits");
@@ -591,6 +593,36 @@ const CompletedTasks = () => {
     } catch (error) {
       console.error("Error fetching completed audit IDs:", error);
       return [];
+    }
+  };
+
+  // Fetch the branch and client details based on the audit's branchId and clientId
+  const fetchAuditDetails = async (audit) => {
+    try {
+      const branchRef = doc(db, "branches", audit.branchId);
+      const clientRef = doc(db, "clients", audit.clientId);
+
+      // Fetch branch and client details
+      const branchSnapshot = await getDoc(branchRef);
+      const clientSnapshot = await getDoc(clientRef);
+
+      if (!branchSnapshot.exists() || !clientSnapshot.exists()) {
+        throw new Error("Branch or Client not found.");
+      }
+
+      const branchData = branchSnapshot.data();
+      const clientData = clientSnapshot.data();
+
+      // Exclude clientId from branch details
+      const { clientId, ...branchDetails } = branchData;
+
+      return {
+        branchDetails,
+        clientDetails: clientData
+      };
+    } catch (error) {
+      console.error("Error fetching audit details:", error);
+      return { branchDetails: {}, clientDetails: {} };
     }
   };
 
@@ -611,12 +643,19 @@ const CompletedTasks = () => {
         const auditsQuery = query(collection(db, "audits"), where("__name__", "in", chunk));
         const querySnapshot = await getDocs(auditsQuery);
 
-        querySnapshot.forEach((doc) => {
-          allAudits.push({ id: doc.id, ...doc.data() });
-        });
+        for (const doc of querySnapshot.docs) {
+          const auditData = { id: doc.id, ...doc.data() };
+          const { branchDetails, clientDetails } = await fetchAuditDetails(auditData);
+
+          allAudits.push({
+            ...auditData,
+            branchDetails,
+            clientDetails
+          });
+        }
       }
 
-      console.log("Fetched Audits:", allAudits); // Log audits fetched
+      console.log("Fetched Audits with Details:", allAudits); // Log audits fetched
       return allAudits;
     } catch (error) {
       console.error("Error fetching audits by IDs:", error);
@@ -624,20 +663,22 @@ const CompletedTasks = () => {
     }
   };
 
-  // Fetch the userId from Firebase Authentication
+  // Fetch the userId from AsyncStorage
   useEffect(() => {
     const loadCompletedAudits = async () => {
       try {
-        const auth = getAuth();
-        const user = auth.currentUser;
+        // Retrieve userId from AsyncStorage
+        const storedUserId = await AsyncStorage.getItem("userId");
 
-        if (!user) {
+        if (!storedUserId) {
           console.error("User not logged in.");
           return;
         }
 
-        // Fetch completed audit IDs
-        const completedAuditIds = await fetchCompletedAuditIds(user.uid);
+        setUserId(storedUserId); // Set the userId state when found
+
+        // Fetch completed audit IDs for the logged-in user
+        const completedAuditIds = await fetchCompletedAuditIds(storedUserId);
 
         if (completedAuditIds.length === 0) {
           console.log("No completed audits found.");
@@ -659,7 +700,7 @@ const CompletedTasks = () => {
     };
 
     loadCompletedAudits();
-  }, []);
+  }, []); // Empty dependency array, so it runs once after component mounts
 
   const renderFields = (data) => {
     if (!data) return <Text>No details available</Text>;
@@ -690,12 +731,21 @@ const CompletedTasks = () => {
           ) : (
             completedAudits.map((audit) => (
               <View key={audit.id} style={styles.cardContainer}>
-                <Text style={styles.clientName}>{audit.clientName || "Audit"}</Text>
+                
 
-                <View style={styles.detailsSection}>
-                  <Text style={styles.subTitle}>Details:</Text>
-                  {renderFields(audit)}
+                <View style={styles.detailsRow}>
+                  <Image source={require('./Images/building.png')} style={{ width: 34, height: 34 }} />
+                  <Text style={styles.subTitle}>  Branch Details</Text>
                 </View>
+
+                {renderFields(audit.branchDetails)}
+<View style = {{marginTop:20}}></View>
+                <View style={styles.detailsRow}>
+                  <Image source={require('./Images/client.jpg')} style={{ width: 34, height: 34 }} />
+                  <Text style={styles.subTitle}>   Client Details</Text>
+                </View>
+
+  {renderFields(audit.clientDetails)}
               </View>
             ))
           )}
@@ -727,6 +777,11 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "#00796b",
   },
+  detailsRow: {
+    flexDirection: "row", // This will align the image and text horizontally
+    alignItems: "center",  // This ensures both image and text are vertically centered
+    marginBottom: 10,
+  },
   cardContainer: {
     padding: 15,
     marginBottom: 20,
@@ -754,6 +809,12 @@ const styles = StyleSheet.create({
     color: "#666",
     marginBottom: 5,
   },
+  image: {
+    width: 100,
+    height: 100,
+    borderRadius: 8,
+    marginVertical: 10,
+  },
   noTasksContainer: {
     justifyContent: "center",
     alignItems: "center",
@@ -766,186 +827,3 @@ const styles = StyleSheet.create({
 });
 
 export default CompletedTasks;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// import React, { useState, useEffect } from "react";
-// import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from "react-native";
-// import { getFirestore, collection, getDocs, doc, getDoc } from "firebase/firestore";
-// import { getAuth } from "firebase/auth";
-// import { app } from "./firebaseConfig"; // Import Firebase configuration
-
-// const db = getFirestore(app); // Firestore instance
-
-// const CompletedTasks = () => {
-//   const [completedAudits, setCompletedAudits] = useState([]);
-//   const [loading, setLoading] = useState(true);
-
-//   // Fetch the userId from Firebase Authentication
-//   useEffect(() => {
-//     const fetchAuditorProfile = async () => {
-//       const auth = getAuth();
-//       const user = auth.currentUser;
-//       if (user) {
-//         const userId = user.uid; // Get the logged-in user's ID
-
-//         try {
-//           // Step 1: Fetch the Profile document of the auditor using userId
-//           const profileRef = doc(db, "profiles", userId); // "profiles" is where auditor data is stored
-//           const profileSnap = await getDoc(profileRef);
-
-//           if (profileSnap.exists()) {
-//             // Step 2: Fetch the completedAudits sub-collection for that Profile
-//             const completedAuditRef = collection(profileRef, "completedAudits");
-//             const auditSnapshot = await getDocs(completedAuditRef);
-
-//             const fetchedAudits = [];
-//             for (const auditDoc of auditSnapshot.docs) {
-//               const auditData = auditDoc.data();
-//               const auditId = auditDoc.id; // Get the audit ID
-
-//               // Step 3: Fetch branch details based on branchId
-//               const branchRef = doc(db, "branches", auditData.branchId);
-//               const branchSnap = await getDoc(branchRef);
-
-//               // Step 4: Fetch client details based on clientId
-//               const clientRef = doc(db, "clients", auditData.clientId);
-//               const clientSnap = await getDoc(clientRef);
-
-//               if (branchSnap.exists() && clientSnap.exists()) {
-//                 const branchDetails = branchSnap.data();
-//                 // Exclude clientId from branchDetails
-//                 delete branchDetails.clientId;
-
-//                 fetchedAudits.push({
-//                   id: auditId,
-//                   ...auditData,
-//                   branchDetails,
-//                   clientDetails: clientSnap.data(),
-//                 });
-//               } else {
-//                 console.log("Missing details for audit:", auditId);
-//               }
-//             }
-
-//             // Update the state with the fetched audits
-//             setCompletedAudits(fetchedAudits);
-//           } else {
-//             console.log("No profile found for user:", userId);
-//           }
-//         } catch (error) {
-//           console.error("Failed to load auditor profile or completed audits", error);
-//         }
-//       }
-//       setLoading(false); // End loading after the data is fetched
-//     };
-
-//     fetchAuditorProfile(); // Fetch the data when the component mounts
-//   }, []); // Empty dependency array ensures this runs once when the component mounts
-
-//   // Function to render fields dynamically
-//   const renderFields = (data) => {
-//     if (!data) {
-//       return <Text>No details available</Text>; // Fallback message if no data exists
-//     }
-//     return Object.keys(data).map((key) => (
-//       <Text key={key} style={styles.detailText}>
-//         {key}: {data[key]}
-//       </Text>
-//     ));
-//   };
-
-//   const noCompletedTasks = completedAudits.length === 0;
-
-//   return (
-//     <ScrollView style={styles.container}>
-//       {loading ? (
-//         <View style={styles.loadingContainer}>
-//           <ActivityIndicator size="large" color="#4CAF50" />
-//         </View>
-//       ) : noCompletedTasks ? (
-//         <View style={styles.noTasksContainer}>
-//           <Text style={styles.noTasksText}>No completed tasks</Text>
-//         </View>
-//       ) : (
-//         completedAudits.map((audit) => (
-//           <View key={audit.id} style={styles.cardContainer}>
-//             <View>
-//               <Text style={styles.clientName}>{audit.clientDetails.clientName}</Text>
-
-//               <View style={styles.detailsSection}>
-//                 <Text style={styles.subTitle}>Branch Details:</Text>
-//                 {renderFields(audit.branchDetails)}
-
-//                 <View style={{ marginTop: 20 }}>
-//                   <Text style={styles.subTitle}>Client Details:</Text>
-//                   {renderFields(audit.clientDetails)}
-//                 </View>
-//               </View>
-//             </View>
-//           </View>
-//         ))
-//       )}
-//     </ScrollView>
-//   );
-// };
-
-// const styles = StyleSheet.create({
-//   container: {
-//     flex: 1,
-//     padding: 15,
-//     backgroundColor: "white",
-//   },
-//   loadingContainer: {
-//     flex: 1,
-//     justifyContent: "center",
-//     alignItems: "center",
-//   },
-//   cardContainer: {
-//     marginBottom: 30,
-//   },
-//   detailsSection: {
-//     marginBottom: 20,
-//   },
-//   clientName: {
-//     fontSize: 18,
-//     fontWeight: "bold",
-//     color: "#333",
-//   },
-//   subTitle: {
-//     fontSize: 16,
-//     fontWeight: "bold",
-//     marginBottom: 5,
-//   },
-//   detailText: {
-//     fontSize: 14,
-//     color: "#555",
-//     marginBottom: 5,
-//   },
-//   noTasksContainer: {
-//     justifyContent: "center",
-//     alignItems: "center",
-//     marginTop: 20,
-//   },
-//   noTasksText: {
-//     fontSize: 18,
-//     color: "gray",
-//   },
-// });
-
-// export default CompletedTasks;

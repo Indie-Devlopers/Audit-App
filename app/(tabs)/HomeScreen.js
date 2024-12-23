@@ -764,16 +764,16 @@ import { doc, getDoc, collection, getDocs } from "firebase/firestore";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { db } from "./firebaseConfig";
 import { Ionicons } from "@expo/vector-icons";
-
 const HomeScreen = ({ navigation }) => {
   const [ongoingCounter, setOngoingCounter] = useState(0);
   const [upcomingAudits, setUpcomingAudits] = useState([]);
-  const [todaysTasks, setTodaysTasks] = useState([]);
+  const [todaysTasks, setTodaysTasks] = useState(0); // Change from [] to 0
   const [acceptedTasks, setAcceptedTasks] = useState([]);
   const [userName, setUserName] = useState("");
   const [greeting, setGreeting] = useState("");
   const [branchesData, setBranchesData] = useState([]);
   const [clientsData, setClientsData] = useState({});
+  
 
   useEffect(() => {
     const fetchData = async () => {
@@ -788,7 +788,7 @@ const HomeScreen = ({ navigation }) => {
             const ongoingCount = profileDoc.data()?.ongoingCounter || 0;
             setOngoingCounter(ongoingCount);
 
-            const name = profileDoc.data()?.name || "User";
+            const name = profileDoc.data()?.name || "User ";
             setUserName(name);
 
             const acceptedAuditsSnapshot = await getDocs(
@@ -813,7 +813,7 @@ const HomeScreen = ({ navigation }) => {
                 todaysAuditCount++;
               }
             });
-            setTodaysTasks(todaysAuditCount);
+            setTodaysTasks(todaysAuditCount); // Ensure this is set correctly
 
             const auditsSnapshot = await getDocs(collection(db, "audits"));
             const fetchedUpcomingAudits = [];
@@ -830,7 +830,7 @@ const HomeScreen = ({ navigation }) => {
             });
             setUpcomingAudits(fetchedUpcomingAudits);
           } else {
-            console.log("User profile not found");
+            console.log("User  profile not found");
           }
         } else {
           console.log("No user logged in");
@@ -884,51 +884,42 @@ const HomeScreen = ({ navigation }) => {
             <Text style={styles.cardContent}>{ongoingCounter}</Text>
           </TouchableOpacity>
         </View>
-         
 
-
-
-   
-      <Text style={styles.subHeader}>Upcoming Audits</Text>
-      <View style={styles.upcomingAuditsContainer}>
-        {upcomingAudits.length > 0 ? (
-          <FlatList
-            data={upcomingAudits}
-            renderItem={({ item }) => (
-              <View style={styles.auditItem}>
-                <Ionicons name="document-text" size={24} color="#4A90E2" />
-                <View style={styles.auditContent}>
-                  <Text style={styles.auditTitle}>{item.title}</Text>
-                  <Text style={styles.auditCity}>City: {item.city}</Text>
-                  <Text style={styles.auditDate}>Date: {item.date}</Text>
-                  <View style={styles.auditLocationContainer}>
-                    <Ionicons name="location-outline" size={16} color="blue" style={styles.locationIcon} />
-                    <Text style={styles.auditLocation}>
-                      {branchesData.find((branch) => branch.id === item.branchId)?.city || 'Unknown Location'}
+        <Text style={styles.subHeader}>Upcoming Audits</Text>
+        <View style={styles.upcomingAuditsContainer}>
+          {upcomingAudits.length > 0 ? (
+            <FlatList
+              data={upcomingAudits}
+              renderItem={({ item }) => (
+                <View style={styles.auditItem}>
+                  <Ionicons name="document-text" size={24} color="#4A90E2" />
+                  <View style={styles.auditContent}>
+                    <Text style={styles.auditTitle}>{item.title}</Text>
+                   
+                    <View style={styles.auditLocationContainer}>
+                      <Ionicons name="location-outline" size={16} color="blue" style={styles.locationIcon} />
+                      <Text style={styles.auditLocation}>
+                        {branchesData.find((branch) => branch.id === item.branchId)?.city || 'Unknown Location'}
+                      </Text>
+                    </View>
+                    <Text style={styles.auditClient}>
+                      {clientsData[item.clientId] || 'Unknown Client'}
                     </Text>
                   </View>
-                  <Text style={styles.auditClient}>
-                    {clientsData[item.clientId] || 'Unknown Client'}
-                  </Text>
+                  <TouchableOpacity
+                    style={styles.seeMoreButton}
+                    onPress={() => navigation.navigate('AuditDetails', { audit: item })}
+                  >
+                    <Text style={styles.seeMoreButtonText}>See More Info</Text>
+                  </TouchableOpacity>
                 </View>
-                <TouchableOpacity
-                  style={styles.seeMoreButton}
-                  onPress={() => navigation.navigate('AuditDetails', { audit: item })}
-                >
-                  <Text style={styles.seeMoreButtonText}>See More Info</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-            keyExtractor={(item) => item.id}
-          />
-        ) : (
-          <Text>No upcoming audits available</Text>
-        )}
-      </View>
-   
-
-
-
+              )}
+              keyExtractor={(item) => item.id}
+            />
+          ) : (
+            <Text>No upcoming audits available</Text>
+          )}
+        </View>
       </ScrollView>
     </View>
   );
@@ -958,70 +949,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     marginBottom: 20,
   },
- 
-    subHeader: {
-      fontSize: 18,
-      fontWeight: 'bold',
-      marginBottom: 10,
-    },
-    upcomingAuditsContainer: {
-      paddingHorizontal: 10,
-    },
-    auditItem: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      marginBottom: 10,
-      padding: 10,
-      backgroundColor: '#f9f9f9',
-      borderRadius: 8,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 4,
-    },
-    auditContent: {
-      marginLeft: 10,
-      flex: 1,
-    },
-    auditTitle: {
-      fontSize: 16,
-      fontWeight: 'bold',
-    },
-    auditCity: {
-      fontSize: 14,
-      color: '#555',
-    },
-    auditDate: {
-      fontSize: 14,
-      color: '#555',
-    },
-    auditLocationContainer: {
-      flexDirection: 'row',
-      alignItems: 'center',
-    },
-    auditLocation: {
-      fontSize: 14,
-      color: '#555',
-      marginLeft: 5,
-    },
-    auditClient: {
-      fontSize: 14,
-      color: '#555',
-    },
-    seeMoreButton: {
-      marginTop: 10,
-      alignSelf: 'flex-start',
-      paddingVertical: 5,
-      paddingHorizontal: 10,
-      backgroundColor: '#4A90E2',
-      borderRadius: 5,
-    },
-    seeMoreButtonText: {
-      color: '#fff',
-      fontSize: 14,
-    },
-  
-  
   card: {
     flex: 1,
     backgroundColor: "#FFFFFF",
@@ -1052,32 +979,62 @@ const styles = StyleSheet.create({
     color: "#000",
     textAlign: "center",
   },
+  upcomingAuditsContainer: {
+    paddingHorizontal: 10,
+  },
   auditItem: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 10,
-    backgroundColor: "#f0f8ff",
     padding: 10,
+    backgroundColor: '#f9f9f9',
     borderRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
   auditContent: {
     marginLeft: 10,
+    flex: 1,
   },
   auditTitle: {
-    fontWeight: "bold",
     fontSize: 16,
-    color: "#4A90E2", // Blue for the audit title
+    fontWeight: 'bold',
   },
   auditCity: {
     fontSize: 14,
-    color: "#333",
+    color: '#555',
   },
   auditDate: {
     fontSize: 14,
-    color: "#333",
+    color: '# 555',
+  },
+  auditLocationContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  auditLocation: {
+    fontSize: 14,
+    color: '#555',
+    marginLeft: 5,
+  },
+  auditClient: {
+    fontSize: 14,
+    color: '#555',
+  },
+  seeMoreButton: {
+    marginTop: 10,
+    alignSelf: 'flex-start',
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    backgroundColor: '#4A90E2',
+    borderRadius: 5,
+  },
+  seeMoreButtonText: {
+    color: '#fff',
+    fontSize: 14,
   },
 });
-
-
 
 export default HomeScreen;
