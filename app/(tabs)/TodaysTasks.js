@@ -1,25 +1,18 @@
-
-
-
-
 import React, { useState, useEffect } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, FlatList, Alert, Image,navigate } from "react-native";
-import { getFirestore, doc, getDocs, collection, updateDoc, query, where } from "firebase/firestore";
+import { View, Text, TouchableOpacity, StyleSheet, FlatList, Alert, Image, ActivityIndicator } from "react-native";
+import { getFirestore, doc, getDoc, getDocs, collection, updateDoc } from "firebase/firestore";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { app } from "./firebaseConfig"; // Your Firebase config file
-import DateTimePicker from '@react-native-community/datetimepicker';
-import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import Ionicons from 'react-native-vector-icons/Ionicons'; 
-
+import MaterialIcons from "react-native-vector-icons/MaterialIcons";
+import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
+import Ionicons from "react-native-vector-icons/Ionicons";
+import moment from 'moment'; // Import moment.js for date formatting
 
 const db = getFirestore(app);
 
 export default function TodaysTasks({ navigation }) {
   const [todaysAudits, setTodaysAudits] = useState([]);
-  const [selectedAudit, setSelectedAudit] = useState(null);
-  const [selectedTime, setSelectedTime] = useState(new Date());
-  const [showClock, setShowClock] = useState(false);
+  const [loading, setLoading] = useState(true);  // State to manage loading status
   const todayDate = new Date().toISOString().split("T")[0]; // "YYYY-MM-DD"
 
   useEffect(() => {
@@ -40,36 +33,53 @@ export default function TodaysTasks({ navigation }) {
     getUserId();
   }, []);
 
-  const handleGenerateReport = (auditId, auditName) => {
-    navigation.navigate("ReportScreen", { auditId, auditName });
-  };
-
   const fetchTodaysAudits = async (userId) => {
     try {
       console.log("Fetching audits for date:", todayDate);
 
       const userRef = doc(db, "Profile", userId);
       const acceptedAuditsRef = collection(userRef, "acceptedAudits");
-
-      const q = query(acceptedAuditsRef, where("date", "==", todayDate));
-      const querySnapshot = await getDocs(q);
+      const acceptedAuditsSnapshot = await getDocs(acceptedAuditsRef);
 
       const audits = [];
-      console.log("Query Snapshot Size:", querySnapshot.size);
 
-      querySnapshot.forEach((doc) => {
-        console.log("Audit Found:", doc.id, doc.data());
-        audits.push({ id: doc.id, ...doc.data() });
-      });
+      for (const auditDoc of acceptedAuditsSnapshot.docs) {
+        const { auditId } = auditDoc.data();
 
-      if (audits.length === 0) {
-        console.log("No audits for today");
+        // Fetch audit details
+        const auditRef = doc(db, "audits", auditId);
+        const auditSnapshot = await getDoc(auditRef);
+        if (!auditSnapshot.exists()) continue;
+        const auditData = auditSnapshot.data();
+
+        // Fetch branch details
+        const branchRef = doc(db, "branches", auditData.branchId);
+        const branchSnapshot = await getDoc(branchRef);
+        const branchDetails = branchSnapshot.exists() ? branchSnapshot.data() : {};
+
+        // Fetch client details
+        const clientRef = doc(db, "clients", auditData.clientId);
+        const clientSnapshot = await getDoc(clientRef);
+        const clientDetails = clientSnapshot.exists() ? clientSnapshot.data() : {};
+
+        audits.push({
+          id: auditId,
+          ...auditData,
+          branchDetails,
+          clientDetails,
+        });
       }
 
       setTodaysAudits(audits);
+      setLoading(false); // Set loading to false once data is fetched
     } catch (error) {
       console.error("Error fetching today's audits:", error);
+      setLoading(false); // Ensure loading state is turned off in case of error
     }
+  };
+
+  const handleGenerateReport = (auditId, auditName) => {
+    navigation.navigate("ReportScreen", { auditId, auditName });
   };
 
   const handleComplete = async (audit) => {
@@ -78,7 +88,7 @@ export default function TodaysTasks({ navigation }) {
       await updateDoc(auditRef, { isComplete: true });
 
       Alert.alert("Task Completed", "This task has been marked as completed.");
-      fetchTodaysAudits(); // Refresh the list of today's audits
+      fetchTodaysAudits(await AsyncStorage.getItem("userId")); // Refresh the list of today's audits
     } catch (error) {
       console.error("Error completing audit:", error);
     }
@@ -89,12 +99,12 @@ export default function TodaysTasks({ navigation }) {
       {/* Header Section */}
       <View style={styles.header}>
         <Image
-          source={require('./Images/building.png')}
+          source={require("./Images/building.png")}
           style={{ width: 34, height: 34 }}
         />
         <View style={styles.title}>
-          <Text style={styles.companyName}>{audit.clientDetails?.name || "Tata Motors"}</Text>
-          <Text style={styles.branchName}>{audit.branchDetails?.name || "A"}</Text>
+          <Text style={styles.companyName}>{audit.clientDetails?.name || "Client Name"}</Text>
+          <Text style={styles.branchName}>{audit.branchDetails?.name || "Branch Name"}</Text>
         </View>
       </View>
 
@@ -102,32 +112,27 @@ export default function TodaysTasks({ navigation }) {
       <View style={styles.details}>
         <View style={styles.detail}>
           <MaterialIcons name="location-on" size={24} color="#189ab4" />
-          <Text style={styles.detailText}>{audit.branchDetails?.city || "Bishnupur"}</Text>
+          <Text style={styles.detailText}>{audit.branchDetails?.city || "City Not Specified"}</Text>
         </View>
         <View style={styles.detail}>
           <MaterialCommunityIcons name="shield-search" size={24} color="#189ab4" />
-          <Text style={styles.detailText}>{audit.auditType || "General Audit"}</Text>
+          <Text style={styles.detailText}>{audit.auditType || "Audit Type Not Specified"}</Text>
         </View>
         <View style={styles.detail}>
           <MaterialIcons name="event" size={24} color="#189ab4" />
           <Text style={styles.detailText}>
-            Date: {audit.acceptedDate || "2024-12-21"}
+            Date: {moment().format('DD-MM-YYYY')}
           </Text>
         </View>
       </View>
 
       {/* Button Section */}
       <View style={styles.buttonContainer}>
-        <TouchableOpacity
-          style={styles.button}
-          onPress={() => handleGenerateReport(audit.id, audit.auditName)}>
-          <Ionicons name="document-text" size={20} color="green" />
-          <Text style={styles.buttonText}>Generate Report</Text>
-        </TouchableOpacity>
+        
 
-        <TouchableOpacity onPress={() => handleComplete(audit)}>
+        <TouchableOpacity  onPress={() => handleGenerateReport(audit.id, audit.auditName)}>
           <Image
-            source={require('./Images/Accept.png')} // Add your button image here
+            source={require("./Images/Accept.png")}
             style={styles.completeButtonImage}
           />
         </TouchableOpacity>
@@ -137,22 +142,16 @@ export default function TodaysTasks({ navigation }) {
 
   return (
     <View style={styles.container}>
-      {todaysAudits.length === 0 ? (
+      {loading ? (
+        // Activity Indicator while data is loading
+        <ActivityIndicator size="large" color="#189ab4" style={styles.loader} />
+      ) : todaysAudits.length === 0 ? (
         <Text style={styles.noAuditsText}>No audits for today</Text>
       ) : (
         <FlatList
           data={todaysAudits}
           renderItem={renderAudit}
           keyExtractor={(item) => item.id}
-        />
-      )}
-
-      {showClock && (
-        <DateTimePicker
-          value={selectedTime}
-          mode="time"
-          display="default"
-          onChange={onTimeChange}
         />
       )}
     </View>
@@ -165,6 +164,12 @@ const styles = StyleSheet.create({
     backgroundColor: "#f8f8f8",
     padding: 10,
   },
+  loader: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    height: "100%",
+  },
   auditCard: {
     backgroundColor: "#fff",
     padding: 15,
@@ -172,29 +177,20 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     elevation: 2,
   },
-  buttonContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    
-  },
-  button: {
-        backgroundColor: "white",
-        padding: 7,
-        borderRadius: 5,
-        flex: 1,
-        borderWidth:2,
-        borderColor:'green',
-        marginHorizontal: 3,
-        alignItems: "center",
-        flexDirection: "row",
-        justifyContent: "center",
-      },
   header: {
     flexDirection: "row",
     alignItems: "center",
   },
   title: {
     marginLeft: 10,
+  },
+  companyName: {
+    fontSize: 18,
+    fontWeight: "bold",
+  },
+  branchName: {
+    fontSize: 14,
+    color: "#555",
   },
   details: {
     marginVertical: 8,
@@ -204,16 +200,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 6,
   },
-  buttonText: {
-        marginLeft: 8,
-        color: "green",
-        fontSize: 14,
-      },
-  companyName: {
-    fontSize: 18,
-    fontWeight: "bold",
-  },
-  branchName: {
+  detailText: {
+    marginLeft: 8,
     fontSize: 14,
     color: "#555",
   },
@@ -221,6 +209,23 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     marginTop: 10,
+  },
+  button: {
+    backgroundColor: "white",
+    padding: 7,
+    borderRadius: 5,
+    flex: 1,
+    borderWidth: 2,
+    borderColor: "green",
+    marginHorizontal: 3,
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "center",
+  },
+  buttonText: {
+    marginLeft: 8,
+    color: "green",
+    fontSize: 14,
   },
   completeButtonImage: {
     width: 180,
@@ -234,4 +239,3 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
 });
-

@@ -271,30 +271,44 @@ const AuditDetails = ({ route, navigation }) => {
       setShowCalendar(false);
       const formattedDate = date.toISOString().split("T")[0];
       setSelectedDate(new Date(formattedDate));
-
+  
       try {
         const userId = await AsyncStorage.getItem("userId");
         if (!userId) {
           console.error("User ID not found!");
           return;
         }
-
+  
         const userProfileRef = doc(db, "Profile", userId);
         const acceptedAuditsRef = doc(userProfileRef, "acceptedAudits", audit.id);
-
+  
         // Save the audit acceptance information in the user profile
         await setDoc(acceptedAuditsRef, {
           auditId: audit.id,
           date: formattedDate,
-        
         });
-
+  
         // Update the acceptedByUser field in the audit document
         const auditRef = doc(db, "audits", audit.id);
         await updateDoc(auditRef, {
           acceptedByUser: arrayUnion(userId), // Add user ID to the array
         });
-
+  
+        // Fetch the current ongoingCounter value for the user
+        const userDocSnap = await getDoc(userProfileRef);
+        if (userDocSnap.exists()) {
+          const userData = userDocSnap.data();
+          const currentOngoingCounter = userData.ongoingCounter || 0;
+  
+          // Increment the ongoingCounter
+          const newOngoingCounter = currentOngoingCounter + 1;
+  
+          // Update the ongoingCounter field in the user's profile
+          await updateDoc(userProfileRef, {
+            ongoingCounter: newOngoingCounter,
+          });
+        }
+  
         setIsAcceptedByUser(true);
         navigation.navigate("Ongoing");
       } catch (error) {
@@ -304,6 +318,10 @@ const AuditDetails = ({ route, navigation }) => {
       setShowCalendar(false);
     }
   };
+  
+  
+      
+  
 
   useEffect(() => {
     const fetchAuditDetails = async () => {
