@@ -5,15 +5,15 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { app } from "./firebaseConfig"; // Your Firebase config file
 import MaterialIcons from "react-native-vector-icons/MaterialIcons";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
-import Ionicons from "react-native-vector-icons/Ionicons";
 import moment from 'moment'; // Import moment.js for date formatting
 
 const db = getFirestore(app);
 
-export default function TodaysTasks({ navigation }) {
-  const [todaysAudits, setTodaysAudits] = useState([]);
-  const [loading, setLoading] = useState(true);  // State to manage loading status
-  const todayDate = new Date().toISOString().split("T")[0]; // "YYYY-MM-DD"
+export default function PastTasks({ navigation }) {
+  const [pastAudits, setPastAudits] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const todayDate = new Date(); // Current date
+  todayDate.setHours(0, 0, 0, 0); // Set time to midnight for comparison
 
   useEffect(() => {
     const getUserId = async () => {
@@ -21,9 +21,9 @@ export default function TodaysTasks({ navigation }) {
         const userId = await AsyncStorage.getItem("userId");
         if (userId) {
           console.log("Retrieved User ID:", userId);
-          fetchTodaysAudits(userId);
+          fetchPastAudits(userId);
         } else {
-          console.error("User ID not found in AsyncStorage");
+          console.error("User  ID not found in AsyncStorage");
         }
       } catch (error) {
         console.error("Error fetching user ID:", error);
@@ -33,9 +33,9 @@ export default function TodaysTasks({ navigation }) {
     getUserId();
   }, []);
 
-  const fetchTodaysAudits = async (userId) => {
+  const fetchPastAudits = async (userId) => {
     try {
-      console.log("Fetching audits for date:", todayDate);
+      console.log("Fetching audits for date <=", todayDate.toISOString().split("T")[0]);
 
       const userRef = doc(db, "Profile", userId);
       const acceptedAuditsRef = collection(userRef, "acceptedAudits");
@@ -44,7 +44,12 @@ export default function TodaysTasks({ navigation }) {
       const audits = [];
 
       for (const auditDoc of acceptedAuditsSnapshot.docs) {
-        const { auditId } = auditDoc.data();
+        const { auditId, date } = auditDoc.data(); // Extract date along with auditId
+
+        // Convert the date string to a Date object
+        const auditDate = new Date(date); // This will parse the "YYYY-MM-DD" format correctly
+        auditDate.setHours(0, 0, 0, 0);
+        if (auditDate > todayDate) continue; // Only include today's and past audits
 
         // Fetch audit details
         const auditRef = doc(db, "audits", auditId);
@@ -64,17 +69,19 @@ export default function TodaysTasks({ navigation }) {
 
         audits.push({
           id: auditId,
-          ...auditData,
+          ...date,
           branchDetails,
           clientDetails,
         });
+
+        console.log("audits:::::", audits)
       }
 
-      setTodaysAudits(audits);
-      setLoading(false); // Set loading to false once data is fetched
+      setPastAudits(audits);
+      setLoading(false);
     } catch (error) {
-      console.error("Error fetching today's audits:", error);
-      setLoading(false); // Ensure loading state is turned off in case of error
+      console.error("Error fetching past audits:", error);
+      setLoading(false);
     }
   };
 
@@ -86,9 +93,9 @@ export default function TodaysTasks({ navigation }) {
     try {
       const auditRef = doc(db, "audits", audit.id);
       await updateDoc(auditRef, { isComplete: true });
-
+    
       Alert.alert("Task Completed", "This task has been marked as completed.");
-      fetchTodaysAudits(await AsyncStorage.getItem("userId")); // Refresh the list of today's audits
+      fetchPastAudits(await AsyncStorage.getItem("userId")); // Refresh the list of past audits
     } catch (error) {
       console.error("Error completing audit:", error);
     }
@@ -121,16 +128,14 @@ export default function TodaysTasks({ navigation }) {
         <View style={styles.detail}>
           <MaterialIcons name="event" size={24} color="#189ab4" />
           <Text style={styles.detailText}>
-            Date: {moment().format('DD-MM-YYYY')}
+            {moment(audit.date).format('DD-MM-YYYY')}
           </Text>
         </View>
       </View>
 
       {/* Button Section */}
       <View style={styles.buttonContainer}>
-        
-
-        <TouchableOpacity  onPress={() => handleGenerateReport(audit.id, audit.auditName)}>
+        <TouchableOpacity onPress={() => handleGenerateReport(audit.id, audit.auditName)}>
           <Image
             source={require("./Images/Accept.png")}
             style={styles.completeButtonImage}
@@ -143,13 +148,12 @@ export default function TodaysTasks({ navigation }) {
   return (
     <View style={styles.container}>
       {loading ? (
-        // Activity Indicator while data is loading
         <ActivityIndicator size="large" color="#189ab4" style={styles.loader} />
-      ) : todaysAudits.length === 0 ? (
-        <Text style={styles.noAuditsText}>No audits for today</Text>
+      ) : pastAudits.length === 0 ? (
+        <Text style={styles.noAuditsText}>No audits for today or past</Text>
       ) : (
         <FlatList
-          data={todaysAudits}
+          data={pastAudits}
           renderItem={renderAudit}
           keyExtractor={(item) => item.id}
         />
@@ -210,23 +214,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     marginTop: 10,
   },
-  button: {
-    backgroundColor: "white",
-    padding: 7,
-    borderRadius: 5,
-    flex: 1,
-    borderWidth: 2,
-    borderColor: "green",
-    marginHorizontal: 3,
-    alignItems: "center",
-    flexDirection: "row",
-    justifyContent: "center",
-  },
-  buttonText: {
-    marginLeft: 8,
-    color: "green",
-    fontSize: 14,
-  },
   completeButtonImage: {
     width: 180,
     height: 50,
@@ -238,4 +225,5 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: 20,
   },
-});
+}); 
+
