@@ -1,14 +1,12 @@
 {
   "expo": {
     "name": "audit",
-    "slug": "audit",
+    "slug": "v",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
-    
-   
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
@@ -32,9 +30,9 @@
         "origin": false
       },
       "eas": {
-        "projectId": "306b292f-7f92-4d73-9301-351b1ce0971b"
+        "projectId": "b8398c98-3933-44b8-9b7f-e869032ce04d"
       }
     },
-    "owner": "coreasm"
+    "owner": "neetupp"
   }
 }

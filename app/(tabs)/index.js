@@ -115,11 +115,11 @@ export default function App() {
           component={BottomTabs}
           options={{ headerShown: false }}
         />
-        {/* Additional Screens not part of Bottom Tabs */}
+      
         <Stack.Screen name="Ongoing" component={Ongoing}  options={{ headerShown: false }}  />
      
         <Stack.Screen name="ReportScreen" component={ReportScreen}  options={{ headerShown: false }}  />
-        <Stack.Screen name="CompletedTasks" component={CompletedTasks}    />
+        <Stack.Screen name="CompletedTasks" component={CompletedTasks}  options={{ headerShown: false }}   />
         <Stack.Screen name="TodaysTasks" component={TodaysTasks}  options={{ headerShown: false }} />
         <Stack.Screen name="AuditDetails" component={AuditDetails}   />
         <Stack.Screen name="ClientDetails" component={ClientDetails}  options={{ headerShown: false }}  />
