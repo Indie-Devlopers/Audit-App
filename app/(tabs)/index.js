@@ -101,7 +101,7 @@ function BottomTabs({ navigation }) {
 // Main App Navigator
 export default function App() {
   return (
-    <NavigationContainer>
+    // <NavigationContainer>
       <Stack.Navigator initialRouteName="LoginScreen">
         {/* Login Screen */}
         <Stack.Screen
@@ -125,6 +125,6 @@ export default function App() {
         <Stack.Screen name="ClientDetails" component={ClientDetails}  options={{ headerShown: false }}  />
         <Stack.Screen name="RejectedAudits" component={RejectedAudits}  options={{ headerShown: false }}  />
       </Stack.Navigator>
-    </NavigationContainer>
+    // </NavigationContainer>
   );
 }
