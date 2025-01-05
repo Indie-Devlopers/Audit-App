@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from "react";
 import {
   View,
@@ -7,13 +8,17 @@ import {
   TouchableOpacity,
   FlatList,
   ActivityIndicator,
-  Image
+  Image,
+  Alert,
+  BackHandler,
 } from "react-native";
+import { useFocusEffect } from "@react-navigation/native"; // Import useFocusEffect
 import { doc, getDoc, collection, getDocs, onSnapshot } from "firebase/firestore";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { db } from "./firebaseConfig";
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from 'expo-linear-gradient';  // Updated import
+import { LinearGradient } from "expo-linear-gradient"; // Updated import
+
 const HomeScreen = ({ navigation }) => {
   const [ongoingCounter, setOngoingCounter] = useState(0);
   const [upcomingAudits, setUpcomingAudits] = useState([]);
@@ -27,6 +32,29 @@ const HomeScreen = ({ navigation }) => {
   const unsubscribeAcceptedAuditsRef = useRef(null);
   const unsubscribeAuditsRef = useRef(null);
 
+  // Back Button Handler
+  useFocusEffect(
+    React.useCallback(() => {
+      const onBackPress = () => {
+        Alert.alert(
+          "Exit App",
+          "Are you sure you want to exit?",
+          [
+            { text: "Cancel", style: "cancel" },
+            { text: "Yes", onPress: () => BackHandler.exitApp() },
+          ],
+          { cancelable: false }
+        );
+        return true; // Prevent default back action
+      };
+
+      BackHandler.addEventListener("hardwareBackPress", onBackPress);
+
+      return () => BackHandler.removeEventListener("hardwareBackPress", onBackPress);
+    }, [])
+  );
+
+  // Your existing code for fetching data and rendering components
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
@@ -36,31 +64,31 @@ const HomeScreen = ({ navigation }) => {
           console.log("No user logged in");
           return;
         }
-  
+
         const profileRef = doc(db, "Profile", userId);
         const profileDoc = await getDoc(profileRef);
-  
+
         if (!profileDoc.exists()) {
           console.log("User profile not found");
           return;
         }
-  
+
         const name = profileDoc.data()?.name || "User";
         setUserName(name);
         let acceptedTasksList = [];
-  
+
         // Real-time listener for accepted tasks
         const acceptedAuditsRef = collection(db, "Profile", userId, "acceptedAudits");
         unsubscribeAcceptedAuditsRef.current = onSnapshot(acceptedAuditsRef, async (snapshot) => {
           acceptedTasksList = snapshot.docs.map((doc) => doc.data().auditId);
           setAcceptedTasks(acceptedTasksList);
-  
+
           const today = new Date();
-  
+
           // Calculate counts
           let todayAndPastAuditCount = 0;
           let futureAuditCount = 0;
-  
+
           snapshot.docs.forEach((doc) => {
             const auditData = doc.data();
             if (auditData.date) {
@@ -72,29 +100,29 @@ const HomeScreen = ({ navigation }) => {
               }
             }
           });
-  
+
           // Set the counters
           setTodaysTasks(todayAndPastAuditCount);
           setOngoingCounter(futureAuditCount); // Future audits counter
-  
+
           // Fetch upcoming audits whenever accepted tasks change
           const completedTasksList = await fetchCompletedTasks(userId);
           await fetchUpcomingAudits(completedTasksList, acceptedTasksList);
         });
-  
+
         // Real-time listener for audits collection
         const auditsRef = collection(db, "audits");
         unsubscribeAuditsRef.current = onSnapshot(auditsRef, async () => {
           const completedTasksList = await fetchCompletedTasks(userId);
           await fetchUpcomingAudits(completedTasksList, acceptedTasksList);
         });
-  
+
         // Fetch completed tasks
         const completedTasksList = await fetchCompletedTasks(userId);
-  
+
         // Fetch branches and clients
         await fetchBranchesAndClients();
-  
+
         // Fetch upcoming audits initially
         await fetchUpcomingAudits(completedTasksList, acceptedTasksList);
       } catch (error) {
@@ -103,9 +131,9 @@ const HomeScreen = ({ navigation }) => {
         setLoading(false);
       }
     };
-  
+
     fetchData();
-  
+
     return () => {
       if (unsubscribeAcceptedAuditsRef.current) {
         unsubscribeAcceptedAuditsRef.current();
@@ -115,17 +143,17 @@ const HomeScreen = ({ navigation }) => {
       }
     };
   }, []);
-  
+
   const fetchCompletedTasks = async (userId) => {
     const completedAuditsSnapshot = await getDocs(collection(db, "Profile", userId, "completedAudits"));
-    return completedAuditsSnapshot.docs.map(doc => doc.data().auditId);
+    return completedAuditsSnapshot.docs.map((doc) => doc.data().auditId);
   };
 
   const fetchBranchesAndClients = async () => {
     const branchesSnapshot = await getDocs(collection(db, "branches"));
     const fetchedBranches = [];
     const branchesLookup = {};
-    branchesSnapshot.forEach(doc => {
+    branchesSnapshot.forEach((doc) => {
       const branchData = doc.data();
       fetchedBranches.push(branchData);
       branchesLookup[doc.id] = branchData;
@@ -135,20 +163,19 @@ const HomeScreen = ({ navigation }) => {
 
     const clientsSnapshot = await getDocs(collection(db, "clients"));
     const fetchedClients = {};
-    clientsSnapshot.forEach(doc => {
+    clientsSnapshot.forEach((doc) => {
       fetchedClients[doc.id] = doc.data().name;
     });
     setClientsData(fetchedClients);
 
-    console.log("clientsSnapshot:::::::::",fetchedClients)
+    console.log("clientsSnapshot:::::::::", fetchedClients);
   };
 
   const fetchUpcomingAudits = async (completedTasksList, acceptedTasksList) => {
     const auditsSnapshot = await getDocs(collection(db, "audits"));
     const fetchedUpcomingAudits = [];
-    auditsSnapshot.forEach(doc => {
+    auditsSnapshot.forEach((doc) => {
       const auditData = doc.data();
-      // console.log("auditData:::", auditData)
       if (!auditData.isAccepted && !acceptedTasksList.includes(doc.id) && !completedTasksList.includes(doc.id)) {
         fetchedUpcomingAudits.push({
           id: doc.id,
@@ -163,6 +190,7 @@ const HomeScreen = ({ navigation }) => {
     setUpcomingAudits(fetchedUpcomingAudits);
   };
 
+ 
   return (
     <View style={styles.container}>
 <LinearGradient 

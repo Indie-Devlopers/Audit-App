@@ -124,6 +124,18 @@
 //     </NavigationContainer>
 //   );
 // }
+
+
+
+
+
+
+
+
+
+
+
+
 import React from "react";
 import { Alert, TouchableOpacity, Text } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
@@ -184,11 +196,11 @@ function BottomTabs({ navigation }) {
       }}
     >
       <Tab.Screen
-        name="DashBoard"
+        name="Home"
         component={HomeScreen}
         options={{
           headerShown: false, // If you also want to hide the header
-          tabBarLabel: () => null, // Completely removes the label
+          tabBarLabel: "Home", 
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="home" color={color} size={size} />
           ),
