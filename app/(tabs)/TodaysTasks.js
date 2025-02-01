@@ -23,7 +23,7 @@ export default function PastTasks({ navigation }) {
           console.log("Retrieved User ID:", userId);
           fetchPastAudits(userId);
         } else {
-          console.error("User  ID not found in AsyncStorage");
+          console.error("User ID not found in AsyncStorage");
         }
       } catch (error) {
         console.error("Error fetching user ID:", error);
@@ -41,43 +41,45 @@ export default function PastTasks({ navigation }) {
       const acceptedAuditsRef = collection(userRef, "acceptedAudits");
       const acceptedAuditsSnapshot = await getDocs(acceptedAuditsRef);
 
-      const audits = [];
+      const audits = await Promise.all(
+        acceptedAuditsSnapshot.docs.map(async (auditDoc) => {
+          const { auditId, date } = auditDoc.data(); // Extract date along with auditId
 
-      for (const auditDoc of acceptedAuditsSnapshot.docs) {
-        const { auditId, date } = auditDoc.data(); // Extract date along with auditId
+          // Convert the date string to a Date object
+          const auditDate = new Date(date); // This will parse the "YYYY-MM-DD" format correctly
+          auditDate.setHours(0, 0, 0, 0);
+          if (auditDate > todayDate) return null; // Only include today's and past audits
 
-        // Convert the date string to a Date object
-        const auditDate = new Date(date); // This will parse the "YYYY-MM-DD" format correctly
-        auditDate.setHours(0, 0, 0, 0);
-        if (auditDate > todayDate) continue; // Only include today's and past audits
+          // Fetch audit details
+          const auditRef = doc(db, "audits", auditId);
+          const auditSnapshot = await getDoc(auditRef);
+          if (!auditSnapshot.exists()) return null;
+          const auditData = auditSnapshot.data();
+          console.log("auditData:::::", auditData);
+          // Exclude audits where isSubmitted is true
+          if (auditData.isSubmitted) return null;
 
-        // Fetch audit details
-        const auditRef = doc(db, "audits", auditId);
-        const auditSnapshot = await getDoc(auditRef);
-        if (!auditSnapshot.exists()) continue;
-        const auditData = auditSnapshot.data();
+          // Fetch branch details
+          const branchRef = doc(db, "branches", auditData.branchId);
+          const branchSnapshot = await getDoc(branchRef);
+          const branchDetails = branchSnapshot.exists() ? branchSnapshot.data() : {};
 
-        // Fetch branch details
-        const branchRef = doc(db, "branches", auditData.branchId);
-        const branchSnapshot = await getDoc(branchRef);
-        const branchDetails = branchSnapshot.exists() ? branchSnapshot.data() : {};
+          // Fetch client details
+          const clientRef = doc(db, "clients", auditData.clientId);
+          const clientSnapshot = await getDoc(clientRef);
+          const clientDetails = clientSnapshot.exists() ? clientSnapshot.data() : {};
 
-        // Fetch client details
-        const clientRef = doc(db, "clients", auditData.clientId);
-        const clientSnapshot = await getDoc(clientRef);
-        const clientDetails = clientSnapshot.exists() ? clientSnapshot.data() : {};
+          return {
+            id: auditId,
+            ...auditData,
+            date: auditDate,
+            branchDetails,
+            clientDetails,
+          };
+        })
+      );
 
-        audits.push({
-          id: auditId,
-          ...date,
-          branchDetails,
-          clientDetails,
-        });
-
-        console.log("audits:::::", audits)
-      }
-
-      setPastAudits(audits);
+      setPastAudits(audits.filter(audit => audit !== null));
       setLoading(false);
     } catch (error) {
       console.error("Error fetching past audits:", error);
@@ -147,6 +149,7 @@ export default function PastTasks({ navigation }) {
 
   return (
     <View style={styles.container}>
+      <Text style={styles.headerText}>Not Submitted Audits</Text>
       {loading ? (
         <ActivityIndicator size="large" color="#189ab4" style={styles.loader} />
       ) : pastAudits.length === 0 ? (
@@ -168,6 +171,23 @@ const styles = StyleSheet.create({
     backgroundColor: "#f8f8f8",
     padding: 10,
   },
+  headerText: {
+    fontSize: 20,
+    backgroundColor: "#e57373",
+    width: "100%",
+    fontWeight: "bold",
+    textAlign: "center",
+    paddingVertical: 10,
+    margin:0,
+    color: "#fff",
+    borderRadius: 12,
+    padding: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    border:2,
+  },
   loader: {
     flex: 1,
     justifyContent: "center",
@@ -180,6 +200,8 @@ const styles = StyleSheet.create({
     marginVertical: 8,
     borderRadius: 8,
     elevation: 2,
+    borderColor: "#ddd",
+    borderWidth: 1,
   },
   header: {
     flexDirection: "row",
@@ -191,6 +213,7 @@ const styles = StyleSheet.create({
   companyName: {
     fontSize: 18,
     fontWeight: "bold",
+    color: "#333",
   },
   branchName: {
     fontSize: 14,
@@ -225,5 +248,4 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: 20,
   },
-}); 
-
+});

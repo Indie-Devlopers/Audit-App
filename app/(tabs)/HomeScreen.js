@@ -61,17 +61,27 @@ const HomeScreen = ({ navigation }) => {
           let todayAndPastAuditCount = 0;
           let futureAuditCount = 0;
   
-          snapshot.docs.forEach((doc) => {
-            const auditData = doc.data();
+          for (const auditDoc of snapshot.docs) {
+            const auditData = auditDoc.data();
+          console.log("auditData:::::", auditData)
+            const auditRef = doc(db, "audits", auditData.auditId);
+            const auditSnapshot = await getDoc(auditRef);
+            // const auditSnapshot = await getDoc(auditRef);
+        
+           
+            const auditDataActaul = auditSnapshot.data();
+         console.log("auditDataActaul.isSubmitted:::::", auditDataActaul.isSubmitted)
+           
             if (auditData.date) {
               const auditDate = new Date(auditData.date);
               if (auditDate <= today) {
-                todayAndPastAuditCount += 1;
+                if (!auditDataActaul.isSubmitted){
+                todayAndPastAuditCount += 1;}
               } else {
                 futureAuditCount += 1;
               }
             }
-          });
+          }
   
           // Set the counters
           setTodaysTasks(todayAndPastAuditCount);
@@ -239,7 +249,9 @@ const HomeScreen = ({ navigation }) => {
             </View>
 
             {/* Location Info */}
-            <View style={styles.auditLocationContainer}>
+
+          </View>
+          <View style={styles.auditLocationContainer}>
               <Ionicons
                 name="location-outline"
                 size={16}
@@ -250,7 +262,6 @@ const HomeScreen = ({ navigation }) => {
                 {branchesMap[item.branchId]?.city || 'Unknown Location'}
               </Text>
             </View>
-          </View>
         </TouchableOpacity>
       )}
       keyExtractor={(item) => item.id}
@@ -418,7 +429,8 @@ const styles = StyleSheet.create({
     flexDirection: "row", // Align image and text side by side
     alignItems: "center",
     padding: 15,
-    marginBottom: 20,
+    paddingBottom: 5,
+    marginBottom: 10,
     borderWidth: 1,
     borderColor: "#007FFF",
     borderRadius: 10,
@@ -535,6 +547,7 @@ const styles = StyleSheet.create({
   cardContainer: {
     flexDirection: 'row',
     padding: 12,
+    paddingBottom:8,
     alignItems: 'center',
   },
   imageContainer: {
@@ -563,6 +576,8 @@ const styles = StyleSheet.create({
     marginTop: 5,
   },
   auditLocationContainer: {
+    padding: 12,
+    paddingTop: 0,
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: 5,

@@ -1,28 +1,25 @@
-
-
-
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
-import DropDownPicker from 'react-native-dropdown-picker';
-import { useNavigation } from '@react-navigation/native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Platform } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { useNavigation, CommonActions } from '@react-navigation/native';
 import { db } from './firebaseConfig';
 import { doc, setDoc, updateDoc, getDoc, deleteDoc } from 'firebase/firestore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const ReportScreen = ({ route }) => {
   const navigation = useNavigation();
-  const [scanDate, setScanDate] = useState('');
-  const [hardCopyDate, setHardCopyDate] = useState('');
-  const [softCopyDate, setSoftCopyDate] = useState('');
-  const [photoDate, setPhotoDate] = useState('');
+  const [scanDate, setScanDate] = useState(null);
+  const [hardCopyDate, setHardCopyDate] = useState(null);
+  const [softCopyDate, setSoftCopyDate] = useState(null);
+  const [photoDate, setPhotoDate] = useState(null);
 
   const [auditId, setAuditId] = useState(route?.params?.auditId || '');
   const [userId, setUserId] = useState(route?.params?.userId || '');
 
-  const [openScan, setOpenScan] = useState(false);
-  const [openHard, setOpenHard] = useState(false);
-  const [openSoft, setOpenSoft] = useState(false);
-  const [openPhoto, setOpenPhoto] = useState(false);
+  const [showScanDatePicker, setShowScanDatePicker] = useState(false);
+  const [showHardCopyDatePicker, setShowHardCopyDatePicker] = useState(false);
+  const [showSoftCopyDatePicker, setShowSoftCopyDatePicker] = useState(false);
+  const [showPhotoDatePicker, setShowPhotoDatePicker] = useState(false);
 
   useEffect(() => {
     const fetchSavedDates = async () => {
@@ -32,10 +29,10 @@ const ReportScreen = ({ route }) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
         if (data.reportDates) {
-          setScanDate(data.reportDates.scan || '');
-          setHardCopyDate(data.reportDates.hard || '');
-          setSoftCopyDate(data.reportDates.soft || '');
-          setPhotoDate(data.reportDates.photo || '');
+          setScanDate(data.reportDates.scan ? new Date(data.reportDates.scan) : null);
+          setHardCopyDate(data.reportDates.hard ? new Date(data.reportDates.hard) : null);
+          setSoftCopyDate(data.reportDates.soft ? new Date(data.reportDates.soft) : null);
+          setPhotoDate(data.reportDates.photo ? new Date(data.reportDates.photo) : null);
         }
       }
     };
@@ -45,41 +42,41 @@ const ReportScreen = ({ route }) => {
     }
   }, [auditId]);
 
-  const generateDateItems = (year) => {
-    return Array.from({ length: 31 }, (_, i) => ({
-      label: `${year}-12-${i + 1}`,
-      value: `${year}-12-${i + 1}`,
-    }));
-  };
-
   const handleSaveAndComplete = async () => {
     try {
-      // Save Dates to the Profile > userId > completedAudits subcollection > ReportDates subcollection
       const userId = await AsyncStorage.getItem('userId');
       if (!userId) {
         console.error('User ID not found!');
         return;
       }
 
-      // Get the reference to the completedAudits subcollection and ReportDates subcollection
       const completedAuditsRef = doc(db, 'Profile', userId, 'completedAudits', auditId);
       const reportDatesRef = doc(db, 'Profile', userId, 'completedAudits', auditId, 'ReportDates', 'dates');
 
-      // Save the report dates in the ReportDates subcollection
-      await setDoc(
+      const datesArray = [
+        { key: 'softCopyDate', date: softCopyDate ? softCopyDate.toISOString() : '' },
+        { key: 'scanDate', date: scanDate ? scanDate.toISOString() : '' },
+        { key: 'photoDate', date: photoDate ? photoDate.toISOString() : '' },
+        { key: 'hardCopyDate', date: hardCopyDate ? hardCopyDate.toISOString() : '' },
+      ];
+
+      const updateAudit = updateDoc(doc(db, 'audits', auditId), {
+        isCompleted: true,
+        isSubmitted: true,
+        dates: datesArray,
+        submittedBy: userId,
+      });
+
+      const updateReportDates = setDoc(
         reportDatesRef,
         {
-          scanDate: scanDate || '',
-          hardCopyDate: hardCopyDate || '',
-          softCopyDate: softCopyDate || '',
-          photoDate: photoDate || '',
+          scanDate: scanDate ? scanDate.toISOString() : '',
+          hardCopyDate: hardCopyDate ? hardCopyDate.toISOString() : '',
+          photoDate: photoDate ? photoDate.toISOString() : '',
           completedAt: new Date(),
         },
-        { merge: true }  // Use merge to avoid overwriting existing fields
+        { merge: true }
       );
-
-      // Mark the audit as completed in the 'audits' collection
-      await updateDoc(doc(db, 'audits', auditId), { isCompleted: true });
 
       const userProfileRef = doc(db, 'Profile', userId);
       const userProfileSnap = await getDoc(userProfileRef);
@@ -88,95 +85,96 @@ const ReportScreen = ({ route }) => {
         const userProfileData = userProfileSnap.data();
         const completedCount = (userProfileData.completedCounter || 0) + 1;
 
-        // Update the completedCounter in the user's profile
-        await updateDoc(userProfileRef, {
+        const updateUserProfile = updateDoc(userProfileRef, {
           completedCounter: completedCount,
         });
 
-        // Remove the audit from the acceptedAudits subcollection
-        const acceptedAuditsRef = doc(db, 'Profile', userId, 'acceptedAudits', auditId);
-        await deleteDoc(acceptedAuditsRef);
+        const deleteAcceptedAudit = deleteDoc(doc(db, 'Profile', userId, 'acceptedAudits', auditId));
 
-        // Move it to the completedAudits subcollection
-        await setDoc(doc(db, 'Profile', userId, 'completedAudits', auditId), {
+        const setCompletedAudit = setDoc(doc(db, 'Profile', userId, 'completedAudits', auditId), {
           auditId,
           completedAt: new Date(),
         });
 
-        // Update ongoing counter
         const ongoingCounter = Math.max(0, (userProfileData.ongoingCounter || 0) - 1);
-        await updateDoc(userProfileRef, {
+        const updateOngoingCounter = updateDoc(userProfileRef, {
           ongoingCounter: ongoingCounter,
         });
 
-        // Navigate to CompletedTasks screen
-        navigation.navigate('CompletedTasks', { auditId, isCompleted: true });
+        await Promise.all([
+          updateAudit,
+          updateReportDates,
+          updateUserProfile,
+          deleteAcceptedAudit,
+          setCompletedAudit,
+          updateOngoingCounter,
+        ]);
+
+        navigation.dispatch(
+          CommonActions.reset({
+            index: 1,
+            routes: [
+              { name: 'HomeScreen' }, // Ensure this matches the name in your navigator
+              { name: 'CompletedTasks', params: { auditId, isCompleted: true } },
+            ],
+          })
+        );
       }
     } catch (error) {
       alert('Error saving and completing audit');
     }
   };
 
+  const renderDatePicker = (date, setDate, show, setShow) => (
+    <>
+      {show && (
+        <DateTimePicker
+          value={date || new Date()}
+          mode="date"
+          display="default"
+          onChange={(event, selectedDate) => {
+            const currentDate = selectedDate || date;
+            setShow(Platform.OS === 'ios');
+            setDate(currentDate);
+          }}
+          minimumDate={new Date(2000, 0, 1)}
+          maximumDate={new Date(2100, 11, 31)}
+        />
+      )}
+    </>
+  );
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>Select Dates for Reports</Text>
-
-      <View style={styles.dateSection}>
-        <Text style={styles.sectionTitle}>Scan Date</Text>
-        <DropDownPicker
-          open={openScan}
-          value={scanDate}
-          items={generateDateItems(new Date().getFullYear())}
-          setOpen={setOpenScan}
-          setValue={setScanDate}
-          style={styles.dropdown}
-          zIndex={4000}
-          dropDownContainerStyle={{ zIndex: 4000 }}
-        />
-      </View>
-
-      <View style={styles.dateSection}>
-        <Text style={styles.sectionTitle}>Hard Copy Date</Text>
-        <DropDownPicker
-          open={openHard}
-          value={hardCopyDate}
-          items={generateDateItems(new Date().getFullYear())}
-          setOpen={setOpenHard}
-          setValue={setHardCopyDate}
-          style={styles.dropdown}
-          zIndex={3000}
-          dropDownContainerStyle={{ zIndex: 3000 }}
-        />
-      </View>
-
       <View style={styles.dateSection}>
         <Text style={styles.sectionTitle}>Soft Copy Date</Text>
-        <DropDownPicker
-          open={openSoft}
-          value={softCopyDate}
-          items={generateDateItems(new Date().getFullYear())}
-          setOpen={setOpenSoft}
-          setValue={setSoftCopyDate}
-          style={styles.dropdown}
-          zIndex={2000}
-          dropDownContainerStyle={{ zIndex: 2000 }}
-        />
+        <TouchableOpacity style={styles.datePickerButton} onPress={() => setShowSoftCopyDatePicker(true)}>
+          <Text style={styles.dateText}>{softCopyDate ? softCopyDate.toDateString() : 'Select Date'}</Text>
+        </TouchableOpacity>
+        {renderDatePicker(softCopyDate, setSoftCopyDate, showSoftCopyDatePicker, setShowSoftCopyDatePicker)}
       </View>
-
+      <View style={styles.dateSection}>
+        <Text style={styles.sectionTitle}>Scan Date</Text>
+        <TouchableOpacity style={styles.datePickerButton} onPress={() => setShowScanDatePicker(true)}>
+          <Text style={styles.dateText}>{scanDate ? scanDate.toDateString() : 'Select Date'}</Text>
+        </TouchableOpacity>
+        {renderDatePicker(scanDate, setScanDate, showScanDatePicker, setShowScanDatePicker)}
+      </View>
       <View style={styles.dateSection}>
         <Text style={styles.sectionTitle}>Photo Date</Text>
-        <DropDownPicker
-          open={openPhoto}
-          value={photoDate}
-          items={generateDateItems(new Date().getFullYear())}
-          setOpen={setOpenPhoto}
-          setValue={setPhotoDate}
-          style={styles.dropdown}
-          zIndex={1000}
-          dropDownContainerStyle={{ zIndex: 1000 }}
-        />
+        <TouchableOpacity style={styles.datePickerButton} onPress={() => setShowPhotoDatePicker(true)}>
+          <Text style={styles.dateText}>{photoDate ? photoDate.toDateString() : 'Select Date'}</Text>
+        </TouchableOpacity>
+        {renderDatePicker(photoDate, setPhotoDate, showPhotoDatePicker, setShowPhotoDatePicker)}
       </View>
-
+      <View style={styles.dateSection}>
+        <Text style={styles.sectionTitle}>Hard Copy Date</Text>
+        <TouchableOpacity style={styles.datePickerButton} onPress={() => setShowHardCopyDatePicker(true)}>
+          <Text style={styles.dateText}>{hardCopyDate ? hardCopyDate.toDateString() : 'Select Date'}</Text>
+        </TouchableOpacity>
+        {renderDatePicker(hardCopyDate, setHardCopyDate, showHardCopyDatePicker, setShowHardCopyDatePicker)}
+      </View>
       <TouchableOpacity style={styles.saveAndCompleteButton} onPress={handleSaveAndComplete}>
         <Text style={styles.saveAndCompleteButtonText}>Save & Complete</Text>
       </TouchableOpacity>
@@ -207,16 +205,17 @@ const styles = StyleSheet.create({
     color: '#555',
     marginBottom: 8,
   },
-  dropdown: {
-    width: '100%',
-    height: 45,
+  datePickerButton: {
+    padding: 10,
     backgroundColor: '#fff',
     borderRadius: 8,
     borderColor: '#ddd',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
+    borderWidth: 1,
+    alignItems: 'center',
+  },
+  dateText: {
+    fontSize: 18,
+    color: '#0071c5',
   },
   saveAndCompleteButton: {
     marginTop: 30,
@@ -234,4 +233,3 @@ const styles = StyleSheet.create({
 });
 
 export default ReportScreen;
-

@@ -14,6 +14,7 @@ import { Ionicons } from "@expo/vector-icons";
 import LoginScreen from "./LoginScreen";
 import HomeScreen from "./HomeScreen";
 import Ongoing from "./Ongoing";
+import CalendarScreen from "./Calendar";
 import ProfileScreen from "./ProfileScreen";
 import ClientDetails from "./ClientDetails";
 import CompletedTasks from "./CompletedTasks";
@@ -77,7 +78,7 @@ function BottomTabs({ navigation }) {
       
       
       <Tab.Screen
-        name="CompletedTasks"
+        name="Submitted Audits"
         component={CompletedTasks}
         options={{
           tabBarIcon: ({ color, size }) => (
@@ -85,6 +86,15 @@ function BottomTabs({ navigation }) {
           ),
         }}
       />
+<Tab.Screen
+  name="Accpected Audits Calendar "
+  component={CalendarScreen}
+  options={{
+    tabBarIcon: ({ color, size }) => (
+      <Ionicons name="calendar" color={color} size={size} />
+    ),
+  }}
+/>
       <Tab.Screen
         name="Profile"
         component={ProfileScreen}
@@ -120,6 +130,7 @@ export default function App() {
      
         <Stack.Screen name="ReportScreen" component={ReportScreen}  options={{ headerShown: false }}  />
         <Stack.Screen name="CompletedTasks" component={CompletedTasks}    />
+        <Stack.Screen name="Calendar" component={CalendarScreen}    />
         <Stack.Screen name="TodaysTasks" component={TodaysTasks}  options={{ headerShown: false }} />
         <Stack.Screen name="AuditDetails" component={AuditDetails}   />
         <Stack.Screen name="ClientDetails" component={ClientDetails}  options={{ headerShown: false }}  />

@@ -1,8 +1,4 @@
-
-
-
-
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Image } from "react-native";
 import { getFirestore, collection, query, where, getDocs, doc, getDoc } from "firebase/firestore";
 import AsyncStorage from "@react-native-async-storage/async-storage"; // Import AsyncStorage
@@ -93,16 +89,19 @@ const CompletedTasks = () => {
         const auditsQuery = query(collection(db, "audits"), where("__name__", "in", chunk));
         const querySnapshot = await getDocs(auditsQuery);
 
-        for (const doc of querySnapshot.docs) {
+        const auditDetailsPromises = querySnapshot.docs.map(async (doc) => {
           const auditData = { id: doc.id, ...doc.data() };
           const { branchDetails, clientDetails } = await fetchAuditDetails(auditData);
 
-          allAudits.push({
+          return {
             ...auditData,
             branchDetails,
             clientDetails
-          });
-        }
+          };
+        });
+
+        const audits = await Promise.all(auditDetailsPromises);
+        allAudits.push(...audits);
       }
 
       console.log("Fetched Audits with Details:", allAudits); // Log audits fetched
@@ -165,48 +164,51 @@ const CompletedTasks = () => {
 
   return (
     <ScrollView style={styles.container}>
-    {loading ? (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#4CAF50" />
-      </View>
-    ) : (
-      <View style={styles.screenConatiner}>
-        <View style={styles.counterContainer}>
-          <Text style={styles.counterText}>{completedCounter} completed tasks</Text>
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#4CAF50" />
         </View>
-        {noCompletedTasks ? (
-          <View style={styles.noTasksContainer}>
-            <Text style={styles.noTasksText}>No completed tasks</Text>
+      ) : (
+        <View style={styles.screenConatiner}>
+          <View style={styles.counterContainer}>
+            <Text style={styles.counterText}>{completedCounter} Completed Audits</Text>
           </View>
-        ) : (
-          completedAudits.map((audit) => (
-            <View key={audit.id} style={styles.cardContainer}>
-              {/* Left Side: Building Image */}
-              <View style={styles.imageContainer}>
-                <Image
-                  source={require("./Images/building.png")}
-                  style={styles.image}
-                />
-              </View>
-          
-              {/* Right Side: Client Name and Branch Name */}
-              <View style={styles.textContainer}>
-                <Text style={styles.clientName}>{audit.clientDetails.name}</Text>
-                <Text style={styles.branchName}>Branch: {audit.branchDetails.name}</Text>
-              </View>
+          {noCompletedTasks ? (
+            <View style={styles.noTasksContainer}>
+              <Text style={styles.noTasksText}>No completed tasks</Text>
             </View>
-          ))
-        )}
-      </View>
-    )}
-  </ScrollView>
-  
+          ) : (
+            completedAudits.map((audit) => (
+              <View key={audit.id} style={styles.cardContainer}>
+                {/* Left Side: Building Image */}
+                <View style={styles.imageContainer}>
+                  <Image
+                    source={require("./Images/building.png")}
+                    style={styles.image}
+                  />
+                </View>
+
+                {/* Right Side: Client Name and Branch Name */}
+                <View style={styles.textContainer}>
+                  <Text style={styles.clientName}>{audit.clientDetails.name}</Text>
+                  <Text style={styles.branchName}>Branch: {audit.branchDetails.name}</Text>
+                </View>
+              </View>
+            ))
+          )}
+        </View>
+      )}
+    </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
-  screenConatiner:{
+  screenConatiner: {
     padding: 15
+  },
+  counterContainer: {
+    alignItems: "center",
+    marginBottom: 10
   },
   cardContainer: {
     flexDirection: "row", // Align image and text side by side
@@ -217,7 +219,6 @@ const styles = StyleSheet.create({
     borderColor: "#ddd",
     borderRadius: 10,
     backgroundColor: "#fff",
-  //  elevation: 5, // Shadow for Android
     shadowColor: "#000", // Shadow for iOS
     shadowOpacity: 0.1,
     shadowRadius: 6,
