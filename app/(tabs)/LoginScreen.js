@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import {
   StyleSheet,
@@ -9,14 +8,14 @@ import {
   Dimensions,
   ScrollView,
   ImageBackground,
-  Alert,
+  Alert, 
 } from "react-native";
 import { Picker } from "@react-native-picker/picker";
 import Svg, { Circle } from "react-native-svg";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { db } from "./firebaseConfig";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Ionicons } from "react-native-vector-icons"; // Import Ionicons
+import Ionicons from "react-native-vector-icons/Ionicons"; // Import Ionicons
 
 const { width, height } = Dimensions.get("window");
 
@@ -54,7 +53,6 @@ export default function LoginScreen({ navigation }) {
 
       if (!querySnapshot.empty) {
         querySnapshot.forEach(async (doc) => {
-          
           console.log("Document ID (User ID):", doc.id);
           await AsyncStorage.setItem("userId", doc.id);
         });
