@@ -1,10 +1,15 @@
 import React, { useEffect } from 'react';
-import { Alert, TouchableOpacity, Text, View, StyleSheet, Animated } from "react-native";
-import { NavigationContainer } from "@react-navigation/native";
+import { Alert, TouchableOpacity, Text, View, StyleSheet, Animated, BackHandler } from "react-native";
+import { NavigationContainer, CommonActions } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from 'expo-linear-gradient';
+import NotificationService, { 
+  setupDailyNotifications, 
+  handleNotificationResponse 
+} from '../services/NotificationService';
+import * as Notifications from 'expo-notifications';
 
 // Import your screens
 import LoginScreen from "./LoginScreen";
@@ -124,6 +129,15 @@ function HomeButton({ focused }) {
 
 // Updated Bottom Tabs Navigator
 function BottomTabs({ navigation }) {
+  useEffect(() => {
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+      // Let the OS handle the back button for tab screens
+      return false;
+    });
+
+    return () => backHandler.remove();
+  }, []);
+
   return (
     <Tab.Navigator
       initialRouteName="DashBoard"
@@ -138,12 +152,9 @@ function BottomTabs({ navigation }) {
           shadowRadius: 8,
           borderTopWidth: 0,
           paddingHorizontal: 10,
-          borderTopLeftRadius: 25,
-          borderTopRightRadius: 25,
         },
         tabBarActiveTintColor: '#00796B',
         tabBarInactiveTintColor: '#95a5a6',
-        tabBarShowLabel: false,
       }}
     >
       <Tab.Screen
@@ -166,12 +177,8 @@ function BottomTabs({ navigation }) {
         component={CalendarScreen}
         options={{
           headerShown: false,
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons 
-              name={focused ? "calendar" : "calendar-outline"} 
-              color={color}
-              size={24} 
-            />
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="calendar" size={size} color={color} />
           ),
         }}
       />
@@ -181,35 +188,26 @@ function BottomTabs({ navigation }) {
         component={HomeScreen}
         options={{
           headerShown: false,
-          tabBarIcon: ({ focused }) => (
-            <View style={styles.homeTabContainer}>
-              <LinearGradient
-                colors={focused ? ['#00796B', '#004D40'] : ['#26A69A', '#00796B']}
-                style={styles.homeGradient}
-              >
-                <Ionicons 
-                  name="home"
-                  color="#ffffff"
-                  size={24}
-                />
-              </LinearGradient>
-            </View>
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="home" size={size} color={color} />
           ),
+          tabBarLabel: 'Home'
         }}
       />
 
       <Tab.Screen
-        name="Guide"
-        component={GuideScreen}
+        name="UpcomingAudits"
+        component={UpcomingAudits}
         options={{
           headerShown: false,
           tabBarIcon: ({ color, focused }) => (
             <Ionicons 
-              name={focused ? "help-circle" : "help-circle-outline"} 
-              color={color}
+              name={focused ? "clipboard" : "clipboard-outline"} 
               size={24} 
+              color={color} 
             />
           ),
+          tabBarLabel: 'Available'
         }}
       />
 
@@ -218,12 +216,8 @@ function BottomTabs({ navigation }) {
         component={ProfileScreen}
         options={{
           headerShown: false,
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons 
-              name={focused ? "person" : "person-outline"} 
-              color={color}
-              size={24} 
-            />
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="person" size={size} color={color} />
           ),
         }}
       />
@@ -257,44 +251,49 @@ const styles = StyleSheet.create({
 
 // Main App Navigator
 export default function App() {
+  useEffect(() => {
+    // Set up notifications
+    setupDailyNotifications();
+
+    // Listen for notification taps
+    const subscription = Notifications.addNotificationResponseReceivedListener(response => {
+      handleNotificationResponse(response, navigation);
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, []);
+
   return (
-    // <NavigationContainer>
-      <Stack.Navigator initialRouteName="LoginScreen">
-        {/* Login Screen */}
-        <Stack.Screen
-          name="LoginScreen"
-          component={LoginScreen}
-          options={{ headerShown: false }}
-        />
-       
-        <Stack.Screen
-          name="HomeScreen"
-          component={BottomTabs}
-          options={{ headerShown: false }}
-        />
-        {/* Additional Screens not part of Bottom Tabs */}
-        <Stack.Screen name="Ongoing" component={Ongoing}  options={{ headerShown: false }}  />
-        <Stack.Screen name="ReportScreen" component={ReportScreen}  options={{ headerShown: false }}  />
-        <Stack.Screen name="CompletedTasks" component={CompletedTasks}  options={{ headerShown: false }}   />
-        <Stack.Screen name="Calendar" component={CalendarScreen}   options={{ headerShown: false }}  />
-        <Stack.Screen name="TodaysTasks" component={TodaysTasks}  options={{ headerShown: false }} />
-        <Stack.Screen name="AuditDetails" component={AuditDetails}  options={{ headerShown: false }}  />
-        <Stack.Screen name="ClientDetails" component={ClientDetails}  options={{ headerShown: false }}  />
-        <Stack.Screen name="RejectedAudits" component={RejectedAudits}  options={{ headerShown: false }}  />
-        <Stack.Screen name="NotSubmitted" component={NotSubmitted} options={{ headerShown: false }} />
-        <Stack.Screen
-          name="IncompleteTasks"
-          component={IncompleteTasks}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen 
-          name="Report" 
-          component={Report}
-          options={{ 
-            headerShown: false
-          }}
-        />
-      </Stack.Navigator>
-    // </NavigationContainer>
+    <Stack.Navigator 
+      initialRouteName="LoginScreen"
+      screenOptions={{
+        headerShown: false,
+      }}
+    >
+      <Stack.Screen name="LoginScreen" component={LoginScreen} />
+      <Stack.Screen name="HomeScreen" component={BottomTabs} />
+      
+      {/* Stack screens */}
+      <Stack.Screen 
+        name="CompletedTasks" 
+        component={CompletedTasks}
+        options={{
+          gestureEnabled: true,
+          gestureDirection: 'horizontal',
+        }}
+      />
+      <Stack.Screen name="AuditDetails" component={AuditDetails} />
+      <Stack.Screen name="ClientDetails" component={ClientDetails} />
+      <Stack.Screen name="RejectedAudits" component={RejectedAudits} />
+      <Stack.Screen name="NotSubmitted" component={NotSubmitted} />
+      <Stack.Screen name="IncompleteTasks" component={IncompleteTasks} />
+      <Stack.Screen name="TodaysTasks" component={TodaysTasks} />
+      <Stack.Screen name="Ongoing" component={Ongoing} />
+      <Stack.Screen name="Report" component={Report} />
+      <Stack.Screen name="ReportScreen" component={ReportScreen} />
+      <Stack.Screen name="GuideScreen" component={GuideScreen} />
+    </Stack.Navigator>
   );
 }

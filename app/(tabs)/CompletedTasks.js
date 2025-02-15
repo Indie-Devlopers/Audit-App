@@ -1,21 +1,32 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, FlatList, ActivityIndicator, Image } from "react-native";
+import { View, Text, StyleSheet, FlatList, ActivityIndicator, Image, BackHandler } from "react-native";
 import { getFirestore, collection, query, where, getDocs, doc, getDoc } from "firebase/firestore";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { app } from "./firebaseConfig";
 import moment from 'moment-timezone';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 
 const db = getFirestore(app);
 
 const CompletedTasks = () => {
   const [completedAudits, setCompletedAudits] = useState([]);
   const [loading, setLoading] = useState(true);
+  const navigation = useNavigation();
 
   useEffect(() => {
     fetchCompletedAudits();
   }, []);
+
+  useEffect(() => {
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+      navigation.navigate('HomeScreen', { screen: 'DashBoard' });
+      return true;
+    });
+
+    return () => backHandler.remove();
+  }, [navigation]);
 
   const fetchCompletedAudits = async () => {
     try {
@@ -123,7 +134,7 @@ const CompletedTasks = () => {
                   name={
                     report.type === 'scanDate' ? 'scanner' :
                     report.type === 'hardCopyDate' ? 'file-document-outline' :
-                    report.type === 'softCopyDate' ? 'file-pdf' :
+                    report.type === 'softCopyDate' ? 'file-pdf-box' :
                     'image-outline'
                   }
                   size={18}

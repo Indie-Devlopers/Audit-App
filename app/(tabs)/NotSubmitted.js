@@ -115,12 +115,29 @@ const NotSubmitted = ({ navigation }) => {
         style={styles.cardGradient}
       >
         <View style={styles.cardHeader}>
-          <Text style={styles.clientName}>{item.clientDetails?.name || 'Unknown Client'}</Text>
-          <Text style={styles.date}>{moment(item.date).format('DD MMM, YYYY')}</Text>
+          <View style={styles.clientInfo}>
+            <View style={styles.iconContainer}>
+              <MaterialIcons name="business" size={24} color="#1976D2" />
+            </View>
+            <View style={styles.headerText}>
+              <Text style={styles.clientName}>{item.clientDetails?.name || 'Unknown Client'}</Text>
+              <Text style={styles.date}>{moment(item.date).format('DD MMM, YYYY')}</Text>
+            </View>
+          </View>
+          <View style={styles.statusContainer}>
+            <Text style={styles.statusText}>Not Started</Text>
+          </View>
         </View>
+
         <View style={styles.cardContent}>
-          <Text style={styles.branchName}>{item.branchDetails?.name || 'Unknown Branch'}</Text>
-          <Text style={styles.auditType}>{item.auditType}</Text>
+          <View style={styles.locationRow}>
+            <MaterialCommunityIcons name="office-building" size={20} color="#666" />
+            <Text style={styles.locationText}>{item.branchDetails?.name || 'Unknown Branch'}</Text>
+          </View>
+          <View style={styles.locationRow}>
+            <MaterialIcons name="location-on" size={20} color="#666" />
+            <Text style={styles.locationText}>{item.branchDetails?.city || 'Unknown Location'}</Text>
+          </View>
         </View>
       </LinearGradient>
     </TouchableOpacity>
@@ -137,24 +154,26 @@ const NotSubmitted = ({ navigation }) => {
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={['#00796B', '#004D40']}
+        colors={['#D32F2F', '#B71C1C']}
         style={styles.header}
       >
         <Text style={styles.headerTitle}>Not Submitted Audits</Text>
       </LinearGradient>
 
-      <FlatList
-        data={notSubmittedAudits}
-        renderItem={renderAuditItem}
-        keyExtractor={item => item.id}
-        contentContainerStyle={styles.listContainer}
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <MaterialCommunityIcons name="clipboard-check-outline" size={50} color="#00796B" />
-            <Text style={styles.emptyText}>No pending audits</Text>
-          </View>
-        }
-      />
+      {notSubmittedAudits.length > 0 ? (
+        <FlatList
+          data={notSubmittedAudits}
+          renderItem={renderAuditItem}
+          keyExtractor={item => item.id}
+          contentContainerStyle={styles.listContainer}
+          showsVerticalScrollIndicator={false}
+        />
+      ) : (
+        <View style={styles.emptyContainer}>
+          <MaterialIcons name="assignment-turned-in" size={64} color="#D32F2F" />
+          <Text style={styles.emptyText}>No pending audits</Text>
+        </View>
+      )}
     </View>
   );
 };
@@ -164,98 +183,102 @@ export default NotSubmitted;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f8f8f8",
-    padding: 10,
-  },
-  headerText: {
-    fontSize: 20,
-    backgroundColor: "#e57373",
-    width: "100%",
-    fontWeight: "bold",
-    textAlign: "center",
-    paddingVertical: 10,
-    margin: 0,
-    color: "#fff",
-    borderRadius: 12,
-    padding: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    border: 2,
-  },
-  loader: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    height: "100%",
-  },
-  auditCard: {
-    backgroundColor: "#fff",
-    padding: 15,
-    marginVertical: 8,
-    borderRadius: 8,
-    elevation: 2,
-    borderColor: "#ddd",
-    borderWidth: 1,
+    backgroundColor: '#f5f7fa',
   },
   header: {
-    flexDirection: "row",
-    alignItems: "center",
+    paddingTop: 15,
+    paddingBottom: 15,
+    paddingHorizontal: 20,
+    borderBottomLeftRadius: 25,
+    borderBottomRightRadius: 25,
+    marginBottom: 15,
   },
-  title: {
-    marginLeft: 10,
-  },
-  companyName: {
+  headerTitle: {
     fontSize: 18,
-    fontWeight: "bold",
-    color: "#333",
+    fontWeight: '600',
+    color: '#fff',
+    textAlign: 'center',
   },
-  branchName: {
+  listContainer: {
+    padding: 16,
+  },
+  auditCard: {
+    marginBottom: 16,
+    borderRadius: 16,
+    overflow: 'hidden',
+    backgroundColor: '#fff',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  cardGradient: {
+    padding: 16,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  clientInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  iconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: '#f5f5f5',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  headerText: {
+    flex: 1,
+  },
+  clientName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#2c3e50',
+    marginBottom: 4,
+  },
+  date: {
+    fontSize: 13,
+    color: '#666',
+    fontWeight: '500',
+  },
+  statusContainer: {
+    backgroundColor: '#FFEBEE',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  statusText: {
+    color: '#D32F2F',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  cardContent: {
+    marginTop: 8,
+  },
+  locationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  locationText: {
     fontSize: 14,
-    color: "#555",
-  },
-  details: {
-    marginVertical: 8,
-  },
-  detail: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 6,
-  },
-  detailText: {
+    color: '#2c3e50',
     marginLeft: 8,
-    fontSize: 14,
-    color: "#555",
-  },
-  buttonContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 10,
-  },
-  completeButtonImage: {
-    width: 180,
-    height: 50,
-    resizeMode: "contain",
-  },
-  noAuditsText: {
-    fontSize: 18,
-    color: "#555",
-    textAlign: "center",
-    marginTop: 20,
+    flex: 1,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#fff",
-  },
-  listContainer: {
-    padding: 10,
   },
   emptyContainer: {
     flex: 1,
@@ -263,33 +286,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   emptyText: {
-    fontSize: 18,
-    color: "#555",
+    fontSize: 16,
+    color: '#666',
+    marginTop: 12,
+    textAlign: 'center',
   },
-  cardGradient: {
-    flex: 1,
-    borderRadius: 8,
-    padding: 10,
-  },
-  cardHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  clientName: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#333",
-  },
-  date: {
-    fontSize: 14,
-    color: "#555",
-  },
-  cardContent: {
-    marginTop: 10,
-  },
-  auditType: {
-    fontSize: 14,
-    color: "#555",
+  emptyIcon: {
+    color: '#D32F2F'
   },
 }); 

@@ -8,14 +8,16 @@ import {
   Dimensions,
   ScrollView,
   ImageBackground,
-  Alert, 
+  Alert,
+  BackHandler,
+  StatusBar,
 } from "react-native";
 import { Picker } from "@react-native-picker/picker";
-import Svg, { Circle } from "react-native-svg";
-import { collection, query, where, getDocs } from "firebase/firestore";
-import { db } from "./firebaseConfig";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import Ionicons from "react-native-vector-icons/Ionicons"; // Import Ionicons
+import { LinearGradient } from 'expo-linear-gradient';
+import Ionicons from "react-native-vector-icons/Ionicons";
+import { collection, query, where, getDocs } from 'firebase/firestore';
+import { db } from './firebaseConfig';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width, height } = Dimensions.get("window");
 
@@ -34,6 +36,21 @@ export default function LoginScreen({ navigation }) {
     };
 
     checkUserLogin();
+  }, [navigation]);
+
+  useEffect(() => {
+    const backHandler = BackHandler.addEventListener(
+      'hardwareBackPress',
+      () => {
+        if (navigation.isFocused()) {
+          BackHandler.exitApp();
+          return true;
+        }
+        return false;
+      }
+    );
+
+    return () => backHandler.remove();
   }, [navigation]);
 
   const handleLogin = async () => {
@@ -63,7 +80,7 @@ export default function LoginScreen({ navigation }) {
         Alert.alert("Login Error", "Invalid email or password.");
       }
     } catch (error) {
-      console.error("Error during login:", error.message);
+      console.error("Error during login:", error);
       Alert.alert("Error", "Could not connect to the server. Try again later.");
     }
   };
@@ -84,158 +101,151 @@ export default function LoginScreen({ navigation }) {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.scrollView}>
-      {/* ImageBackground for the top section */}
-      <ImageBackground
-        source={require("./auditor.jpg")}
-        style={styles.background}
-      />
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" />
+      <LinearGradient
+        colors={['#00796B', '#004D40']}
+        style={styles.topSection}
+      >
+     
 
-      {/* SVG Circles */}
-      <Svg height={height / 5} width={width} style={styles.svgStyle}>
-        <Circle cx={50} cy={50} r={80} fill="#A7D9C4" />
-        <Circle cx={120} cy={30} r={50} fill="#80C7B0" />
-      </Svg>
+        <View style={styles.headerContent}>
+          <Ionicons name="shield-checkmark" size={80} color="#fff" />
+          <Text style={styles.welcomeText}>Welcome Auditors</Text>
+        </View>
+      </LinearGradient>
 
-      {/* Language Selector */}
-      <View style={styles.languageSelector}>
-        <Picker
-          selectedValue={language}
-          style={styles.picker}
-          onValueChange={(itemValue) => setLanguage(itemValue)}
-        >
-          <Picker.Item label="English" value="en" />
-          <Picker.Item label="हिन्दी" value="hi" />
-        </Picker>
-      </View>
-
-      {/* Main Content */}
-      <View style={styles.container}>
-        <Text style={styles.welcomeText}>{texts[language].welcome}</Text>
-
-        <TextInput
-          style={styles.input}
-          placeholder={texts[language].emailPlaceholder}
-          placeholderTextColor="#a9a9a9"
-          value={email}
-          onChangeText={setEmail}
-          keyboardType="email-address"
-        />
-
-        <View style={styles.passwordContainer}>
-          <TextInput
-            style={styles.input}
-            placeholder={texts[language].passwordPlaceholder}
-            placeholderTextColor="#a9a9a9"
-            secureTextEntry={!passwordVisible} // Toggle visibility based on passwordVisible state
-            value={password}
-            onChangeText={setPassword}
-          />
-          <TouchableOpacity
-            style={styles.eyeIcon}
-            onPress={() => setPasswordVisible(!passwordVisible)} // Toggle password visibility
-          >
-            <Ionicons
-              name={passwordVisible ? "eye-off" : "eye"} // Change icon based on visibility
-              size={24}
-              color="#333"
+      <View style={styles.bottomSection}>
+        <View style={styles.inputContainer}>
+          <View style={styles.inputWrapper}>
+            <Ionicons name="mail-outline" size={24} color="#666" style={styles.inputIcon} />
+            <TextInput
+              style={styles.input}
+              placeholder={texts[language].emailPlaceholder}
+              placeholderTextColor="#999"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
             />
-          </TouchableOpacity>
+          </View>
+
+          <View style={styles.inputWrapper}>
+            <Ionicons name="lock-closed-outline" size={24} color="#666" style={styles.inputIcon} />
+            <TextInput
+              style={styles.input}
+              placeholder={texts[language].passwordPlaceholder}
+              placeholderTextColor="#999"
+              secureTextEntry={!passwordVisible}
+              value={password}
+              onChangeText={setPassword}
+            />
+            <TouchableOpacity
+              style={styles.eyeIcon}
+              onPress={() => setPasswordVisible(!passwordVisible)}
+            >
+              <Ionicons
+                name={passwordVisible ? "eye-off-outline" : "eye-outline"}
+                size={24}
+                color="#666"
+              />
+            </TouchableOpacity>
+          </View>
         </View>
 
         <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
-          <Text style={styles.loginText}>{texts[language].loginButton}</Text>
+          <LinearGradient
+            colors={['#00796B', '#004D40']}
+            style={styles.gradientButton}
+          >
+            <Text style={styles.loginText}>{texts[language].loginButton}</Text>
+          </LinearGradient>
         </TouchableOpacity>
       </View>
-    </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  scrollView: {
-    flexGrow: 1,
-    marginTop: 0,
-    marginBottom: 0,
+  container: {
+    flex: 1,
+    backgroundColor: '#fff',
   },
-  background: {
-    width: "100%",
-    height: height / 3,
-    resizeMode: "cover",
-    opacity: 0.8,
+  topSection: {
+    height: height * 0.4,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
   },
-  svgStyle: {
-    position: "absolute",
-    top: 10,
-    left: 10,
-    zIndex: 1,
+  headerContent: {
+    alignItems: 'center',
+    marginTop: 20,
   },
   languageSelector: {
-    position: "absolute",
+    position: 'absolute',
     top: 20,
     right: 20,
-    backgroundColor: "rgba(200, 200, 200, 0.4)",
-    borderRadius: 5,
-    padding: 10,
-    zIndex: 2,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 10,
+    overflow: 'hidden',
   },
   picker: {
     height: 50,
     width: 120,
-    color: "#333",
-  },
-  container: {
-    flex: 1,
-    backgroundColor: "rgba(255, 255, 255, 0.8)",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 20,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    marginTop: -40,
+    color: '#fff',
   },
   welcomeText: {
     fontSize: 28,
-    fontWeight: "bold",
-    marginBottom: 20,
-    color: "#333",
-    textAlign: "center",
+    fontWeight: 'bold',
+    color: '#fff',
+    marginTop: 20,
+  },
+  bottomSection: {
+    flex: 1,
+    padding: 20,
+    paddingTop: 40,
+  },
+  inputContainer: {
+    marginBottom: 30,
+  },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f5f5f5',
+    borderRadius: 12,
+    marginBottom: 15,
+    paddingHorizontal: 15,
+    height: 55,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  inputIcon: {
+    marginRight: 10,
   },
   input: {
-    width: "100%",
-    height: 50,
-    borderColor: "#ccc",
-    borderWidth: 1,
-    borderRadius: 15,
-    paddingHorizontal: 15,
-    marginBottom: 15,
-    backgroundColor: "#f9f9f9",
+    flex: 1,
     fontSize: 16,
-  },
-  passwordContainer: {
-    position: "relative", // Position for the eye icon inside the TextInput container
-    width: "100%",
+    color: '#333',
   },
   eyeIcon: {
-    position: "absolute",
-    top: 15,
-    right: 15,
+    padding: 8,
   },
   loginButton: {
-    width: "100%",
-    height: 50,
-    backgroundColor: "#009966",
-    borderRadius: 25,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 20,
-    shadowColor: "#000",
-    shadowOpacity: 0.15,
-    shadowRadius: 5,
+    borderRadius: 12,
+    overflow: 'hidden',
     elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  gradientButton: {
+    paddingVertical: 15,
+    alignItems: 'center',
   },
   loginText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "bold",
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
   },
 });

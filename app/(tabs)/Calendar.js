@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ActivityIndicator, Text, SafeAreaView, Modal, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, ActivityIndicator, Text, SafeAreaView, Modal, TouchableOpacity, ScrollView } from 'react-native';
 import { getFirestore, collection, getDocs, doc, getDoc } from 'firebase/firestore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { app } from './firebaseConfig';
 import { Calendar } from 'react-native-calendars';
 import { LinearGradient } from 'expo-linear-gradient';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import moment from 'moment';
+import moment from 'moment-timezone';
+
+// Set default timezone to India
+moment.tz.setDefault('Asia/Kolkata');
 
 const db = getFirestore(app);
 
@@ -17,52 +20,78 @@ const CalendarScreen = () => {
   const [auditCount, setAuditCount] = useState(0);
   const [selectedAudits, setSelectedAudits] = useState([]);
   const [showModal, setShowModal] = useState(false);
+  const [loadingAudits, setLoadingAudits] = useState(false);
+  const [isLoadingModal, setIsLoadingModal] = useState(false);
 
   useEffect(() => {
-    const loadAcceptedDates = async () => {
-      setLoading(true);
-      try {
-        const userId = await AsyncStorage.getItem("userId");
-        if (!userId) {
-          console.error("User ID not found!");
-          return;
-        }
+    loadAcceptedDates();
+  }, []);
 
-        const userAcceptedRef = collection(doc(db, "Profile", userId), "acceptedAudits");
-        const acceptedAuditsSnap = await getDocs(userAcceptedRef);
+  const loadAcceptedDates = async () => {
+    setLoading(true);
+    try {
+      const userId = await AsyncStorage.getItem("userId");
+      if (!userId) {
+        console.error("User ID not found!");
+        return;
+      }
 
-        const dates = {};
-        let count = 0;
+      const userAcceptedRef = collection(doc(db, "Profile", userId), "acceptedAudits");
+      const acceptedAuditsSnap = await getDocs(userAcceptedRef);
 
-        for (const doc of acceptedAuditsSnap.docs) {
-          const auditData = doc.data();
-          const auditDate = auditData.date;
-          
-          if (auditDate) {
-            const formattedDate = moment(auditDate).format('YYYY-MM-DD');
+      const dates = {};
+      let count = 0;
+
+      // Get today's date in Indian timezone
+      const today = moment().tz('Asia/Kolkata').format('YYYY-MM-DD');
+      
+      // Mark today's date
+      dates[today] = {
+        marked: true,
+        dotColor: '#00796B',
+        selectedDotColor: '#ffffff',
+        selected: true,
+        selectedColor: '#B2DFDB',
+      };
+
+      for (const doc of acceptedAuditsSnap.docs) {
+        const auditData = doc.data();
+        const auditDate = auditData.date;
+        
+        if (auditDate) {
+          const formattedDate = moment(auditDate).format('YYYY-MM-DD');
+          if (formattedDate === today) {
+            // If audit is scheduled for today, merge with today's styling
+            dates[formattedDate] = {
+              ...dates[formattedDate],
+              selected: true,
+              marked: true,
+              selectedColor: '#00796B',
+              dotColor: '#004D40'
+            };
+          } else {
             dates[formattedDate] = {
               selected: true,
               marked: true,
               selectedColor: '#00796B',
               dotColor: '#004D40'
             };
-            count++;
           }
+          count++;
         }
-
-        setMarkedDates(dates);
-        setAuditCount(count);
-      } catch (error) {
-        console.error("Error loading accepted dates:", error);
-      } finally {
-        setLoading(false);
       }
-    };
 
-    loadAcceptedDates();
-  }, []);
+      setMarkedDates(dates);
+      setAuditCount(count);
+    } catch (error) {
+      console.error("Error loading accepted dates:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const loadAuditsForDate = async (date) => {
+    setLoadingAudits(true);
     try {
       const userId = await AsyncStorage.getItem("userId");
       if (!userId) return;
@@ -77,14 +106,12 @@ const CalendarScreen = () => {
         const auditDate = moment(auditData.date).format('YYYY-MM-DD');
         
         if (auditDate === date) {
-          // Get audit details from audits collection
           const auditRef = doc(db, "audits", auditData.auditId);
           const auditSnap = await getDoc(auditRef);
           
           if (auditSnap.exists()) {
             const fullAuditData = auditSnap.data();
             
-            // Get client and branch details
             const clientRef = doc(db, "clients", fullAuditData.clientId);
             const branchRef = doc(db, "branches", fullAuditData.branchId);
             
@@ -107,12 +134,16 @@ const CalendarScreen = () => {
       setShowModal(true);
     } catch (error) {
       console.error("Error loading audits for date:", error);
+    } finally {
+      setLoadingAudits(false);
     }
   };
 
-  const onDayPress = (day) => {
+  const onDayPress = async (day) => {
+    setIsLoadingModal(true);
     setSelectedDate(day.dateString);
-    loadAuditsForDate(day.dateString);
+    await loadAuditsForDate(day.dateString);
+    setIsLoadingModal(false);
   };
 
   const renderAuditModal = () => (
@@ -137,47 +168,73 @@ const CalendarScreen = () => {
             </Text>
           </LinearGradient>
 
-          {selectedAudits.length > 0 ? (
-            <View style={styles.auditsContainer}>
-              {selectedAudits.map((audit, index) => (
-                <View key={audit.id} style={styles.auditItem}>
-                  <View style={styles.auditNumberBadge}>
-                    <Text style={styles.auditNumber}>{index + 1}</Text>
+          <View style={styles.modalBody}>
+            {loadingAudits ? (
+              <View style={styles.modalLoadingContainer}>
+                <ActivityIndicator size="large" color="#00796B" />
+                <Text style={styles.loadingText}>Loading audits...</Text>
+              </View>
+            ) : selectedAudits.length > 0 ? (
+              <ScrollView 
+                style={styles.auditsScrollView}
+                showsVerticalScrollIndicator={false}
+              >
+                {selectedAudits.map((audit, index) => (
+                  <View key={audit.id} style={styles.auditItem}>
+                    <View style={styles.auditNumberBadge}>
+                      <Text style={styles.auditNumber}>{index + 1}</Text>
+                    </View>
+                    <View style={styles.auditDetails}>
+                      {/* <Text style={styles.auditName}>
+                        {audit.name || "Audit Name"}
+                      </Text> */}
+                      <Text style={styles.auditClientName}>
+                        {audit.clientDetails?.name || "Client Name"}
+                      </Text>
+                      <Text style={styles.auditBranchName}>
+                        {audit.branchDetails?.name || "Branch Name"}
+                      </Text>
+                      {/* <Text style={styles.auditType}>
+                        {audit.auditType || "Audit Type"}
+                      </Text> */}
+                    </View>
                   </View>
-                  <View style={styles.auditDetails}>
-                    <Text style={styles.auditName}>
-                      {audit.name || "Audit Name"}
-                    </Text>
-                    <Text style={styles.auditClientName}>
-                      {audit.clientDetails?.name || "Client Name"}
-                    </Text>
-                    <Text style={styles.auditBranchName}>
-                      {audit.branchDetails?.name || "Branch Name"}
-                    </Text>
-                    <Text style={styles.auditType}>
-                      {audit.auditType || "Audit Type"}
-                    </Text>
-                  </View>
-                </View>
-              ))}
-            </View>
-          ) : (
-            <View style={styles.noAuditsContainer}>
-              <MaterialCommunityIcons name="calendar-blank" size={48} color="#B0BEC5" />
-              <Text style={styles.noAuditsText}>No audits scheduled for this date</Text>
-            </View>
-          )}
+                ))}
+              </ScrollView>
+            ) : (
+              <View style={styles.noAuditsContainer}>
+                <MaterialCommunityIcons name="calendar-blank" size={48} color="#B0BEC5" />
+                <Text style={styles.noAuditsText}>No audits scheduled for this date</Text>
+              </View>
+            )}
+          </View>
 
           <TouchableOpacity 
             style={styles.closeButton}
             onPress={() => setShowModal(false)}
           >
-            <Text style={styles.closeButtonText}>Close</Text>
+            <LinearGradient
+              colors={['#00796B', '#004D40']}
+              style={styles.closeButtonGradient}
+            >
+              <Text style={styles.closeButtonText}>Close</Text>
+            </LinearGradient>
           </TouchableOpacity>
         </View>
       </TouchableOpacity>
     </Modal>
   );
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#00796B" />
+          <Text style={styles.loadingText}>Loading calendar...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -194,64 +251,61 @@ const CalendarScreen = () => {
         </LinearGradient>
       </View>
 
-      {loading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#00796B" />
+      <View style={styles.calendarContainer}>
+        <View style={styles.statsCard}>
+          <LinearGradient
+            colors={['#ffffff', '#f8f9fa']}
+            style={styles.statsGradient}
+          >
+            <View style={styles.statItem}>
+              <MaterialCommunityIcons name="calendar-check" size={24} color="#00796B" />
+              <Text style={styles.statNumber}>{auditCount}</Text>
+              <Text style={styles.statLabel}>Scheduled Audits</Text>
+            </View>
+          </LinearGradient>
         </View>
-      ) : (
-        <View style={styles.calendarContainer}>
-          <View style={styles.statsCard}>
-            <LinearGradient
-              colors={['#ffffff', '#f8f9fa']}
-              style={styles.statsGradient}
-            >
-              <View style={styles.statItem}>
-                <MaterialCommunityIcons name="calendar-check" size={24} color="#00796B" />
-                <Text style={styles.statNumber}>{auditCount}</Text>
-                <Text style={styles.statLabel}>Scheduled Audits</Text>
-              </View>
-            </LinearGradient>
-          </View>
 
-          <View style={styles.calendarCard}>
-            <Calendar
-              markedDates={markedDates}
-              onDayPress={onDayPress}
-              theme={{
-                calendarBackground: 'transparent',
-                textSectionTitleColor: '#2c3e50',
-                selectedDayBackgroundColor: '#00796B',
-                selectedDayTextColor: '#ffffff',
-                todayTextColor: '#00796B',
-                dayTextColor: '#2c3e50',
-                textDisabledColor: '#d9e1e8',
-                dotColor: '#004D40',
-                selectedDotColor: '#ffffff',
-                arrowColor: '#00796B',
-                monthTextColor: '#2c3e50',
-                textDayFontWeight: '500',
-                textMonthFontWeight: '700',
-                textDayHeaderFontWeight: '600',
-                textDayFontSize: 14,
-                textMonthFontSize: 16,
-                textDayHeaderFontSize: 13,
-              }}
-              style={styles.calendar}
-            />
-          </View>
+        <View style={styles.calendarCard}>
+          <Calendar
+            markedDates={markedDates}
+            onDayPress={onDayPress}
+            theme={{
+              calendarBackground: 'transparent',
+              textSectionTitleColor: '#2c3e50',
+              selectedDayBackgroundColor: '#00796B',
+              selectedDayTextColor: '#ffffff',
+              todayTextColor: '#00796B',
+              todayBackgroundColor: '#B2DFDB',
+              dayTextColor: '#2c3e50',
+              textDisabledColor: '#d9e1e8',
+              dotColor: '#004D40',
+              selectedDotColor: '#ffffff',
+              arrowColor: '#00796B',
+              monthTextColor: '#2c3e50',
+              textDayFontWeight: '500',
+              textMonthFontWeight: '700',
+              textDayHeaderFontWeight: '600',
+              textDayFontSize: 14,
+              textMonthFontSize: 16,
+              textDayHeaderFontSize: 13,
+            }}
+            style={styles.calendar}
+          />
+        </View>
 
-          <View style={styles.legendContainer}>
-            <View style={styles.legendItem}>
-              <View style={[styles.legendDot, { backgroundColor: '#00796B' }]} />
-              <Text style={styles.legendText}>Scheduled Audit</Text>
-            </View>
-            <View style={styles.legendItem}>
-              <View style={[styles.legendDot, { backgroundColor: '#B2DFDB' }]} />
-              <Text style={styles.legendText}>Today</Text>
-            </View>
+    
+      </View>
+
+      {/* Loading Overlay */}
+      {isLoadingModal && (
+        <View style={styles.loadingOverlay}>
+          <View style={styles.loadingBox}>
+            <ActivityIndicator size="large" color="#00796B" />
+            <Text style={styles.loadingText}>Loading audits...</Text>
           </View>
         </View>
       )}
+
       {renderAuditModal()}
     </SafeAreaView>
   );
@@ -298,9 +352,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+  },
   calendarContainer: {
     flex: 1,
     padding: 16,
+    paddingBottom: 80,
   },
   statsCard: {
     marginBottom: 16,
@@ -347,6 +408,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     paddingVertical: 16,
+    marginBottom: 60,
   },
   legendItem: {
     flexDirection: 'row',
@@ -372,6 +434,7 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     width: '90%',
+    maxHeight: '80%',
     backgroundColor: '#fff',
     borderRadius: 16,
     overflow: 'hidden',
@@ -392,9 +455,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textAlign: 'center',
   },
-  auditsContainer: {
+  modalBody: {
+    maxHeight: '70%',
+  },
+  auditsScrollView: {
     padding: 16,
-    maxHeight: 400,
   },
   auditItem: {
     flexDirection: 'row',
@@ -422,7 +487,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   auditName: {
-    fontSize: 18,
+    fontSize: 12,
     fontWeight: '700',
     color: '#2c3e50',
     marginBottom: 4,
@@ -454,15 +519,47 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   closeButton: {
-    borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
-    padding: 16,
+    margin: 16,
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  closeButtonGradient: {
+    padding: 12,
+    alignItems: 'center',
   },
   closeButtonText: {
-    color: '#00796B',
+    color: '#fff',
     fontSize: 16,
     fontWeight: '600',
-    textAlign: 'center',
+  },
+  modalLoadingContainer: {
+    padding: 40,
+    alignItems: 'center',
+  },
+  loadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  loadingBox: {
+    backgroundColor: 'white',
+    padding: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
 });
 

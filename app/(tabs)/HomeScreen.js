@@ -7,7 +7,9 @@ import {
   TouchableOpacity,
   FlatList,
   ActivityIndicator,
-  Image
+  Image,
+  Alert,
+  BackHandler
 } from "react-native";
 import { doc, getDoc, collection, getDocs, onSnapshot, query, where } from "firebase/firestore";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -16,233 +18,175 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from 'expo-linear-gradient';
 import moment from 'moment';
 import 'moment-timezone';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation, useRoute, useIsFocused } from '@react-navigation/native';
+import { MaterialIcons } from '@expo/vector-icons';
 moment.tz.setDefault("Asia/Kolkata"); // Set Indian timezone
 
-const HomeScreen = ({ navigation }) => {
+const HomeScreen = () => {
+  const navigation = useNavigation();
+  const route = useRoute();
+  const isFocused = useIsFocused();
   const [ongoingCounter, setOngoingCounter] = useState(0);
   const [upcomingAudits, setUpcomingAudits] = useState([]);
   const [todaysTasks, setTodaysTasks] = useState(0);
-  const [acceptedTasks, setAcceptedTasks] = useState([]);
+  const [notSubmittedCounter, setNotSubmittedCounter] = useState(0);
+  const [incompleteCount, setIncompleteCount] = useState(0);
   const [userName, setUserName] = useState("");
   const [loading, setLoading] = useState(true);
   const [branchesData, setBranchesData] = useState([]);
   const [clientsData, setClientsData] = useState({});
   const [branchesMap, setBranchesMap] = useState({});
-  const [notSubmittedCounter, setNotSubmittedCounter] = useState(0);
-  const [incompleteCount, setIncompleteCount] = useState(0);
-  const unsubscribeAcceptedAuditsRef = useRef(null);
-  const unsubscribeAuditsRef = useRef(null);
 
-  const fetchIncompleteCount = useCallback(async () => {
-    try {
-      const userId = await AsyncStorage.getItem("userId");
-      if (!userId) return;
-
-      let incompleteCounter = 0;
-      let notSubmittedCounter = 0;
-
-      // Get accepted audits
-      const acceptedAuditsRef = collection(db, "Profile", userId, "acceptedAudits");
-      const acceptedSnapshot = await getDocs(acceptedAuditsRef);
-
-      // Get today's date at start of day in IST
-      const today = moment().tz("Asia/Kolkata").startOf('day');
-
-      // Process each accepted audit
-      for (const acceptedDoc of acceptedSnapshot.docs) {
-        const acceptedData = acceptedDoc.data();
-        const auditId = acceptedData.auditId;
-        const acceptedDate = moment(acceptedData.date).tz("Asia/Kolkata").startOf('day');
-
-        // Get the audit details
-        const auditRef = doc(db, "audits", auditId);
-        const auditSnap = await getDoc(auditRef);
-
-        if (!auditSnap.exists()) continue;
-
-        const auditData = auditSnap.data();
-
-        // Skip if audit is completed
-        if (auditData.isCompleted) continue;
-
-        // Get reportDate array
-        const reportDate = auditData.reportDate || [
-          { type: 'scanDate', date: null, isSubmitted: false, submittedBy: '' },
-          { type: 'hardCopyDate', date: null, isSubmitted: false, submittedBy: '' },
-          { type: 'softCopyDate', date: null, isSubmitted: false, submittedBy: '' },
-          { type: 'photoDate', date: null, isSubmitted: false, submittedBy: '' }
-        ];
-
-        // Count submitted reports
-        const submittedCount = reportDate.filter(report => report.isSubmitted).length;
-
-        // For not submitted counter: audit date is today or past AND no reports submitted
-        if (!acceptedDate.isAfter(today) && submittedCount === 0) {
-          notSubmittedCounter++;
-        }
-        // For incomplete counter: at least one report submitted but not all
-        else if (submittedCount > 0 && submittedCount < reportDate.length) {
-          incompleteCounter++;
-        }
-      }
-
-      setIncompleteCount(incompleteCounter);
-      setNotSubmittedCounter(notSubmittedCounter);
-    } catch (error) {
-      console.error('Error fetching counts:', error);
-    }
-  }, []);
-
+  // Fetch initial data
   useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
+    const fetchInitialData = async () => {
       try {
         const userId = await AsyncStorage.getItem("userId");
         if (!userId) {
           console.log("No user logged in");
           return;
         }
-  
+
+        // Fetch user name
         const profileRef = doc(db, "Profile", userId);
         const profileDoc = await getDoc(profileRef);
-  
-        if (!profileDoc.exists()) {
-          console.log("User profile not found");
-          return;
+        if (profileDoc.exists()) {
+          const name = profileDoc.data()?.name || "User";
+          setUserName(name);
         }
-  
-        const name = profileDoc.data()?.name || "User";
-        setUserName(name);
-        let acceptedTasksList = [];
-  
-        // Real-time listener for accepted tasks
-        const acceptedAuditsRef = collection(db, "Profile", userId, "acceptedAudits");
-        unsubscribeAcceptedAuditsRef.current = onSnapshot(acceptedAuditsRef, async (snapshot) => {
-          const acceptedAudits = snapshot.docs.map((doc) => doc.data());
-          const acceptedAuditIds = acceptedAudits.map(audit => audit.auditId);
-          setAcceptedTasks(acceptedAuditIds);
-  
-          // Get today's date in Indian timezone
-          const today = moment().tz("Asia/Kolkata").startOf('day');
-          console.log("Today's date (IST):", today.format('YYYY-MM-DD HH:mm:ss Z'));
-  
-          let todayAuditCount = 0;
-          let futureAuditCount = 0;
-          let notSubmittedCount = 0;
-          let incompleteCount = 0;
-  
-          // Get all accepted audits' report dates
-          const reportDatesPromises = acceptedAuditIds.map(async (auditId) => {
-            const reportDatesRef = doc(db, 'Profile', userId, 'acceptedAudits', auditId, 'ReportDates', 'dates');
-            const reportDatesSnap = await getDoc(reportDatesRef);
-            return {
-              auditId,
-              dates: reportDatesSnap.exists() ? reportDatesSnap.data() : null
-            };
-          });
-  
-          const reportDates = await Promise.all(reportDatesPromises);
-  
-          // Count incomplete audits (missing any of the four report dates)
-          reportDates.forEach(({ dates }) => {
-            if (dates) {
-              const hasAllDates = dates.scanDate && dates.hardCopyDate && 
-                                 dates.softCopyDate && dates.photoDate;
-              if (!hasAllDates) {
-                incompleteCount += 1;
-              }
-            } else {
-              // If no dates at all, it's incomplete
-              incompleteCount += 1;
-            }
-          });
-  
-          // First get all non-submitted audits from main audits collection
-          const auditsRef = collection(db, "audits");
-          const q = query(auditsRef, where("isSubmitted", "==", false));
-          const nonSubmittedAuditsSnapshot = await getDocs(q);
-  
-          // Check which non-submitted audits are in user's acceptedAudits and are today/past
-          for (const doc of nonSubmittedAuditsSnapshot.docs) {
-            if (acceptedAuditIds.includes(doc.id)) {
-              // Find the corresponding accepted audit to get its date
-              const acceptedAudit = acceptedAudits.find(audit => audit.auditId === doc.id);
-              if (acceptedAudit && acceptedAudit.date) {
-                const auditDate = moment(acceptedAudit.date).tz("Asia/Kolkata").startOf('day');
-                // Only count if the audit is today or past
-                if (!auditDate.isAfter(today)) {
-                  notSubmittedCount += 1;
-                }
-              }
-            }
-          }
-  
-          // Process accepted audits for other counters
-          for (const audit of acceptedAudits) {
-            if (audit.isRejected) continue;
-  
-            if (audit.date) {
-              const auditDate = moment(audit.date).tz("Asia/Kolkata").startOf('day');
-              console.log("Audit date (IST):", auditDate.format('YYYY-MM-DD HH:mm:ss Z'));
-  
-              if (auditDate.isSame(today, 'day')) {
-                // Only today's audits
-                todayAuditCount += 1;
-              } else if (auditDate.isAfter(today, 'day')) {
-                // Future audit
-                futureAuditCount += 1;
-              }
-            }
-          }
-  
-          setTodaysTasks(todayAuditCount);
-          setOngoingCounter(futureAuditCount);
-          setNotSubmittedCounter(notSubmittedCount);
-          setIncompleteCount(incompleteCount);
-  
-          // Fetch upcoming audits whenever accepted tasks change
-          const completedTasksList = await fetchCompletedTasks(userId);
-          await fetchUpcomingAudits(completedTasksList, acceptedTasksList);
-        });
-  
-        // Real-time listener for audits collection
-        const auditsRef = collection(db, "audits");
-        unsubscribeAuditsRef.current = onSnapshot(auditsRef, async () => {
-          const completedTasksList = await fetchCompletedTasks(userId);
-          await fetchUpcomingAudits(completedTasksList, acceptedTasksList);
-        });
-  
-        // Fetch completed tasks
-        const completedTasksList = await fetchCompletedTasks(userId);
-  
-        // Fetch branches and clients
-        await fetchBranchesAndClients();
-  
-        // Fetch upcoming audits initially
-        await fetchUpcomingAudits(completedTasksList, acceptedTasksList);
+
+        // Fetch all data in parallel
+        await Promise.all([
+          fetchBranchesAndClients(),
+          fetchCounters(),
+          fetchUpcomingAudits()
+        ]);
+
       } catch (error) {
-        // console.error("Error fetching data:", error);
+        console.error("Error fetching initial data:", error);
       } finally {
         setLoading(false);
       }
     };
-  
-    fetchData();
-  
-    return () => {
-      if (unsubscribeAcceptedAuditsRef.current) {
-        unsubscribeAcceptedAuditsRef.current();
-      }
-      if (unsubscribeAuditsRef.current) {
-        unsubscribeAuditsRef.current();
-      }
-    };
+
+    fetchInitialData();
   }, []);
-  
-  const fetchCompletedTasks = async (userId) => {
-    const completedAuditsSnapshot = await getDocs(collection(db, "Profile", userId, "completedAudits"));
-    return completedAuditsSnapshot.docs.map(doc => doc.data().auditId);
+
+  // Refresh data when screen is focused
+  useFocusEffect(
+    useCallback(() => {
+      const refreshData = async () => {
+        try {
+          await Promise.all([
+            fetchCounters(),
+            fetchUpcomingAudits()
+          ]);
+        } catch (error) {
+          console.error("Error refreshing data:", error);
+        }
+      };
+
+      refreshData();
+    }, [])
+  );
+
+  useEffect(() => {
+    const backAction = () => {
+      if (isFocused) {
+        Alert.alert(
+          'Exit App',
+          'Are you sure you want to exit?',
+          [
+            {
+              text: 'Cancel',
+              onPress: () => null,
+              style: 'cancel',
+            },
+            {
+              text: 'Exit',
+              onPress: () => BackHandler.exitApp(),
+              style: 'destructive',
+            },
+          ],
+          { cancelable: false }
+        );
+        return true;
+      }
+      return false;
+    };
+
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', backAction);
+    return () => backHandler.remove();
+  }, [isFocused]);
+
+  const fetchCounters = async () => {
+    setLoading(true);
+    try {
+      const userId = await AsyncStorage.getItem('userId');
+      if (!userId) return;
+
+      const today = moment().tz("Asia/Kolkata").startOf('day');
+      const acceptedAuditsRef = collection(db, "Profile", userId, "acceptedAudits");
+      const acceptedSnapshot = await getDocs(acceptedAuditsRef);
+      
+      let notSubmittedCount = 0;
+      let incompleteCount = 0;
+      let todayCount = 0;
+      let futureCount = 0;
+
+      // Get all accepted audits data at once
+      const auditsPromises = acceptedSnapshot.docs.map(async (acceptedDoc) => {
+        const acceptedData = acceptedDoc.data();
+        const auditRef = doc(db, "audits", acceptedData.auditId);
+        return getDoc(auditRef);
+      });
+
+      const auditSnapshots = await Promise.all(auditsPromises);
+
+      // Process each audit
+      acceptedSnapshot.docs.forEach((acceptedDoc, index) => {
+        const acceptedData = acceptedDoc.data();
+        const auditSnap = auditSnapshots[index];
+        
+        if (!auditSnap.exists()) return;
+
+        const acceptedDate = moment(acceptedData.date).tz("Asia/Kolkata").startOf('day');
+        const auditData = auditSnap.data();
+
+        // Count today's and future audits
+        if (acceptedDate.isSame(today, 'day')) {
+          todayCount++;
+        } else if (acceptedDate.isAfter(today)) {
+          futureCount++;
+          return; // Skip future audits for not submitted/incomplete counts
+        }
+
+        const reportDate = auditData.reportDate || [
+          { type: 'scanDate', date: null, isSubmitted: false },
+          { type: 'hardCopyDate', date: null, isSubmitted: false },
+          { type: 'softCopyDate', date: null, isSubmitted: false },
+          { type: 'photoDate', date: null, isSubmitted: false }
+        ];
+
+        const submittedCount = reportDate.filter(report => report.isSubmitted).length;
+
+        if (submittedCount === 0) {
+          notSubmittedCount++;
+        } else if (submittedCount > 0 && submittedCount < 4) {
+          incompleteCount++;
+        }
+      });
+
+      setTodaysTasks(todayCount);
+      setOngoingCounter(futureCount);
+      setNotSubmittedCounter(notSubmittedCount);
+      setIncompleteCount(incompleteCount);
+
+    } catch (error) {
+      console.error("Error fetching counters:", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const fetchBranchesAndClients = async () => {
@@ -267,7 +211,7 @@ const HomeScreen = ({ navigation }) => {
     // console.log("clientsSnapshot:::::::::",fetchedClients)
   };
 
-  const fetchUpcomingAudits = async (completedTasksList, acceptedTasksList) => {
+  const fetchUpcomingAudits = async () => {
     try {
       // Get user's accepted audits
       const userId = await AsyncStorage.getItem("userId");
@@ -356,16 +300,8 @@ const HomeScreen = ({ navigation }) => {
     </TouchableOpacity>
   );
 
-  // Refresh counts when screen is focused
-  useFocusEffect(
-    useCallback(() => {
-      fetchIncompleteCount();
-      // ... other fetch functions
-    }, [fetchIncompleteCount])
-  );
-
-  return (
-    <View style={styles.container}>
+  const renderHeader = () => (
+    <View style={styles.headerFixed}>
       <LinearGradient 
         colors={['#00796B', '#00796B99']}
         style={styles.headerContainer}
@@ -375,106 +311,116 @@ const HomeScreen = ({ navigation }) => {
         </Text>
       </LinearGradient>
 
+      <View style={styles.statsContainer}>
+        <View style={styles.cardRow}>
+          <CardGradient
+            colors={['#00796B', '#004D40']}
+            onPress={() => navigation.navigate("TodaysTasks")}
+            style={styles.cardShadow}
+          >
+            <View style={styles.cardContentWrapper}>
+              <View style={styles.iconContainer}>
+                <Ionicons name="calendar" size={24} color="#fff" />
+              </View>
+              <View style={styles.cardTextWrapper}>
+                <Text style={styles.cardTitle}>Today's Audits</Text>
+                <Text style={styles.cardCounter}>{todaysTasks > 0 ? todaysTasks : "0"}</Text>
+              </View>
+            </View>
+          </CardGradient>
+
+          <CardGradient
+            colors={['#1976D2', '#0D47A1']}
+            onPress={() => navigation.navigate("Ongoing")}
+            style={styles.cardShadow}
+          >
+            <View style={styles.cardContentWrapper}>
+              <View style={styles.iconContainer}>
+                <Ionicons name="play-circle" size={24} color="#fff" />
+              </View>
+              <View style={styles.cardTextWrapper}>
+                <Text style={styles.cardTitle}>Future Audits</Text>
+                <Text style={styles.cardCounter}>{ongoingCounter}</Text>
+              </View>
+            </View>
+          </CardGradient>
+        </View>
+
+        <View style={styles.cardRow}>
+          <CardGradient
+            colors={['#E53935', '#C62828']}
+            onPress={() => navigation.navigate("NotSubmitted")}
+            style={styles.cardShadow}
+          >
+            <View style={styles.cardContentWrapper}>
+              <View style={styles.iconContainer}>
+                <Ionicons name="alert-circle" size={24} color="#fff" />
+              </View>
+              <View style={styles.cardTextWrapper}>
+                <Text style={styles.cardTitle}>Not Submitted</Text>
+                <Text style={styles.cardCounter}>{notSubmittedCounter}</Text>
+              </View>
+            </View>
+          </CardGradient>
+
+          <CardGradient
+            colors={['#FF9800', '#F57C00']}
+            onPress={() => navigation.navigate("IncompleteTasks")}
+            style={styles.cardShadow}
+          >
+            <View style={styles.cardContentWrapper}>
+              <View style={styles.iconContainer}>
+                <Ionicons name="warning-outline" size={24} color="#fff" />
+              </View>
+              <View style={styles.cardTextWrapper}>
+                <Text style={styles.cardTitle}>Half Submitted</Text>
+                <Text style={styles.cardCounter}>{incompleteCount}</Text>
+              </View>
+            </View>
+          </CardGradient>
+        </View>
+      </View>
+
+      <View style={styles.upcomingSection}>
+        <View style={styles.upcomingHeader}>
+          <Text style={styles.sectionTitle}>Available Audits</Text>
+          <TouchableOpacity 
+            style={styles.viewAllButton}
+            onPress={() => navigation.navigate('UpcomingAudits')}
+          >
+            <Text style={styles.viewAllText}>View All</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </View>
+  );
+
+  const renderEmptyUpcoming = () => (
+    <View style={styles.noAuditsContainer}>
+      <MaterialIcons name="event-busy" size={64} color="#666" />
+      <Text style={styles.noAuditsText}>No upcoming audits available</Text>
+    </View>
+  );
+
+  return (
+    <View style={styles.container}>
       {loading ? (
         <View style={styles.loaderContainer}>
           <ActivityIndicator size="large" color="#4A90E2" />
         </View>
       ) : (
-        <ScrollView showsVerticalScrollIndicator={false}>
-          <View style={styles.statsContainer}>
-            <View style={styles.cardRow}>
-              <CardGradient
-                colors={['#00796B', '#004D40']}
-                onPress={() => navigation.navigate("TodaysTasks")}
-                style={styles.cardShadow}
-              >
-                <View style={styles.cardContentWrapper}>
-                  <View style={styles.iconContainer}>
-                    <Ionicons name="calendar" size={24} color="#fff" />
-                  </View>
-                  <View style={styles.cardTextWrapper}>
-                    <Text style={styles.cardTitle}>Today's Audits</Text>
-                    <Text style={styles.cardCounter}>{todaysTasks > 0 ? todaysTasks : "0"}</Text>
-                  </View>
-                </View>
-              </CardGradient>
-
-              <CardGradient
-                colors={['#1976D2', '#0D47A1']}
-                onPress={() => navigation.navigate("Ongoing")}
-                style={styles.cardShadow}
-              >
-                <View style={styles.cardContentWrapper}>
-                  <View style={styles.iconContainer}>
-                    <Ionicons name="play-circle" size={24} color="#fff" />
-                  </View>
-                  <View style={styles.cardTextWrapper}>
-                    <Text style={styles.cardTitle}>Future Audits</Text>
-                    <Text style={styles.cardCounter}>{ongoingCounter}</Text>
-                  </View>
-                </View>
-              </CardGradient>
-            </View>
-
-            <View style={styles.cardRow}>
-              <CardGradient
-                colors={['#E53935', '#C62828']}
-                onPress={() => navigation.navigate("NotSubmitted")}
-                style={styles.cardShadow}
-              >
-                <View style={styles.cardContentWrapper}>
-                  <View style={styles.iconContainer}>
-                    <Ionicons name="alert-circle" size={24} color="#fff" />
-                  </View>
-                  <View style={styles.cardTextWrapper}>
-                    <Text style={styles.cardTitle}>Not Submitted</Text>
-                    <Text style={styles.cardCounter}>{notSubmittedCounter}</Text>
-                  </View>
-                </View>
-              </CardGradient>
-
-              <CardGradient
-                colors={['#FF9800', '#F57C00']}
-                onPress={() => navigation.navigate("IncompleteTasks")}
-                style={styles.cardShadow}
-              >
-                <View style={styles.cardContentWrapper}>
-                  <View style={styles.iconContainer}>
-                    <Ionicons name="warning-outline" size={24} color="#fff" />
-                  </View>
-                  <View style={styles.cardTextWrapper}>
-                    <Text style={styles.cardTitle}>Incomplete</Text>
-                    <Text style={styles.cardCounter}>{incompleteCount}</Text>
-                  </View>
-                </View>
-              </CardGradient>
-            </View>
-          </View>
-
-          <View style={styles.upcomingSection}>
-            <Text style={styles.sectionTitle}>Upcoming Audits</Text>
-            <View style={styles.upcomingAuditsContainer}>
-              {upcomingAudits.length > 0 ? (
-                <FlatList
-                  horizontal
-                  data={upcomingAudits}
-                  renderItem={renderAudit}
-                  keyExtractor={(item) => item.id}
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.auditsList}
-                />
-              ) : (
-                <View style={styles.noAuditsContainer}>
-                  <Image
-                    source={require('./Images/nua.jpg')}
-                    style={styles.noAuditsImage}
-                  />
-                  <Text style={styles.noAuditsText}>No upcoming audits available</Text>
-                </View>
-              )}
-            </View>
-          </View>
-        </ScrollView>
+        <>
+          {renderHeader()}
+          <FlatList
+            data={upcomingAudits}
+            renderItem={renderAudit}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={styles.listContainer}
+            showsVerticalScrollIndicator={false}
+            ListEmptyComponent={renderEmptyUpcoming}
+            style={styles.flatListStyle}
+          />
+        </>
       )}
     </View>
   );
@@ -485,8 +431,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#f5f7fa",
   },
+  headerFixed: {
+    backgroundColor: "#f5f7fa",
+    zIndex: 1,
+  },
   headerContainer: {
-    paddingVertical: 8,
+    paddingVertical: 12,
     paddingHorizontal: 16,
     borderBottomLeftRadius: 20,
     borderBottomRightRadius: 20,
@@ -565,28 +515,44 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   upcomingSection: {
+    paddingHorizontal: 20,
     marginTop: 8,
-    paddingHorizontal: 25,
+    marginBottom: 12,
+    backgroundColor: '#f5f7fa',
+  },
+  upcomingHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
     color: '#2c3e50',
-    marginBottom: 12,
   },
-  upcomingAuditsContainer: {
-    height: 120,
-    marginLeft: -15,
+  viewAllButton: {
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: '#00796B',
   },
-  auditsList: {
-    paddingLeft: 15,
-    paddingRight: 15,
+  viewAllText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  flatListStyle: {
+    flex: 1,
+    paddingHorizontal: 16,
+  },
+  listContainer: {
+    paddingTop: 8,
+    paddingBottom: 20,
   },
   auditCard: {
-    width: 300,
-    height: 100,
-    marginRight: 15,
+    marginBottom: 16,
     borderRadius: 16,
+    backgroundColor: '#fff',
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -595,12 +561,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 3.84,
     elevation: 5,
-    backgroundColor: '#fff',
   },
   cardGradient: {
-    flex: 1,
     borderRadius: 16,
-    padding: 10,
+    padding: 16,
   },
   imageContainer: {
     width: 50,
@@ -616,7 +580,6 @@ const styles = StyleSheet.create({
   },
   textContainer: {
     flex: 1,
-    justifyContent: 'center',
   },
   auditTitle: {
     fontSize: 16,
@@ -634,7 +597,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#f8f9fa',
-    paddingHorizontal: 0,
     paddingVertical: 4,
     borderRadius: 8,
     alignSelf: 'flex-start',
@@ -646,30 +608,22 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   noAuditsContainer: {
-    alignItems: 'center',
+    flex: 1,
     justifyContent: 'center',
-    padding: 20,
-    backgroundColor: '#f8f9fa',
-    borderRadius: 16,
-    margin: 15,
-  },
-  noAuditsImage: {
-    width: 80,
-    height: 80,
-    resizeMode: 'contain',
-    marginBottom: 10,
-    opacity: 0.8,
+    alignItems: 'center',
+    paddingVertical: 40,
   },
   noAuditsText: {
-    fontSize: 14,
-    color: '#95a5a6',
+    marginTop: 12,
+    fontSize: 16,
+    color: '#666',
     textAlign: 'center',
-    fontWeight: '500',
   },
   loaderContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#f5f7fa',
   },
 });
 

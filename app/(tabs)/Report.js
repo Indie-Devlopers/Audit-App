@@ -118,21 +118,24 @@ const Report = ({ route, navigation }) => {
       setLocalReportDate(updatedReportDate);
       setSelectedReport(null);
 
-      // Show success message without navigation
-      Alert.alert(
-        'Success',
-        'Report submitted successfully',
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              if (Platform.OS === 'ios') {
-                setShowDatePicker(false);
+      // Check if all reports are now submitted
+      if (checkAllReportsSubmitted(updatedReportDate)) {
+        Alert.alert(
+          'Success',
+          'All reports have been submitted successfully!',
+          [
+            {
+              text: 'OK',
+              onPress: () => {
+                navigation.popToTop();
+                navigation.navigate('CompletedTasks');
               }
             }
-          }
-        ]
-      );
+          ]
+        );
+      } else {
+        Alert.alert('Success', 'Report submitted successfully');
+      }
     } catch (error) {
       console.error('Error submitting report:', error);
       Alert.alert('Error', 'Failed to submit report');
@@ -374,7 +377,7 @@ const Report = ({ route, navigation }) => {
           />
         )}
 
-        {isLoading && (
+        {(isSubmitting || isLoading) && (
           <View style={styles.loadingOverlay}>
             <ActivityIndicator size="large" color="#00796B" />
           </View>
