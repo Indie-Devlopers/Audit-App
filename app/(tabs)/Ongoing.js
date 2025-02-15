@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator, Image } from "react-native";
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, SafeAreaView, FlatList } from "react-native";
 import { getFirestore, collection, getDocs, doc, getDoc, updateDoc } from "firebase/firestore";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { app } from "./firebaseConfig";
-import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { LinearGradient } from 'expo-linear-gradient';
+import moment from 'moment';
 
 const db = getFirestore(app);
 
@@ -107,173 +108,305 @@ const Ongoing = ({ navigation }) => {
     navigation.navigate("ReportScreen", { auditId, auditName });
   };
 
-  const renderFields = (data, excludeKeys = []) =>
-    data
-      ? Object.entries(data)
-          .filter(([key]) => !excludeKeys.includes(key))
-          .map(([key, value]) => (
-            <Text key={key} style={styles.detailText}>
-              {key}: {value}
+  const renderAudit = ({ item: audit, index }) => (
+    <View style={styles.auditCard}>
+      <LinearGradient
+        colors={['#ffffff', '#f8f9fa']}
+        style={styles.cardGradient}
+      >
+        {/* Top Accent Bar */}
+        <LinearGradient
+          colors={['#00796B', '#004D40']}
+          style={styles.accentBar}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+        />
+
+        {/* Serial Number Badge */}
+        <View style={styles.clientBadgeContainer}>
+          <LinearGradient
+            colors={['#00796B', '#004D40']}
+            style={styles.clientBadge}
+          >
+            <Text style={styles.clientInitial}>
+              {(index + 1).toString()}
             </Text>
-          ))
-      : <Text>No details available</Text>;
-
-  return (
-    <ScrollView style={styles.container}>
-      <TouchableOpacity style={[styles.card, styles.ongoingTasks]}>
-        <Text style={styles.cardTitle}>Accepted Audits</Text>
-        <Text style={styles.counterText}>{ongoingCounter} ongoing audits</Text>
-      </TouchableOpacity>
-      {loading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#4CAF50" />
+          </LinearGradient>
         </View>
-      ) : ongoingAudits.length === 0 ? (
-        <View style={styles.noTasksContainer}>
-          <Text style={styles.noTasksText}>No ongoing tasks</Text>
-        </View>
-      ) : (
-        ongoingAudits.map((audit) => (
-          <View key={audit.id} style={styles.card}>
-            <View style={styles.header}>
-              <Image source={require('./Images/building.png')} style={{ width: 34, height: 34 }} />
-              <View style={styles.title}>
-                <Text style={styles.companyName}>{audit.clientDetails.name || "Tata Motors"}</Text>
-                <Text style={styles.branchName}> {audit.branchDetails.name || "Unknown"}</Text>
-              </View>
-            </View>
 
-            <View style={styles.details}>
-              <View style={styles.detail}>
-                <MaterialIcons name="location-on" size={24} color="#189ab4" />
-                <Text style={styles.detailText}>{audit.branchDetails.city || "Unknown Location"}</Text>
-              </View>
-              <View style={styles.detail}>
-                <MaterialCommunityIcons name="shield-search" size={24} color="#189ab4" />
-                <Text style={styles.detailText}> {audit.auditType || "General Audit"}</Text>
-              </View>
-              <View style={styles.detail}>
-                <MaterialIcons name="event" size={24} color="#189ab4" />
-                <Text style={styles.detailText}>
-                  Date: {audit.acceptedDate || "Not Assigned"}
-                </Text>
-              </View>
-            </View>
-
-            <View style={styles.buttonContainer}>
-              <TouchableOpacity onPress={() => handleRemove(audit.id, audit.auditName)}>
-                <Image source={require('./Images/Reject.png')} style={styles.removeImage} />
-              </TouchableOpacity>
+        {/* Header Section */}
+        <View style={styles.header}>
+          <View style={styles.clientInfo}>
+            <Text style={styles.companyName} numberOfLines={1}>
+              {audit.clientDetails?.name || "Client Name"}
+            </Text>
+            <View style={styles.branchContainer}>
+              <MaterialIcons name="business" size={16} color="#7f8c8d" style={styles.branchIcon} />
+              <Text style={styles.branchName} numberOfLines={1}>
+                {audit.branchDetails?.name || "Branch Name"}
+              </Text>
             </View>
           </View>
-        ))
+          {/* <View style={styles.statusBadge}>
+            <MaterialIcons name="schedule" size={14} color="#1976d2" style={styles.statusIcon} />
+            <Text style={styles.statusText}>Upcoming</Text>
+          </View> */}
+        </View>
+
+        {/* Details Section */}
+        <View style={styles.details}>
+          <View style={styles.detailRow}>
+            <View style={styles.detailIconContainer}>
+              <MaterialIcons name="location-on" size={20} color="#00796B" />
+            </View>
+            <View style={styles.detailTextContainer}>
+              <Text style={styles.detailLabel}>Location</Text>
+              <Text style={styles.detailText}>{audit.branchDetails?.city || "City Not Specified"}</Text>
+            </View>
+          </View>
+          
+          <View style={styles.detailRow}>
+            <View style={styles.detailIconContainer}>
+              <MaterialCommunityIcons name="shield-search" size={20} color="#00796B" />
+            </View>
+            <View style={styles.detailTextContainer}>
+              <Text style={styles.detailLabel}>Audit Type</Text>
+              <Text style={styles.detailText}>{audit.auditType || "Audit Type Not Specified"}</Text>
+            </View>
+          </View>
+          
+          <View style={styles.detailRow}>
+            <View style={styles.detailIconContainer}>
+              <MaterialIcons name="event" size={20} color="#00796B" />
+            </View>
+            <View style={styles.detailTextContainer}>
+              <Text style={styles.detailLabel}>Scheduled Date</Text>
+              <Text style={styles.detailText}>
+                {audit.acceptedDate ? moment(audit.acceptedDate).format('DD MMM, YYYY') : "Not Scheduled"}
+              </Text>
+            </View>
+          </View>
+        </View>
+      </LinearGradient>
+    </View>
+  );
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <View style={styles.headerContainer}>
+        <LinearGradient
+          colors={['#00796B', '#004D40']}
+          style={styles.headerGradient}
+        >
+          <View style={styles.headerContent}>
+            <Text style={styles.headerTitle}>Accepted Audits</Text>
+            <View style={styles.headerLine} />
+            <Text style={styles.headerSubtitle}>View your upcoming scheduled audits</Text>
+          </View>
+        </LinearGradient>
+      </View>
+
+      {loading ? (
+        <ActivityIndicator size="large" color="#00796B" style={styles.loader} />
+      ) : ongoingAudits.length === 0 ? (
+        <View style={styles.emptyContainer}>
+          <MaterialCommunityIcons name="clipboard-text-clock" size={64} color="#B0BEC5" />
+          <Text style={styles.noAuditsText}>No upcoming audits</Text>
+        </View>
+      ) : (
+        <FlatList
+          data={ongoingAudits}
+          renderItem={renderAudit}
+          keyExtractor={(item) => item.id}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.listContainer}
+        />
       )}
-    </ScrollView>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
-    backgroundColor: "#f9f9f9",
+    backgroundColor: '#f5f7fa',
   },
-  card: {
-    backgroundColor: "#ffffff",
-    borderRadius: 12,
-    padding: 16,
-    marginVertical: 10,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.1,
+
+  headerGradient: {
+    paddingTop: 20,
+    paddingBottom: 30,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
     shadowRadius: 4,
-    border: 1,
   },
-  ongoingTasks: {
-    backgroundColor: "#e3f2fd",
+  headerContent: {
+    paddingHorizontal: 20,
   },
-  cardTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#333",
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#ffffff',
+    marginBottom: 8,
   },
-  counterText: {
-    fontSize: 15,
-    color: "#1976d2",
-    marginTop: 4,
+  headerLine: {
+    width: 40,
+    height: 3,
+    backgroundColor: '#4DB6AC',
+    marginBottom: 8,
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    color: '#B2DFDB',
+    opacity: 0.9,
+  },
+  auditCard: {
+    marginHorizontal: 16,
+    marginBottom: 16,
+    borderRadius: 16,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    overflow: 'hidden',
+    backgroundColor: '#fff',
+  },
+  cardGradient: {
+    position: 'relative',
+  },
+  accentBar: {
+    height: 4,
+    width: '100%',
+  },
+  clientBadgeContainer: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    elevation: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+  },
+  clientBadge: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  clientInitial: {
+    color: '#fff',
+    fontSize: 22,
+    fontWeight: '700',
   },
   header: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    padding: 16,
+    paddingTop: 20,
   },
-  title: {
-    marginLeft: 10,
+  clientInfo: {
     flex: 1,
+    marginRight: 50,
   },
   companyName: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#333",
-  },
-  branchName: {
-    fontSize: 13,
-    color: "#757575",
-  },
-  details: {
-    marginTop: 6,
-    borderTopWidth: 1,
-    borderTopColor: "#eeeeee",
-    paddingTop: 10,
-  },
-  detail: {
-    flexDirection: "row",
-    alignItems: "center",
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#2c3e50',
     marginBottom: 6,
   },
-  detailText: {
-    fontSize: 14,
-    marginLeft: 10,
-    color: "#555",
+  branchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-  buttonContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 12,
+  branchIcon: {
+    marginRight: 4,
   },
-  button: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#1976d2",
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 6,
-  },
-  buttonText: {
-    color: "#fff",
-    marginLeft: 8,
+  branchName: {
     fontSize: 15,
-    fontWeight: "500",
+    color: '#7f8c8d',
+    fontWeight: '500',
   },
-  removeImage: {
-    marginTop: 8,
-    width: 150,
-    height: 40,
-    alignSelf: "center",
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#e3f2fd',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
   },
-  noTasksContainer: {
-    alignItems: "center",
-    marginTop: 40,
+  statusIcon: {
+    marginRight: 4,
   },
-  noTasksText: {
-    fontSize: 16,
-    color: "#9e9e9e",
-    fontWeight: "500",
+  statusText: {
+    color: '#1976d2',
+    fontSize: 13,
+    fontWeight: '600',
   },
-  loadingContainer: {
+  details: {
+    padding: 16,
+    paddingTop: 8,
+    backgroundColor: 'rgba(248, 249, 250, 0.7)',
+  },
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  detailIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  detailTextContainer: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
+  },
+  detailLabel: {
+    fontSize: 12,
+    color: '#95a5a6',
+    marginBottom: 2,
+    fontWeight: '500',
+  },
+  detailText: {
+    fontSize: 15,
+    color: '#34495e',
+    fontWeight: '500',
+  },
+  listContainer: {
+    paddingVertical: 20,
+    paddingHorizontal: 0,
+  },
+  loader: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 32,
+  },
+  noAuditsText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#78909c',
+    textAlign: 'center',
   },
 });
 

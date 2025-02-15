@@ -5,6 +5,9 @@ import { useNavigation, CommonActions } from '@react-navigation/native';
 import { db } from './firebaseConfig';
 import { doc, setDoc, updateDoc, getDoc, deleteDoc } from 'firebase/firestore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import moment from 'moment';
+import 'moment-timezone';
+moment.tz.setDefault("Asia/Kolkata");
 
 const ReportScreen = ({ route }) => {
   const navigation = useNavigation();
@@ -28,11 +31,16 @@ const ReportScreen = ({ route }) => {
 
       if (docSnap.exists()) {
         const data = docSnap.data();
-        if (data.reportDates) {
-          setScanDate(data.reportDates.scan ? new Date(data.reportDates.scan) : null);
-          setHardCopyDate(data.reportDates.hard ? new Date(data.reportDates.hard) : null);
-          setSoftCopyDate(data.reportDates.soft ? new Date(data.reportDates.soft) : null);
-          setPhotoDate(data.reportDates.photo ? new Date(data.reportDates.photo) : null);
+        if (data.reportDate) {
+          const scanDateObj = data.reportDate.find(d => d.type === 'scanDate');
+          const hardDateObj = data.reportDate.find(d => d.type === 'hardCopyDate');
+          const softDateObj = data.reportDate.find(d => d.type === 'softCopyDate');
+          const photoDateObj = data.reportDate.find(d => d.type === 'photoDate');
+
+          setScanDate(scanDateObj?.date ? new Date(scanDateObj.date) : null);
+          setHardCopyDate(hardDateObj?.date ? new Date(hardDateObj.date) : null);
+          setSoftCopyDate(softDateObj?.date ? new Date(softDateObj.date) : null);
+          setPhotoDate(photoDateObj?.date ? new Date(photoDateObj.date) : null);
         }
       }
     };
@@ -50,78 +58,102 @@ const ReportScreen = ({ route }) => {
         return;
       }
 
-      const completedAuditsRef = doc(db, 'Profile', userId, 'completedAudits', auditId);
-      const reportDatesRef = doc(db, 'Profile', userId, 'completedAudits', auditId, 'ReportDates', 'dates');
+      const auditRef = doc(db, 'audits', auditId);
+      const auditSnap = await getDoc(auditRef);
+      
+      if (!auditSnap.exists()) {
+        console.error('Audit not found!');
+        return;
+      }
 
-      const datesArray = [
-        { key: 'softCopyDate', date: softCopyDate ? softCopyDate.toISOString() : '' },
-        { key: 'scanDate', date: scanDate ? scanDate.toISOString() : '' },
-        { key: 'photoDate', date: photoDate ? photoDate.toISOString() : '' },
-        { key: 'hardCopyDate', date: hardCopyDate ? hardCopyDate.toISOString() : '' },
-      ];
-
-      const updateAudit = updateDoc(doc(db, 'audits', auditId), {
-        isCompleted: true,
-        isSubmitted: true,
-        dates: datesArray,
-        submittedBy: userId,
+      const auditData = auditSnap.data();
+      const updatedReportDate = auditData.reportDate.map(dateObj => {
+        switch(dateObj.type) {
+          case 'scanDate':
+            return {
+              ...dateObj,
+              date: scanDate ? moment(scanDate).format('YYYY-MM-DD') : null,
+              isSubmitted: !!scanDate,
+              submittedBy: userId
+            };
+          case 'hardCopyDate':
+            return {
+              ...dateObj,
+              date: hardCopyDate ? moment(hardCopyDate).format('YYYY-MM-DD') : null,
+              isSubmitted: !!hardCopyDate,
+              submittedBy: userId
+            };
+          case 'softCopyDate':
+            return {
+              ...dateObj,
+              date: softCopyDate ? moment(softCopyDate).format('YYYY-MM-DD') : null,
+              isSubmitted: !!softCopyDate,
+              submittedBy: userId
+            };
+          case 'photoDate':
+            return {
+              ...dateObj,
+              date: photoDate ? moment(photoDate).format('YYYY-MM-DD') : null,
+              isSubmitted: !!photoDate,
+              submittedBy: userId
+            };
+          default:
+            return dateObj;
+        }
       });
 
-      const updateReportDates = setDoc(
-        reportDatesRef,
-        {
-          scanDate: scanDate ? scanDate.toISOString() : '',
-          hardCopyDate: hardCopyDate ? hardCopyDate.toISOString() : '',
-          photoDate: photoDate ? photoDate.toISOString() : '',
-          completedAt: new Date(),
-        },
-        { merge: true }
-      );
+      // Check if all dates are selected
+      const allDatesSelected = updatedReportDate.every(dateObj => dateObj.isSubmitted);
 
-      const userProfileRef = doc(db, 'Profile', userId);
-      const userProfileSnap = await getDoc(userProfileRef);
+      // Update audit document
+      await updateDoc(auditRef, {
+        reportDate: updatedReportDate,
+        isCompleted: allDatesSelected,
+        isSubmitted: allDatesSelected
+      });
 
-      if (userProfileSnap.exists()) {
-        const userProfileData = userProfileSnap.data();
-        const completedCount = (userProfileData.completedCounter || 0) + 1;
+      if (allDatesSelected) {
+        // Move to completed audits and update counters
+        const userProfileRef = doc(db, 'Profile', userId);
+        const userProfileSnap = await getDoc(userProfileRef);
 
-        const updateUserProfile = updateDoc(userProfileRef, {
-          completedCounter: completedCount,
-        });
+        if (userProfileSnap.exists()) {
+          const userProfileData = userProfileSnap.data();
+          const completedCount = (userProfileData.completedCounter || 0) + 1;
+          const ongoingCounter = Math.max(0, (userProfileData.ongoingCounter || 0) - 1);
 
-        const deleteAcceptedAudit = deleteDoc(doc(db, 'Profile', userId, 'acceptedAudits', auditId));
+          // Update user profile
+          await updateDoc(userProfileRef, {
+            completedCounter: completedCount,
+            ongoingCounter: ongoingCounter
+          });
 
-        const setCompletedAudit = setDoc(doc(db, 'Profile', userId, 'completedAudits', auditId), {
-          auditId,
-          completedAt: new Date(),
-        });
+          // Add to completed audits
+          await setDoc(doc(db, 'Profile', userId, 'completedAudits', auditId), {
+            auditId,
+            completedDate: new Date().toISOString()
+          });
 
-        const ongoingCounter = Math.max(0, (userProfileData.ongoingCounter || 0) - 1);
-        const updateOngoingCounter = updateDoc(userProfileRef, {
-          ongoingCounter: ongoingCounter,
-        });
+          // Remove from accepted audits
+          await deleteDoc(doc(db, 'Profile', userId, 'acceptedAudits', auditId));
 
-        await Promise.all([
-          updateAudit,
-          updateReportDates,
-          updateUserProfile,
-          deleteAcceptedAudit,
-          setCompletedAudit,
-          updateOngoingCounter,
-        ]);
-
-        navigation.dispatch(
-          CommonActions.reset({
-            index: 1,
-            routes: [
-              { name: 'HomeScreen' }, // Ensure this matches the name in your navigator
-              { name: 'CompletedTasks', params: { auditId, isCompleted: true } },
-            ],
-          })
-        );
+          // Navigate to completed tasks
+          navigation.dispatch(
+            CommonActions.reset({
+              index: 1,
+              routes: [
+                { name: 'HomeScreen' },
+                { name: 'CompletedTasks', params: { auditId, isCompleted: true } },
+              ],
+            })
+          );
+        }
+      } else {
+        navigation.goBack();
       }
     } catch (error) {
-      alert('Error saving and completing audit');
+      console.error('Error saving audit:', error);
+      alert('Error saving audit');
     }
   };
 

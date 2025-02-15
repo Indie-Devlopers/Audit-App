@@ -1,250 +1,321 @@
-import React, { useState, useEffect, useMemo } from "react";
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Image } from "react-native";
+import React, { useState, useEffect } from "react";
+import { View, Text, StyleSheet, FlatList, ActivityIndicator, Image } from "react-native";
 import { getFirestore, collection, query, where, getDocs, doc, getDoc } from "firebase/firestore";
-import AsyncStorage from "@react-native-async-storage/async-storage"; // Import AsyncStorage
-import { app } from "./firebaseConfig"; // Firebase configuration
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { app } from "./firebaseConfig";
+import moment from 'moment-timezone';
+import { LinearGradient } from 'expo-linear-gradient';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 const db = getFirestore(app);
-
-// Reusable function to fetch the count of completed audits
-const fetchCompletedAuditsCount = async () => {
-  try {
-    const auditsQuery = query(
-      collection(db, "audits"),
-      where("isCompleted", "==", true)
-    );
-    const querySnapshot = await getDocs(auditsQuery);
-    return querySnapshot.size; // Return the count of completed audits
-  } catch (error) {
-    console.error("Failed to fetch completed audits count:", error);
-    return 0; // Return 0 on error
-  }
-};
 
 const CompletedTasks = () => {
   const [completedAudits, setCompletedAudits] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [completedCounter, setCompletedCounter] = useState(0);
-  const [userId, setUserId] = useState(null); // State for userId
 
-  // Fetch the completed audit IDs for the logged-in user
-  const fetchCompletedAuditIds = async (userId) => {
-    try {
-      const completedRef = collection(db, "Profile", userId, "completedAudits");
-      const completedSnapshot = await getDocs(completedRef);
-
-      const auditIds = completedSnapshot.docs.map((doc) => doc.id);
-      console.log("Completed Audit IDs:", auditIds); // Log to verify fetched IDs
-      return auditIds;
-    } catch (error) {
-      console.error("Error fetching completed audit IDs:", error);
-      return [];
-    }
-  };
-
-  // Fetch the branch and client details based on the audit's branchId and clientId
-  const fetchAuditDetails = async (audit) => {
-    try {
-      const branchRef = doc(db, "branches", audit.branchId);
-      const clientRef = doc(db, "clients", audit.clientId);
-
-      // Fetch branch and client details
-      const branchSnapshot = await getDoc(branchRef);
-      const clientSnapshot = await getDoc(clientRef);
-
-      if (!branchSnapshot.exists() || !clientSnapshot.exists()) {
-        throw new Error("Branch or Client not found.");
-      }
-
-      const branchData = branchSnapshot.data();
-      const clientData = clientSnapshot.data();
-
-      // Exclude clientId from branch details
-      const { clientId, ...branchDetails } = branchData;
-
-      return {
-        branchDetails,
-        clientDetails: clientData
-      };
-    } catch (error) {
-      console.error("Error fetching audit details:", error);
-      return { branchDetails: {}, clientDetails: {} };
-    }
-  };
-
-  const fetchAuditsByIds = async (ids) => {
-    try {
-      const chunkArray = (arr, size) => {
-        const result = [];
-        for (let i = 0; i < arr.length; i += size) {
-          result.push(arr.slice(i, i + size));
-        }
-        return result;
-      };
-
-      const chunks = chunkArray(ids, 10);
-      const allAudits = [];
-
-      for (const chunk of chunks) {
-        const auditsQuery = query(collection(db, "audits"), where("__name__", "in", chunk));
-        const querySnapshot = await getDocs(auditsQuery);
-
-        const auditDetailsPromises = querySnapshot.docs.map(async (doc) => {
-          const auditData = { id: doc.id, ...doc.data() };
-          const { branchDetails, clientDetails } = await fetchAuditDetails(auditData);
-
-          return {
-            ...auditData,
-            branchDetails,
-            clientDetails
-          };
-        });
-
-        const audits = await Promise.all(auditDetailsPromises);
-        allAudits.push(...audits);
-      }
-
-      console.log("Fetched Audits with Details:", allAudits); // Log audits fetched
-      return allAudits;
-    } catch (error) {
-      console.error("Error fetching audits by IDs:", error);
-      return [];
-    }
-  };
-
-  // Fetch the userId from AsyncStorage
   useEffect(() => {
-    const loadCompletedAudits = async () => {
-      try {
-        // Retrieve userId from AsyncStorage
-        const storedUserId = await AsyncStorage.getItem("userId");
+    fetchCompletedAudits();
+  }, []);
 
-        if (!storedUserId) {
-          console.error("User not logged in.");
-          return;
-        }
-
-        setUserId(storedUserId); // Set the userId state when found
-
-        // Fetch completed audit IDs for the logged-in user
-        const completedAuditIds = await fetchCompletedAuditIds(storedUserId);
-
-        if (completedAuditIds.length === 0) {
-          console.log("No completed audits found.");
-          setCompletedAudits([]);
-          setCompletedCounter(0);
-          return;
-        }
-
-        // Fetch audit details by IDs
-        const audits = await fetchAuditsByIds(completedAuditIds);
-
-        setCompletedAudits(audits);
-        setCompletedCounter(audits.length);
-      } catch (error) {
-        console.error("Error loading completed audits:", error);
-      } finally {
+  const fetchCompletedAudits = async () => {
+    try {
+      const userId = await AsyncStorage.getItem("userId");
+      if (!userId) {
         setLoading(false);
+        return;
       }
-    };
 
-    loadCompletedAudits();
-  }, []); // Empty dependency array, so it runs once after component mounts
+      const auditsRef = collection(db, "audits");
+      const auditsSnapshot = await getDocs(auditsRef);
+      
+      const auditsData = [];
 
-  const renderFields = (data) => {
-    if (!data) return <Text>No details available</Text>;
-    return Object.keys(data).map((key) => (
-      <Text key={key} style={styles.detailText}>
-        {key}: {data[key]}
-      </Text>
-    ));
+      for (const auditDoc of auditsSnapshot.docs) {
+        const auditData = auditDoc.data();
+        
+        if (auditData.isCompleted && 
+            auditData.acceptedByUser && 
+            auditData.acceptedByUser.includes(userId)) {
+          
+          // Get branch details
+          const branchRef = doc(db, "branches", auditData.branchId);
+          const branchSnap = await getDoc(branchRef);
+          const branchData = branchSnap.exists() ? branchSnap.data() : {};
+
+          // Get client details
+          const clientRef = doc(db, "clients", auditData.clientId);
+          const clientSnap = await getDoc(clientRef);
+          const clientData = clientSnap.exists() ? clientSnap.data() : {};
+
+          // Get audit type details
+          const auditTypeRef = doc(db, "auditType", auditData.auditTypeId);
+          const auditTypeSnap = await getDoc(auditTypeRef);
+          const auditTypeData = auditTypeSnap.exists() ? auditTypeSnap.data() : {};
+
+          auditsData.push({
+            id: auditDoc.id,
+            ...auditData,
+            branchDetails: {
+              ...branchData,
+              location: branchData.city || 'City not available'
+            
+            },
+            clientDetails: clientData,
+            auditTypeName: auditTypeData.name || 'Unknown Audit Type'
+          });
+        }
+      }
+
+      // Sort by completedDate in descending order
+      auditsData.sort((a, b) => 
+        moment(b.completedDate).valueOf() - moment(a.completedDate).valueOf()
+      );
+
+      setCompletedAudits(auditsData);
+      setLoading(false);
+    } catch (error) {
+      console.error("Error fetching completed audits:", error);
+      setLoading(false);
+    }
   };
 
-  const noCompletedTasks = completedAudits.length === 0;
+  const renderAuditCard = ({ item }) => (
+    <View style={styles.cardContainer}>
+      <LinearGradient
+        colors={['#ffffff', '#f8f9fa']}
+        style={styles.cardGradient}
+      >
+        {/* Header Section */}
+        <View style={styles.cardHeader}>
+          <View style={styles.clientInfo}>
+            <MaterialCommunityIcons name="domain" size={24} color="#00796B" />
+            <View style={styles.headerText}>
+              <Text style={styles.clientName}>{item.clientDetails?.name || 'Unknown Client'}</Text>
+              <Text style={styles.completedDate}>
+                Completed on: {moment(item.completedDate).format('DD MMM, YYYY')}
+              </Text>
+            </View>
+          </View>
+          <View style={styles.statusBadge}>
+            <MaterialCommunityIcons name="check-circle" size={20} color="#4CAF50" />
+            <Text style={styles.statusText}>Completed</Text>
+          </View>
+        </View>
+
+        {/* Content Section */}
+        <View style={styles.cardContent}>
+          <View style={styles.infoRow}>
+            <MaterialCommunityIcons name="map-marker" size={20} color="#666" />
+            <Text style={styles.infoText}>
+              {item.branchDetails?.city || 'City not available'}
+            </Text>
+          </View>
+          <View style={styles.infoRow}>
+            <MaterialCommunityIcons name="clipboard-text" size={20} color="#666" />
+            <Text style={styles.infoText}>{item.auditTypeName}</Text>
+          </View>
+          
+          {/* Report Status Section */}
+          <View style={styles.reportsContainer}>
+            {item.reportDate?.map((report, index) => (
+              <View key={index} style={styles.reportItem}>
+                <MaterialCommunityIcons 
+                  name={
+                    report.type === 'scanDate' ? 'scanner' :
+                    report.type === 'hardCopyDate' ? 'file-document-outline' :
+                    report.type === 'softCopyDate' ? 'file-pdf' :
+                    'image-outline'
+                  }
+                  size={18}
+                  color="#00796B"
+                />
+                <Text style={styles.reportDate}>
+                  {moment(report.date).format('DD MMM')}
+                </Text>
+              </View>
+            ))}
+          </View>
+        </View>
+      </LinearGradient>
+    </View>
+  );
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#00796B" />
+      </View>
+    );
+  }
 
   return (
-    <ScrollView style={styles.container}>
-      {loading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#4CAF50" />
+    <View style={styles.container}>
+      <LinearGradient
+        colors={['#00796B', '#004D40']}
+        style={styles.header}
+      >
+        <Text style={styles.headerTitle}>Completed Audits</Text>
+        <View style={styles.counterBadge}>
+          <Text style={styles.counterText}>{completedAudits.length}</Text>
         </View>
-      ) : (
-        <View style={styles.screenConatiner}>
-          <View style={styles.counterContainer}>
-            <Text style={styles.counterText}>{completedCounter} Completed Audits</Text>
-          </View>
-          {noCompletedTasks ? (
-            <View style={styles.noTasksContainer}>
-              <Text style={styles.noTasksText}>No completed tasks</Text>
-            </View>
-          ) : (
-            completedAudits.map((audit) => (
-              <View key={audit.id} style={styles.cardContainer}>
-                {/* Left Side: Building Image */}
-                <View style={styles.imageContainer}>
-                  <Image
-                    source={require("./Images/building.png")}
-                    style={styles.image}
-                  />
-                </View>
+      </LinearGradient>
 
-                {/* Right Side: Client Name and Branch Name */}
-                <View style={styles.textContainer}>
-                  <Text style={styles.clientName}>{audit.clientDetails.name}</Text>
-                  <Text style={styles.branchName}>Branch: {audit.branchDetails.name}</Text>
-                </View>
-              </View>
-            ))
-          )}
-        </View>
-      )}
-    </ScrollView>
+      <FlatList
+        data={completedAudits}
+        renderItem={renderAuditCard}
+        keyExtractor={item => item.id}
+        contentContainerStyle={styles.listContainer}
+        showsVerticalScrollIndicator={false}
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <MaterialCommunityIcons name="clipboard-check-outline" size={50} color="#00796B" />
+            <Text style={styles.emptyText}>No completed audits yet</Text>
+          </View>
+        }
+      />
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  screenConatiner: {
-    padding: 15
+  container: {
+    flex: 1,
+    backgroundColor: "#f5f5f5",
   },
-  counterContainer: {
-    alignItems: "center",
-    marginBottom: 10
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    paddingTop: 20,
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  counterBadge: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  counterText: {
+    color: '#00796B',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  listContainer: {
+    padding: 16,
+    paddingTop: 8,
   },
   cardContainer: {
-    flexDirection: "row", // Align image and text side by side
-    alignItems: "center",
-    padding: 15,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 10,
-    backgroundColor: "#fff",
-    shadowColor: "#000", // Shadow for iOS
+    marginBottom: 16,
+    borderRadius: 12,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 3 },
+    shadowRadius: 4,
   },
-  imageContainer: {
-    marginRight: 15, // Add space between image and text
+  cardGradient: {
+    borderRadius: 12,
+    overflow: 'hidden',
   },
-  image: {
-    width: 50,
-    height: 50,
-    borderRadius: 5, // Rounded corners for image
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
   },
-  textContainer: {
-    flex: 1, // Take up remaining space
-    justifyContent: "center",
+  clientInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  headerText: {
+    marginLeft: 12,
+    flex: 1,
   },
   clientName: {
     fontSize: 18,
-    fontWeight: "bold",
-    color: "#333",
-    marginBottom: 5,
+    fontWeight: 'bold',
+    color: '#333',
   },
-  branchName: {
+  completedDate: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 2,
+  },
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E8F5E9',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  statusText: {
+    color: '#4CAF50',
+    marginLeft: 4,
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  cardContent: {
+    padding: 16,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  infoText: {
+    marginLeft: 8,
     fontSize: 16,
-    color: "#555",
+    color: '#444',
+  },
+  reportsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginTop: 12,
+    padding: 8,
+    backgroundColor: '#f8f8f8',
+    borderRadius: 8,
+  },
+  reportItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    padding: 6,
+    paddingHorizontal: 10,
+    borderRadius: 6,
+    marginRight: 8,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  reportDate: {
+    marginLeft: 6,
+    fontSize: 14,
+    color: '#666',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingTop: 40,
+  },
+  emptyText: {
+    marginTop: 12,
+    fontSize: 16,
+    color: '#666',
   },
 });
 

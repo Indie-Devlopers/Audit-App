@@ -1,27 +1,29 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, FlatList, Alert, Image, ActivityIndicator } from "react-native";
-import { getFirestore, doc, getDoc, getDocs, collection, updateDoc } from "firebase/firestore";
+import { View, Text, TouchableOpacity, StyleSheet, FlatList, Image, ActivityIndicator, SafeAreaView } from "react-native";
+import { getFirestore, doc, getDoc, getDocs, collection } from "firebase/firestore";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { app } from "./firebaseConfig"; // Your Firebase config file
+import { app } from "./firebaseConfig";
 import MaterialIcons from "react-native-vector-icons/MaterialIcons";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
-import moment from 'moment'; // Import moment.js for date formatting
+import { LinearGradient } from 'expo-linear-gradient';
+import moment from 'moment';
+import 'moment-timezone';
+moment.tz.setDefault("Asia/Kolkata");
 
 const db = getFirestore(app);
 
-export default function PastTasks({ navigation }) {
-  const [pastAudits, setPastAudits] = useState([]);
+export default function TodaysTasks({ navigation }) {
+  const [todayAudits, setTodayAudits] = useState([]);
   const [loading, setLoading] = useState(true);
-  const todayDate = new Date(); // Current date
-  todayDate.setHours(0, 0, 0, 0); // Set time to midnight for comparison
+  const todayDate = new Date();
+  todayDate.setHours(0, 0, 0, 0);
 
   useEffect(() => {
     const getUserId = async () => {
       try {
         const userId = await AsyncStorage.getItem("userId");
         if (userId) {
-          console.log("Retrieved User ID:", userId);
-          fetchPastAudits(userId);
+          fetchTodayAudits(userId);
         } else {
           console.error("User ID not found in AsyncStorage");
         }
@@ -33,38 +35,29 @@ export default function PastTasks({ navigation }) {
     getUserId();
   }, []);
 
-  const fetchPastAudits = async (userId) => {
+  const fetchTodayAudits = async (userId) => {
     try {
-      console.log("Fetching audits for date <=", todayDate.toISOString().split("T")[0]);
-
       const userRef = doc(db, "Profile", userId);
       const acceptedAuditsRef = collection(userRef, "acceptedAudits");
       const acceptedAuditsSnapshot = await getDocs(acceptedAuditsRef);
 
       const audits = await Promise.all(
         acceptedAuditsSnapshot.docs.map(async (auditDoc) => {
-          const { auditId, date } = auditDoc.data(); // Extract date along with auditId
-
-          // Convert the date string to a Date object
-          const auditDate = new Date(date); // This will parse the "YYYY-MM-DD" format correctly
+          const { auditId, date } = auditDoc.data();
+          const auditDate = new Date(date);
           auditDate.setHours(0, 0, 0, 0);
-          if (auditDate > todayDate) return null; // Only include today's and past audits
 
-          // Fetch audit details
+          if (auditDate.getTime() !== todayDate.getTime()) return null;
+
           const auditRef = doc(db, "audits", auditId);
           const auditSnapshot = await getDoc(auditRef);
           if (!auditSnapshot.exists()) return null;
           const auditData = auditSnapshot.data();
-          console.log("auditData:::::", auditData);
-          // Exclude audits where isSubmitted is true
-          if (auditData.isSubmitted) return null;
 
-          // Fetch branch details
           const branchRef = doc(db, "branches", auditData.branchId);
           const branchSnapshot = await getDoc(branchRef);
           const branchDetails = branchSnapshot.exists() ? branchSnapshot.data() : {};
 
-          // Fetch client details
           const clientRef = doc(db, "clients", auditData.clientId);
           const clientSnapshot = await getDoc(clientRef);
           const clientDetails = clientSnapshot.exists() ? clientSnapshot.data() : {};
@@ -79,173 +72,315 @@ export default function PastTasks({ navigation }) {
         })
       );
 
-      setPastAudits(audits.filter(audit => audit !== null));
+      setTodayAudits(audits.filter(audit => audit !== null));
       setLoading(false);
     } catch (error) {
-      console.error("Error fetching past audits:", error);
+      console.error("Error fetching today's audits:", error);
       setLoading(false);
     }
   };
 
-  const handleGenerateReport = (auditId, auditName) => {
-    navigation.navigate("ReportScreen", { auditId, auditName });
+  const handleAuditPress = (audit) => {
+    navigation.navigate("Report", { audit });
   };
 
-  const handleComplete = async (audit) => {
-    try {
-      const auditRef = doc(db, "audits", audit.id);
-      await updateDoc(auditRef, { isComplete: true });
-    
-      Alert.alert("Task Completed", "This task has been marked as completed.");
-      fetchPastAudits(await AsyncStorage.getItem("userId")); // Refresh the list of past audits
-    } catch (error) {
-      console.error("Error completing audit:", error);
-    }
-  };
-
-  const renderAudit = ({ item: audit }) => (
+  const renderAudit = ({ item: audit, index }) => (
     <View style={styles.auditCard}>
-      {/* Header Section */}
-      <View style={styles.header}>
-        <Image
-          source={require("./Images/building.png")}
-          style={{ width: 34, height: 34 }}
+      <LinearGradient
+        colors={['#ffffff', '#f8f9fa']}
+        style={styles.cardGradient}
+      >
+        {/* Top Accent Bar */}
+        <LinearGradient
+          colors={['#00796B', '#004D40']}
+          style={styles.accentBar}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
         />
-        <View style={styles.title}>
-          <Text style={styles.companyName}>{audit.clientDetails?.name || "Client Name"}</Text>
-          <Text style={styles.branchName}>{audit.branchDetails?.name || "Branch Name"}</Text>
-        </View>
-      </View>
 
-      {/* Details Section */}
-      <View style={styles.details}>
-        <View style={styles.detail}>
-          <MaterialIcons name="location-on" size={24} color="#189ab4" />
-          <Text style={styles.detailText}>{audit.branchDetails?.city || "City Not Specified"}</Text>
+        {/* Client Badge with Serial Number */}
+        <View style={styles.clientBadgeContainer}>
+          <LinearGradient
+            colors={['#00796B', '#004D40']}
+            style={styles.clientBadge}
+          >
+            <Text style={styles.clientInitial}>
+              {(index + 1).toString()}
+            </Text>
+          </LinearGradient>
         </View>
-        <View style={styles.detail}>
-          <MaterialCommunityIcons name="shield-search" size={24} color="#189ab4" />
-          <Text style={styles.detailText}>{audit.auditType || "Audit Type Not Specified"}</Text>
-        </View>
-        <View style={styles.detail}>
-          <MaterialIcons name="event" size={24} color="#189ab4" />
-          <Text style={styles.detailText}>
-            {moment(audit.date).format('DD-MM-YYYY')}
-          </Text>
-        </View>
-      </View>
 
-      {/* Button Section */}
-      <View style={styles.buttonContainer}>
-        <TouchableOpacity onPress={() => handleGenerateReport(audit.id, audit.auditName)}>
-          <Image
-            source={require("./Images/Accept.png")}
-            style={styles.completeButtonImage}
-          />
-        </TouchableOpacity>
-      </View>
+        {/* Header Section */}
+        <View style={styles.header}>
+          <View style={styles.clientInfo}>
+            <Text style={styles.companyName} numberOfLines={1}>
+              {audit.clientDetails?.name || "Client Name"}
+            </Text>
+            <View style={styles.branchContainer}>
+              <MaterialIcons name="business" size={16} color="#7f8c8d" style={styles.branchIcon} />
+              <Text style={styles.branchName} numberOfLines={1}>
+                {audit.branchDetails?.name || "Branch Name"}
+              </Text>
+            </View>
+          </View>
+          {/* <View style={styles.statusBadge}>
+            <MaterialIcons name="today" size={14} color="#1976d2" style={styles.statusIcon} />
+            <Text style={styles.statusText}>Today</Text>
+          </View> */}
+        </View>
+
+        {/* Details Section */}
+        <View style={styles.details}>
+          <View style={styles.detailRow}>
+            <View style={styles.detailIconContainer}>
+              <MaterialIcons name="location-on" size={20} color="#00796B" />
+            </View>
+            <View style={styles.detailTextContainer}>
+              <Text style={styles.detailLabel}>Location</Text>
+              <Text style={styles.detailText}>{audit.branchDetails?.city || "City Not Specified"}</Text>
+            </View>
+          </View>
+          
+          <View style={styles.detailRow}>
+            <View style={styles.detailIconContainer}>
+              <MaterialCommunityIcons name="shield-search" size={20} color="#00796B" />
+            </View>
+            <View style={styles.detailTextContainer}>
+              <Text style={styles.detailLabel}>Audit Type</Text>
+              <Text style={styles.detailText}>{audit.auditType || "Audit Type Not Specified"}</Text>
+            </View>
+          </View>
+          
+          <View style={styles.detailRow}>
+            <View style={styles.detailIconContainer}>
+              <MaterialIcons name="event" size={20} color="#00796B" />
+            </View>
+            <View style={styles.detailTextContainer}>
+              <Text style={styles.detailLabel}>Date</Text>
+              <Text style={styles.detailText}>
+                {moment(audit.date).format('DD MMM, YYYY')}
+              </Text>
+            </View>
+          </View>
+        </View>
+      </LinearGradient>
     </View>
   );
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.headerText}>Not Submitted Audits</Text>
+    <SafeAreaView style={styles.container}>
+      <View style={styles.headerContainer}>
+        <LinearGradient
+          colors={['#00796B', '#004D40']}
+          style={styles.headerGradient}
+        >
+          <View style={styles.headerContent}>
+            <Text style={styles.headerTitle}>Today's Audits</Text>
+            <View style={styles.headerLine} />
+            <Text style={styles.headerSubtitle}>View your scheduled audits for today</Text>
+          </View>
+        </LinearGradient>
+      </View>
+
       {loading ? (
-        <ActivityIndicator size="large" color="#189ab4" style={styles.loader} />
-      ) : pastAudits.length === 0 ? (
-        <Text style={styles.noAuditsText}>No audits for today or past</Text>
+        <ActivityIndicator size="large" color="#00796B" style={styles.loader} />
+      ) : todayAudits.length === 0 ? (
+        <View style={styles.emptyContainer}>
+          <MaterialCommunityIcons name="calendar-blank" size={64} color="#B0BEC5" />
+          <Text style={styles.noAuditsText}>No audits scheduled for today</Text>
+        </View>
       ) : (
         <FlatList
-          data={pastAudits}
+          data={todayAudits}
           renderItem={renderAudit}
           keyExtractor={(item) => item.id}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.listContainer}
         />
       )}
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f8f8f8",
-    padding: 10,
+    backgroundColor: '#f5f7fa',
   },
-  headerText: {
-    fontSize: 20,
-    backgroundColor: "#e57373",
-    width: "100%",
-    fontWeight: "bold",
-    textAlign: "center",
-    paddingVertical: 10,
-    margin:0,
-    color: "#fff",
-    borderRadius: 12,
-    padding: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.1,
+  headerGradient: {
+    paddingTop: 20,
+    paddingBottom: 30,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
     shadowRadius: 4,
-    border:2,
+  },
+  headerContent: {
+    paddingHorizontal: 20,
+  },
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#ffffff',
+    marginBottom: 8,
+  },
+  headerLine: {
+    width: 40,
+    height: 3,
+    backgroundColor: '#4DB6AC',
+    marginBottom: 8,
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    color: '#B2DFDB',
+    opacity: 0.9,
+  },
+  listContainer: {
+    paddingVertical: 20,
+    paddingHorizontal: 0,
+  },
+  auditCard: {
+    marginHorizontal: 16,
+    marginBottom: 16,
+    borderRadius: 16,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    overflow: 'hidden',
+    backgroundColor: '#fff',
+  },
+  cardGradient: {
+    position: 'relative',
+  },
+  accentBar: {
+    height: 4,
+    width: '100%',
+  },
+  clientBadgeContainer: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    elevation: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+  },
+  clientBadge: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  clientInitial: {
+    color: '#fff',
+    fontSize: 22,
+    fontWeight: '700',
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    padding: 16,
+    paddingTop: 20,
+  },
+  clientInfo: {
+    flex: 1,
+    marginRight: 50,
+  },
+  companyName: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#2c3e50',
+    marginBottom: 6,
+  },
+  branchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  branchIcon: {
+    marginRight: 4,
+  },
+  branchName: {
+    fontSize: 15,
+    color: '#7f8c8d',
+    fontWeight: '500',
+  },
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#e3f2fd',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  statusIcon: {
+    marginRight: 4,
+  },
+  statusText: {
+    color: '#1976d2',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  details: {
+    padding: 16,
+    paddingTop: 8,
+    backgroundColor: 'rgba(248, 249, 250, 0.7)',
+  },
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  detailIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  detailTextContainer: {
+    flex: 1,
+  },
+  detailLabel: {
+    fontSize: 12,
+    color: '#95a5a6',
+    marginBottom: 2,
+    fontWeight: '500',
+  },
+  detailText: {
+    fontSize: 15,
+    color: '#34495e',
+    fontWeight: '500',
   },
   loader: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    height: "100%",
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  auditCard: {
-    backgroundColor: "#fff",
-    padding: 15,
-    marginVertical: 8,
-    borderRadius: 8,
-    elevation: 2,
-    borderColor: "#ddd",
-    borderWidth: 1,
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  title: {
-    marginLeft: 10,
-  },
-  companyName: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#333",
-  },
-  branchName: {
-    fontSize: 14,
-    color: "#555",
-  },
-  details: {
-    marginVertical: 8,
-  },
-  detail: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 6,
-  },
-  detailText: {
-    marginLeft: 8,
-    fontSize: 14,
-    color: "#555",
-  },
-  buttonContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 10,
-  },
-  completeButtonImage: {
-    width: 180,
-    height: 50,
-    resizeMode: "contain",
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 32,
   },
   noAuditsText: {
-    fontSize: 18,
-    color: "#555",
-    textAlign: "center",
-    marginTop: 20,
+    marginTop: 16,
+    fontSize: 16,
+    color: '#78909c',
+    textAlign: 'center',
   },
 });

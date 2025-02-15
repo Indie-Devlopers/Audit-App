@@ -1,174 +1,112 @@
-
-
-
-
 import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
-  ScrollView,
-  Alert,
+  Animated,
+  Dimensions,
 } from "react-native";
-import { Picker } from "@react-native-picker/picker";
-import { doc, getDoc, getDocs, collection, updateDoc } from "firebase/firestore";
+import { doc, getDoc } from "firebase/firestore";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { db } from "./firebaseConfig";
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+
+const { width } = Dimensions.get('window');
 
 const ProfileScreen = ({ navigation }) => {
   const [userData, setUserData] = useState(null);
-  const [selectedCity, setSelectedCity] = useState("");
-  const [selectedState, setSelectedState] = useState("");
-  const [availableCities, setAvailableCities] = useState([]);
-  const [availableStates, setAvailableStates] = useState([]);
-  const [upcomingAudits, setUpcomingAudits] = useState([]);
+  const [scaleValue] = useState(new Animated.Value(1));
 
-  // Fetch user data and location details
   useEffect(() => {
     const getUserData = async () => {
       try {
         const userId = await AsyncStorage.getItem("userId");
-        if (!userId) {
-          console.error("User ID not found in AsyncStorage");
-          return;
-        }
-
+        if (!userId) return;
         const docRef = doc(db, "Profile", userId);
         const docSnap = await getDoc(docRef);
-
         if (docSnap.exists()) {
           setUserData(docSnap.data());
-          setSelectedCity(docSnap.data().preferredCity || "");
-          setSelectedState(docSnap.data().preferredState || "");
-        } else {
-          console.error("No such document in Firestore");
         }
       } catch (error) {
-        console.error("Error fetching user data:", error);
+        console.error("Error:", error);
       }
     };
-
-    const fetchLocations = async () => {
-      try {
-        const querySnapshot = await getDocs(collection(db, "branches"));
-        const cities = new Set();
-        const states = new Set();
-
-        querySnapshot.forEach((doc) => {
-          const data = doc.data();
-          if (data.city) cities.add(data.city);
-          if (data.state) states.add(data.state);
-        });
-
-        setAvailableCities(Array.from(cities));
-        setAvailableStates(Array.from(states));
-      } catch (error) {
-        console.error("Error fetching locations:", error);
-      }
-    };
-
     getUserData();
-    fetchLocations();
-    fetchUpcomingAudits(); // Fetch upcoming audits after data is loaded
   }, []);
 
-  // Fetch and filter upcoming audits based on the selected city
-  const fetchUpcomingAudits = async () => {
-    try {
-      const querySnapshot = await getDocs(collection(db, "audits"));
-      let audits = [];
-      
-      querySnapshot.forEach((doc) => {
-        const auditData = doc.data();
-        const city = auditData.location?.city || ""; // Assuming the city is stored as location.city
-        audits.push({ ...auditData, id: doc.id, city });
-      });
-
-      // Sort audits based on whether the city matches the user's preferred city
-      audits.sort((a, b) => {
-        if (a.city === selectedCity && b.city !== selectedCity) {
-          return -1; // Bring the preferred city audits to the top
-        } else if (a.city !== selectedCity && b.city === selectedCity) {
-          return 1; // Keep audits without preferred city at the bottom
-        }
-        return 0; // Keep order for other audits
-      });
-
-      setUpcomingAudits(audits);
-    } catch (error) {
-      console.error("Error fetching audits:", error);
-    }
-  };
-
-  // Save selected location to Firestore
-  const handleSaveLocation = async () => {
-    try {
-      const userId = await AsyncStorage.getItem("userId");
-      if (!userId) {
-        Alert.alert("Error", "User ID not found.");
-        return;
-      }
-
-      const docRef = doc(db, "Profile", userId);
-      await updateDoc(docRef, {
-        preferredCity: selectedCity,
-        preferredState: selectedState,
-      });
-
-      Alert.alert("Location Saved", "Your preferred location has been saved.");
-      fetchUpcomingAudits(); // Re-fetch the audits after saving location
-    } catch (error) {
-      console.error("Error saving location:", error);
-      Alert.alert("Error", "Failed to save location.");
-    }
-  };
-
-  // Handle logout
   const handleLogout = async () => {
-    await AsyncStorage.removeItem("userId");
-    navigation.navigate("LoginScreen");
+    Animated.sequence([
+      Animated.timing(scaleValue, {
+        toValue: 0.95,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+      Animated.timing(scaleValue, {
+        toValue: 1,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+    ]).start(async () => {
+      await AsyncStorage.removeItem("userId");
+      navigation.navigate("LoginScreen");
+    });
   };
 
   return (
     <View style={styles.container}>
-      {userData ? (
-        <ScrollView showsVerticalScrollIndicator={false}>
-          <View style={styles.header}>
-            <Text style={styles.name}>{userData.name}</Text>
-            <Text style={styles.email}>{userData.email}</Text>
+      <LinearGradient
+        colors={['#00796B', '#004D40']}
+        style={styles.headerGradient}
+      >
+        <View style={styles.headerOverlay}>
+          <View style={styles.profileSection}>
+            <View style={styles.profileImageContainer}>
+              <LinearGradient
+                colors={['rgba(255,255,255,0.3)', 'rgba(255,255,255,0.1)']}
+                style={styles.profileIconContainer}
+              >
+                <Ionicons name="person" size={50} color="#fff" />
+              </LinearGradient>
+              <View style={styles.onlineIndicator} />
+            </View>
+            <Text style={styles.name}>{userData?.name || 'Loading...'}</Text>
+            <Text style={styles.email}>{userData?.email || ''}</Text>
           </View>
+        </View>
+      </LinearGradient>
 
-          <View style={styles.locationContainer}>
-            <Text style={styles.infoTitle}>Preferred City</Text>
-            <Picker
-              selectedValue={selectedCity}
-              style={styles.picker}
-              onValueChange={(itemValue) => {
-                setSelectedCity(itemValue);
-                fetchUpcomingAudits(); // Re-fetch audits when city is changed
-              }}
-            >
-              <Picker.Item label="Select City" value="" />
-              {availableCities.map((city, index) => (
-                <Picker.Item key={index} label={city} value={city} />
-              ))}
-            </Picker>
+      <View style={styles.contentContainer}>
+        <View style={styles.infoCard}>
+          <LinearGradient
+            colors={['#E8F5E9', '#C8E6C9']}
+            style={styles.iconBackground}
+          >
+            <MaterialCommunityIcons name="phone-outline" size={24} color="#00796B" />
+          </LinearGradient>
+          <View style={styles.infoTextContainer}>
+            <Text style={styles.infoLabel}>Contact Number</Text>
+            <Text style={styles.infoValue}>{userData?.phone || 'Not specified'}</Text>
           </View>
+        </View>
 
-          <TouchableOpacity style={styles.saveButton} onPress={handleSaveLocation}>
-            <Text style={styles.saveButtonText}>Save Location</Text>
-          </TouchableOpacity>
-
-         
-
-          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-            <Text style={styles.logoutText}>Log Out</Text>
-          </TouchableOpacity>
-        </ScrollView>
-      ) : (
-        <Text>Loading...</Text>
-      )}
+        <TouchableOpacity 
+          style={styles.logoutButton} 
+          onPress={handleLogout}
+          activeOpacity={0.8}
+        >
+          <LinearGradient
+            colors={['#00796B', '#004D40']}
+            style={styles.logoutGradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+          >
+            <MaterialCommunityIcons name="logout" size={24} color="#fff" style={styles.logoutIcon} />
+            <Text style={styles.logoutText}>Logout</Text>
+          </LinearGradient>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 };
@@ -176,103 +114,126 @@ const ProfileScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F5F5F5",
+    backgroundColor: '#f5f5f5',
   },
-  header: {
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 30,
-    marginTop: 7,
+  headerGradient: {
+    height: 280,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+  },
+  headerOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.1)',
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+  },
+  profileSection: {
+    alignItems: 'center',
+    paddingTop: 60,
+  },
+  profileImageContainer: {
+    position: 'relative',
+    marginBottom: 20,
+  },
+  profileIconContainer: {
+    width: 110,
+    height: 110,
+    borderRadius: 55,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 3,
+    borderColor: 'rgba(255,255,255,0.5)',
+  },
+  onlineIndicator: {
+    position: 'absolute',
+    right: 5,
+    bottom: 5,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#4CAF50',
+    borderWidth: 3,
+    borderColor: '#fff',
   },
   name: {
-    fontSize: 28,
-    fontWeight: "bold",
-    color: "#333",
+    fontSize: 26,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 8,
+    textShadowColor: 'rgba(0,0,0,0.2)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   email: {
-    fontSize: 18,
-    color: "#777",
-    marginBottom: 15,
-  },
-  locationContainer: {
-    backgroundColor: "#fff",
-    marginHorizontal: 20,
-    padding: 20,
-    borderRadius: 12,
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
-    marginBottom: 20,
-  },
-  infoTitle: {
     fontSize: 16,
-    color: "#555",
-    marginBottom: 5,
-    fontWeight: "bold",
-  },
-  picker: {
-    height: 50,
-    width: "100%",
-    marginBottom: 20,
-    backgroundColor: "#f0f0f0",
-    borderRadius: 10,
-  },
-  saveButton: {
-    backgroundColor: "#009966",
-    paddingVertical: 15,
-    borderRadius: 8,
-    marginHorizontal: 20,
-    alignItems: "center",
-    marginBottom: 20,
-  },
-  saveButtonText: {
-    color: "#fff",
-    fontSize: 18,
-    fontWeight: "bold",
-  },
-  upcomingAuditsTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    marginHorizontal: 20,
+    color: '#B2DFDB',
     marginBottom: 10,
-    color: "#333",
   },
-  auditContainer: {
-    backgroundColor: "#fff",
-    marginHorizontal: 20,
-    padding: 15,
-    marginBottom: 10,
-    borderRadius: 8,
-    shadowColor: "#000",
+  contentContainer: {
+    flex: 1,
+    padding: 20,
+    justifyContent: 'space-between',
+    paddingBottom: 90,
+  },
+  infoCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    padding: 20,
+    borderRadius: 16,
+    marginTop: 20,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
-    elevation: 3,
   },
-  auditName: {
+  iconBackground: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  infoTextContainer: {
+    marginLeft: 15,
+    flex: 1,
+  },
+  infoLabel: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 4,
+    fontWeight: '500',
+  },
+  infoValue: {
     fontSize: 18,
-    fontWeight: "bold",
-  },
-  auditCity: {
-    fontSize: 14,
-    color: "#777",
-  },
-  auditDate: {
-    fontSize: 14,
-    color: "#777",
+    color: '#333',
+    fontWeight: '600',
   },
   logoutButton: {
-    backgroundColor: "#009966",
-    paddingVertical: 15,
-    borderRadius: 8,
-    marginHorizontal: 20,
-    alignItems: "center",
-    marginBottom: 30,
+    borderRadius: 16,
+    overflow: 'hidden',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    width: '100%',
+  },
+  logoutGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+  },
+  logoutIcon: {
+    marginRight: 10,
   },
   logoutText: {
-    color: "#fff",
+    color: '#fff',
     fontSize: 18,
-    fontWeight: "bold",
+    fontWeight: '600',
+    letterSpacing: 0.5,
   },
 });
 
