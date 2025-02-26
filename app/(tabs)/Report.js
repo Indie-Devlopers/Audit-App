@@ -26,7 +26,7 @@ const Report = ({ route, navigation }) => {
   const [localReportDate, setLocalReportDate] = useState(audit.reportDate || [
     { type: 'scanDate', date: null, isSubmitted: false, submittedBy: '' },
     { type: 'hardCopyDate', date: null, isSubmitted: false, submittedBy: '' },
-    { type: 'softCopyDate', date: null, isSubmitted: false, submittedBy: '' },
+    { type: 'excelFormat', date: null, isSubmitted: false, submittedBy: '' },
     { type: 'photoDate', date: null, isSubmitted: false, submittedBy: '' }
   ]);
   const [isLoading, setIsLoading] = useState(false);
@@ -37,11 +37,16 @@ const Report = ({ route, navigation }) => {
   const reportTypes = [
     { type: 'scanDate', label: 'Scan Report', icon: 'scanner' },
     { type: 'hardCopyDate', label: 'Hard Copy', icon: 'file-document' },
-    { type: 'softCopyDate', label: 'Soft Copy', icon: 'file-pdf-box' },
+    { type: 'excelFormat', label: 'Excel Format', icon: 'file-pdf-box' },
     { type: 'photoDate', label: 'Photo Report', icon: 'image' }
   ];
-
   const handleDateChange = (event, date) => {
+    if (event.type === 'dismissed') {
+      // User canceled the date picker
+      setShowDatePicker(false);
+      return;
+    }
+  
     setShowDatePicker(Platform.OS === 'ios');
     if (date) {
       setSelectedDate(date);
@@ -50,6 +55,15 @@ const Report = ({ route, navigation }) => {
       }
     }
   };
+  
+  // In the DateTimePicker for Android
+  <DateTimePicker
+    value={editingReport ? editDate : selectedDate}
+    mode="date"
+    display="default"
+    onChange={editingReport ? handleEditDateChange : handleDateChange}
+    maximumDate={new Date()}
+  />
 
   const handleReportSelect = (type) => {
     setSelectedReport(type);
@@ -73,7 +87,7 @@ const Report = ({ route, navigation }) => {
     try {
       const userId = await AsyncStorage.getItem('userId');
       if (!userId) {
-        Alert.alert('Error', 'User not found');
+        Alert.alert('Error', 'User  not found');
         return;
       }
 
@@ -163,7 +177,7 @@ const Report = ({ route, navigation }) => {
       );
     } else {
       navigation.popToTop();
-      navigation.navigate('IncompleteTasks');
+      navigation.navigate('HomeScreen');
     }
   };
 
@@ -191,7 +205,7 @@ const Report = ({ route, navigation }) => {
     try {
       const userId = await AsyncStorage.getItem('userId');
       if (!userId) {
-        Alert.alert('Error', 'User not found');
+        Alert.alert('Error', 'User  not found');
         return;
       }
 
@@ -236,10 +250,58 @@ const Report = ({ route, navigation }) => {
     }
   };
 
+  const handleClearDate = async (type) => {
+    setIsLoading(true);
+    try {
+      const userId = await AsyncStorage.getItem('userId');
+      if (!userId) {
+        Alert.alert('Error', 'User  not found');
+        return;
+      }
+
+      const updatedReportDate = localReportDate.map(report => {
+        if (report.type === type) {
+          return {
+            ...report,
+            date: null,
+            isSubmitted: false,
+            submittedBy: ''
+          };
+        }
+        return report;
+      });
+
+      // Check if all reports are submitted
+      const allSubmitted = checkAllReportsSubmitted(updatedReportDate);
+
+      // Update Firestore with reportDate and isCompleted
+      const updateData = {
+        reportDate: updatedReportDate,
+        isCompleted: allSubmitted,
+      };
+
+      // Remove completedDate if not all reports are submitted
+      if (!allSubmitted) {
+        delete updateData.completedDate;
+      }
+
+      const auditRef = doc(db, 'audits', audit.id);
+      await updateDoc(auditRef, updateData);
+
+      setLocalReportDate(updatedReportDate);
+      Alert.alert('Success', 'Date cleared successfully');
+    } catch (error) {
+      console.error('Error clearing date:', error);
+      Alert.alert('Error', 'Failed to clear date');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const renderReportCard = ({ type, label, icon }) => {
     const submitted = isReportSubmitted(type);
     const reportDate = localReportDate.find(r => r.type === type)?.date;
-    
+
     return (
       <TouchableOpacity
         key={type}
@@ -274,6 +336,12 @@ const Report = ({ route, navigation }) => {
                 style={styles.editButton}
               >
                 <MaterialCommunityIcons name="pencil" size={16} color="#00796B" />
+              </TouchableOpacity>
+              <TouchableOpacity 
+                onPress={() => handleClearDate(type)}
+                style={styles.clearButton}
+              >
+                <MaterialCommunityIcons name="close-circle" size={20} color="#D32F2F" />
               </TouchableOpacity>
             </View>
           )}
@@ -455,6 +523,10 @@ const styles = StyleSheet.create({
   },
   submittedLabel: {
     color: '#4CAF50',
+  },
+  clearButton: {
+    marginLeft: 160,
+    marginTop:-5
   },
   checkIcon: {
     marginLeft: 10,

@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, getDoc, query, limit } from 'firebase/firestore';
 import { db } from './firebaseConfig';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import moment from 'moment';
@@ -20,6 +20,11 @@ const IncompleteTasks = ({ navigation }) => {
   const [incompleteAudits, setIncompleteAudits] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const cache = useMemo(() => ({
+    clientCache: {},
+    branchCache: {},
+  }), []);
+
   const fetchIncompleteAudits = useCallback(async () => {
     try {
       setLoading(true);
@@ -27,29 +32,28 @@ const IncompleteTasks = ({ navigation }) => {
       if (!userId) return;
 
       const acceptedAuditsRef = collection(db, "Profile", userId, "acceptedAudits");
-      const acceptedSnapshot = await getDocs(acceptedAuditsRef);
-      
-      const filteredAudits = [];
+      const auditsQuery = query(acceptedAuditsRef, limit(20)); // Limit to 20 tasks for faster loading
+      const acceptedSnapshot = await getDocs(auditsQuery);
 
-      for (const acceptedDoc of acceptedSnapshot.docs) {
+      const auditPromises = acceptedSnapshot.docs.map(async (acceptedDoc) => {
         const acceptedData = acceptedDoc.data();
         const auditId = acceptedData.auditId;
 
         const auditRef = doc(db, "audits", auditId);
         const auditSnap = await getDoc(auditRef);
 
-        if (!auditSnap.exists()) continue;
+        if (!auditSnap.exists()) return null;
 
         const auditData = auditSnap.data();
 
         // Skip if audit is completed
-        if (auditData.isCompleted) continue;
+        if (auditData.isCompleted) return null;
 
         // Get reportDate array
         const reportDate = auditData.reportDate || [
           { type: 'scanDate', date: null, isSubmitted: false, submittedBy: '' },
           { type: 'hardCopyDate', date: null, isSubmitted: false, submittedBy: '' },
-          { type: 'softCopyDate', date: null, isSubmitted: false, submittedBy: '' },
+          { type: 'excelFormat', date: null, isSubmitted: false, submittedBy: '' },
           { type: 'photoDate', date: null, isSubmitted: false, submittedBy: '' }
         ];
 
@@ -57,36 +61,46 @@ const IncompleteTasks = ({ navigation }) => {
         const submittedCount = reportDate.filter(report => report.isSubmitted).length;
 
         // Skip if no reports are submitted or all reports are submitted
-        if (submittedCount === 0 || submittedCount === reportDate.length) continue;
+        if (submittedCount === 0 || submittedCount === reportDate.length) return null;
 
-        // Get branch details
-        const branchRef = doc(db, "branches", auditData.branchId);
-        const branchSnap = await getDoc(branchRef);
-        const branchData = branchSnap.exists() ? branchSnap.data() : {};
+        // Get branch and client data in parallel using Promise.all
+        const branchDataPromise = cache.branchCache[auditData.branchId] 
+          ? Promise.resolve(cache.branchCache[auditData.branchId]) 
+          : getDoc(doc(db, "branches", auditData.branchId)).then(branchSnap => branchSnap.exists() ? branchSnap.data() : {});
+        
+        const clientDataPromise = cache.clientCache[auditData.clientId] 
+          ? Promise.resolve(cache.clientCache[auditData.clientId]) 
+          : getDoc(doc(db, "clients", auditData.clientId)).then(clientSnap => clientSnap.exists() ? clientSnap.data() : {});
 
-        // Get client details
-        const clientRef = doc(db, "clients", auditData.clientId);
-        const clientSnap = await getDoc(clientRef);
-        const clientData = clientSnap.exists() ? clientSnap.data() : {};
+        // Use Promise.all to fetch both client and branch data in parallel
+        const [branchData, clientData] = await Promise.all([branchDataPromise, clientDataPromise]);
 
-        // Add to filtered audits
-        filteredAudits.push({
+        // Cache the results for future use
+        cache.branchCache[auditData.branchId] = branchData;
+        cache.clientCache[auditData.clientId] = clientData;
+
+        return {
           id: auditId,
           ...auditData,
           reportDate,
           date: acceptedData.date,
           branchDetails: branchData,
           clientDetails: clientData
-        });
-      }
+        };
+      });
 
-      setIncompleteAudits(filteredAudits);
+      // Wait for all audit data to be fetched
+      const fetchedAudits = await Promise.all(auditPromises);
+
+      // Filter out null results
+      const validAudits = fetchedAudits.filter(audit => audit !== null);
+      setIncompleteAudits(validAudits);
     } catch (error) {
       console.error('Error fetching incomplete audits:', error);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [cache]);
 
   useFocusEffect(
     useCallback(() => {
@@ -183,6 +197,8 @@ const IncompleteTasks = ({ navigation }) => {
     </View>
   );
 };
+
+
 
 const styles = StyleSheet.create({
   container: {

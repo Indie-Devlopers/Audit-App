@@ -119,12 +119,13 @@ const HomeScreen = () => {
     return () => backHandler.remove();
   }, [isFocused]);
 
+
   const fetchCounters = async () => {
     setLoading(true);
     try {
       const userId = await AsyncStorage.getItem('userId');
       if (!userId) return;
-
+  
       const today = moment().tz("Asia/Kolkata").startOf('day');
       const acceptedAuditsRef = collection(db, "Profile", userId, "acceptedAudits");
       const acceptedSnapshot = await getDocs(acceptedAuditsRef);
@@ -133,26 +134,43 @@ const HomeScreen = () => {
       let incompleteCount = 0;
       let todayCount = 0;
       let futureCount = 0;
-
+  
       // Get all accepted audits data at once
       const auditsPromises = acceptedSnapshot.docs.map(async (acceptedDoc) => {
         const acceptedData = acceptedDoc.data();
         const auditRef = doc(db, "audits", acceptedData.auditId);
         return getDoc(auditRef);
       });
-
+  
       const auditSnapshots = await Promise.all(auditsPromises);
-
+      
+      // Get all branches and clients data in parallel
+      const branchesPromise = getDocs(collection(db, "branches"));
+      const clientsPromise = getDocs(collection(db, "clients"));
+      
+      const [branchesSnapshot, clientsSnapshot] = await Promise.all([branchesPromise, clientsPromise]);
+  
+      // Create a map for branches and clients
+      const branchesLookup = {};
+      branchesSnapshot.forEach(doc => {
+        branchesLookup[doc.id] = doc.data();
+      });
+  
+      const clientsLookup = {};
+      clientsSnapshot.forEach(doc => {
+        clientsLookup[doc.id] = doc.data().name;
+      });
+  
       // Process each audit
       acceptedSnapshot.docs.forEach((acceptedDoc, index) => {
         const acceptedData = acceptedDoc.data();
         const auditSnap = auditSnapshots[index];
         
         if (!auditSnap.exists()) return;
-
+  
         const acceptedDate = moment(acceptedData.date).tz("Asia/Kolkata").startOf('day');
         const auditData = auditSnap.data();
-
+  
         // Count today's and future audits
         if (acceptedDate.isSame(today, 'day')) {
           todayCount++;
@@ -160,35 +178,106 @@ const HomeScreen = () => {
           futureCount++;
           return; // Skip future audits for not submitted/incomplete counts
         }
-
+  
         const reportDate = auditData.reportDate || [
           { type: 'scanDate', date: null, isSubmitted: false },
           { type: 'hardCopyDate', date: null, isSubmitted: false },
-          { type: 'softCopyDate', date: null, isSubmitted: false },
+          { type: 'excelFormat', date: null, isSubmitted: false },
           { type: 'photoDate', date: null, isSubmitted: false }
         ];
-
+  
         const submittedCount = reportDate.filter(report => report.isSubmitted).length;
-
+  
         if (submittedCount === 0) {
           notSubmittedCount++;
         } else if (submittedCount > 0 && submittedCount < 4) {
           incompleteCount++;
         }
       });
-
+  
       setTodaysTasks(todayCount);
       setOngoingCounter(futureCount);
       setNotSubmittedCounter(notSubmittedCount);
       setIncompleteCount(incompleteCount);
-
+      setBranchesMap(branchesLookup);
+      setClientsData(clientsLookup);
+  
     } catch (error) {
       console.error("Error fetching counters:", error);
     } finally {
       setLoading(false);
     }
   };
-
+  
+  const fetchUpcomingAudits = async () => {
+    try {
+      const userId = await AsyncStorage.getItem("userId");
+      if (!userId) return;
+  
+      const acceptedAuditsRef = collection(db, "Profile", userId, "acceptedAudits");
+      const acceptedAuditsSnapshot = await getDocs(acceptedAuditsRef);
+      const acceptedAuditIds = acceptedAuditsSnapshot.docs.map(doc => doc.data().auditId);
+  
+      // Listen for real-time updates from the "audits" collection
+      const auditsRef = collection(db, "audits");
+  
+      return onSnapshot(auditsRef, async (auditsSnapshot) => {
+        let fetchedUpcomingAudits = [];
+  
+        // Fetch branches and clients data in parallel
+        const branchesSnapshot = await getDocs(collection(db, "branches"));
+        const clientsSnapshot = await getDocs(collection(db, "clients"));
+  
+        const branchesLookup = {};
+        branchesSnapshot.forEach(doc => {
+          branchesLookup[doc.id] = doc.data();
+        });
+  
+        const clientsLookup = {};
+        clientsSnapshot.forEach(doc => {
+          clientsLookup[doc.id] = doc.data().name;
+        });
+  
+        auditsSnapshot.docs.forEach(doc => {
+          const auditData = doc.data();
+          const auditId = doc.id;
+  
+          if (!acceptedAuditIds.includes(auditId) && !auditData.isSubmitted) {
+            fetchedUpcomingAudits.push({
+              id: auditId,
+              title: auditData.title,
+              city: auditData.city,
+              date: auditData.date,
+              branchId: auditData.branchId,
+              clientId: auditData.clientId,
+              createDate: auditData.createDate || "2000-01-01T00:00:00.000Z" // Default to avoid undefined errors
+            });
+          }
+        });
+  
+        // Sort by createDate (newest first)
+        fetchedUpcomingAudits.sort((a, b) => new Date(b.createDate) - new Date(a.createDate));
+  
+        setUpcomingAudits(fetchedUpcomingAudits);
+        setBranchesMap(branchesLookup);
+        setClientsData(clientsLookup);
+      });
+    } catch (error) {
+      console.error("Error fetching upcoming audits:", error);
+    }
+  };
+  
+  useEffect(() => {
+    let unsubscribe = fetchUpcomingAudits(); // Call function to get the unsubscribe function
+  
+    return () => {
+      if (typeof unsubscribe === "function") {
+        unsubscribe(); // Cleanup listener properly
+      }
+    };
+  }, []);
+  
+  
   const fetchBranchesAndClients = async () => {
     const branchesSnapshot = await getDocs(collection(db, "branches"));
     const fetchedBranches = [];
@@ -209,44 +298,6 @@ const HomeScreen = () => {
     setClientsData(fetchedClients);
 
     // console.log("clientsSnapshot:::::::::",fetchedClients)
-  };
-
-  const fetchUpcomingAudits = async () => {
-    try {
-      // Get user's accepted audits
-      const userId = await AsyncStorage.getItem("userId");
-      const acceptedAuditsRef = collection(db, "Profile", userId, "acceptedAudits");
-      const acceptedAuditsSnapshot = await getDocs(acceptedAuditsRef);
-      const acceptedAuditIds = acceptedAuditsSnapshot.docs.map(doc => doc.data().auditId);
-
-      // Get all audits
-      const auditsSnapshot = await getDocs(collection(db, "audits"));
-      const fetchedUpcomingAudits = [];
-
-      // Process each audit
-      for (const doc of auditsSnapshot.docs) {
-        const auditData = doc.data();
-        const auditId = doc.id;
-
-        // Show audit if:
-        // 1. auditId is NOT in acceptedAudits collection OR
-        // 2. isSubmitted is true
-        if (!acceptedAuditIds.includes(auditId) && !auditData.isSubmitted) {
-          fetchedUpcomingAudits.push({
-            id: auditId,
-            title: auditData.title,
-            city: auditData.city,
-            date: auditData.date,
-            branchId: auditData.branchId,
-            clientId: auditData.clientId,
-          });
-        }
-      }
-
-      setUpcomingAudits(fetchedUpcomingAudits);
-    } catch (error) {
-      console.error("Error fetching upcoming audits:", error);
-    }
   };
 
   const CardGradient = ({ colors, children, onPress, style }) => (
@@ -484,6 +535,7 @@ const styles = StyleSheet.create({
   cardContentWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
+    height:70
   },
   iconContainer: {
     width: 40,

@@ -35,53 +35,71 @@ const CompletedTasks = () => {
         setLoading(false);
         return;
       }
-
+  
       const auditsRef = collection(db, "audits");
       const auditsSnapshot = await getDocs(auditsRef);
-      
+  
       const auditsData = [];
-
-      for (const auditDoc of auditsSnapshot.docs) {
+  
+      // Collect all branch, client, and auditType ids in separate arrays
+      const branchIds = [];
+      const clientIds = [];
+      const auditTypeIds = [];
+  
+      auditsSnapshot.docs.forEach((auditDoc) => {
         const auditData = auditDoc.data();
-        
-        if (auditData.isCompleted && 
-            auditData.acceptedByUser && 
-            auditData.acceptedByUser.includes(userId)) {
-          
-          // Get branch details
-          const branchRef = doc(db, "branches", auditData.branchId);
-          const branchSnap = await getDoc(branchRef);
-          const branchData = branchSnap.exists() ? branchSnap.data() : {};
-
-          // Get client details
-          const clientRef = doc(db, "clients", auditData.clientId);
-          const clientSnap = await getDoc(clientRef);
-          const clientData = clientSnap.exists() ? clientSnap.data() : {};
-
-          // Get audit type details
-          const auditTypeRef = doc(db, "auditType", auditData.auditTypeId);
-          const auditTypeSnap = await getDoc(auditTypeRef);
-          const auditTypeData = auditTypeSnap.exists() ? auditTypeSnap.data() : {};
-
+        if (auditData.isCompleted && auditData.acceptedByUser && auditData.acceptedByUser.includes(userId)) {
           auditsData.push({
             id: auditDoc.id,
             ...auditData,
-            branchDetails: {
-              ...branchData,
-              location: branchData.city || 'City not available'
-            
-            },
-            clientDetails: clientData,
-            auditTypeName: auditTypeData.name || 'Unknown Audit Type'
           });
+          branchIds.push(auditData.branchId);
+          clientIds.push(auditData.clientId);
+          auditTypeIds.push(auditData.auditTypeId);
         }
-      }
-
+      });
+  
+      // Remove duplicates
+      const uniqueBranchIds = [...new Set(branchIds)];
+      const uniqueClientIds = [...new Set(clientIds)];
+      const uniqueAuditTypeIds = [...new Set(auditTypeIds)];
+  
+      // Fetch all branch, client, and auditType data in parallel
+      const branchPromises = uniqueBranchIds.map((branchId) =>
+        getDoc(doc(db, "branches", branchId))
+      );
+      const clientPromises = uniqueClientIds.map((clientId) =>
+        getDoc(doc(db, "clients", clientId))
+      );
+      const auditTypePromises = uniqueAuditTypeIds.map((auditTypeId) =>
+        getDoc(doc(db, "auditType", auditTypeId))
+      );
+  
+      const [branchSnapshots, clientSnapshots, auditTypeSnapshots] = await Promise.all([
+        Promise.all(branchPromises),
+        Promise.all(clientPromises),
+        Promise.all(auditTypePromises),
+      ]);
+  
+      // Map the results to the audits data
+      auditsData.forEach((audit) => {
+        const branchData = branchSnapshots.find((branchSnap) => branchSnap.id === audit.branchId)?.data();
+        const clientData = clientSnapshots.find((clientSnap) => clientSnap.id === audit.clientId)?.data();
+        const auditTypeData = auditTypeSnapshots.find((auditTypeSnap) => auditTypeSnap.id === audit.auditTypeId)?.data();
+  
+        audit.branchDetails = {
+          ...branchData,
+          location: branchData?.city || 'City not available',
+        };
+        audit.clientDetails = clientData || {};
+        audit.auditTypeName = auditTypeData?.name || 'Unknown Audit Type';
+      });
+  
       // Sort by completedDate in descending order
-      auditsData.sort((a, b) => 
+      auditsData.sort((a, b) =>
         moment(b.completedDate).valueOf() - moment(a.completedDate).valueOf()
       );
-
+  
       setCompletedAudits(auditsData);
       setLoading(false);
     } catch (error) {
@@ -89,6 +107,7 @@ const CompletedTasks = () => {
       setLoading(false);
     }
   };
+  
 
   const renderAuditCard = ({ item }) => (
     <View style={styles.cardContainer}>
@@ -134,7 +153,7 @@ const CompletedTasks = () => {
                   name={
                     report.type === 'scanDate' ? 'scanner' :
                     report.type === 'hardCopyDate' ? 'file-document-outline' :
-                    report.type === 'softCopyDate' ? 'file-pdf-box' :
+                    report.type === 'excelFormat' ? 'file-pdf-box' :
                     'image-outline'
                   }
                   size={18}

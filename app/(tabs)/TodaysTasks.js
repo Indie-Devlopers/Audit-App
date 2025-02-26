@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, FlatList, Image, ActivityIndicator, SafeAreaView } from "react-native";
 import { getFirestore, doc, getDoc, getDocs, collection } from "firebase/firestore";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -37,6 +37,14 @@ export default function TodaysTasks({ navigation }) {
 
   const fetchTodayAudits = async (userId) => {
     try {
+      const cacheKey = `todaysAudits-${userId}`;
+      const cachedData = await AsyncStorage.getItem(cacheKey);
+
+      if (cachedData) {
+        setTodayAudits(JSON.parse(cachedData));  // Load from cache first
+        setLoading(false);
+      }
+
       const userRef = doc(db, "Profile", userId);
       const acceptedAuditsRef = collection(userRef, "acceptedAudits");
       const acceptedAuditsSnapshot = await getDocs(acceptedAuditsRef);
@@ -72,7 +80,9 @@ export default function TodaysTasks({ navigation }) {
         })
       );
 
-      setTodayAudits(audits.filter(audit => audit !== null));
+      const filteredAudits = audits.filter(audit => audit !== null);
+      setTodayAudits(filteredAudits);
+      await AsyncStorage.setItem(cacheKey, JSON.stringify(filteredAudits)); // Update cache
       setLoading(false);
     } catch (error) {
       console.error("Error fetching today's audits:", error);
@@ -80,92 +90,8 @@ export default function TodaysTasks({ navigation }) {
     }
   };
 
-  const handleAuditPress = (audit) => {
-    navigation.navigate("Report", { audit });
-  };
-
-  const renderAudit = ({ item: audit, index }) => (
-    <View style={styles.auditCard}>
-      <LinearGradient
-        colors={['#ffffff', '#f8f9fa']}
-        style={styles.cardGradient}
-      >
-        {/* Top Accent Bar */}
-        <LinearGradient
-          colors={['#00796B', '#004D40']}
-          style={styles.accentBar}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-        />
-
-        {/* Client Badge with Serial Number */}
-        <View style={styles.clientBadgeContainer}>
-          <LinearGradient
-            colors={['#00796B', '#004D40']}
-            style={styles.clientBadge}
-          >
-            <Text style={styles.clientInitial}>
-              {(index + 1).toString()}
-            </Text>
-          </LinearGradient>
-        </View>
-
-        {/* Header Section */}
-        <View style={styles.header}>
-          <View style={styles.clientInfo}>
-            <Text style={styles.companyName} numberOfLines={1}>
-              {audit.clientDetails?.name || "Client Name"}
-            </Text>
-            <View style={styles.branchContainer}>
-              <MaterialIcons name="business" size={16} color="#7f8c8d" style={styles.branchIcon} />
-              <Text style={styles.branchName} numberOfLines={1}>
-                {audit.branchDetails?.name || "Branch Name"}
-              </Text>
-            </View>
-          </View>
-          {/* <View style={styles.statusBadge}>
-            <MaterialIcons name="today" size={14} color="#1976d2" style={styles.statusIcon} />
-            <Text style={styles.statusText}>Today</Text>
-          </View> */}
-        </View>
-
-        {/* Details Section */}
-        <View style={styles.details}>
-          <View style={styles.detailRow}>
-            <View style={styles.detailIconContainer}>
-              <MaterialIcons name="location-on" size={20} color="#00796B" />
-            </View>
-            <View style={styles.detailTextContainer}>
-              <Text style={styles.detailLabel}>Location</Text>
-              <Text style={styles.detailText}>{audit.branchDetails?.city || "City Not Specified"}</Text>
-            </View>
-          </View>
-          
-          <View style={styles.detailRow}>
-            <View style={styles.detailIconContainer}>
-              <MaterialCommunityIcons name="shield-search" size={20} color="#00796B" />
-            </View>
-            <View style={styles.detailTextContainer}>
-              <Text style={styles.detailLabel}>Audit Type</Text>
-              <Text style={styles.detailText}>{audit.auditType || "Audit Type Not Specified"}</Text>
-            </View>
-          </View>
-          
-          <View style={styles.detailRow}>
-            <View style={styles.detailIconContainer}>
-              <MaterialIcons name="event" size={20} color="#00796B" />
-            </View>
-            <View style={styles.detailTextContainer}>
-              <Text style={styles.detailLabel}>Date</Text>
-              <Text style={styles.detailText}>
-                {moment(audit.date).format('DD MMM, YYYY')}
-              </Text>
-            </View>
-          </View>
-        </View>
-      </LinearGradient>
-    </View>
-  );
+  // Memoize the audits to avoid unnecessary re-renders
+  const memoizedAudits = useMemo(() => todayAudits, [todayAudits]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -184,15 +110,71 @@ export default function TodaysTasks({ navigation }) {
 
       {loading ? (
         <ActivityIndicator size="large" color="#00796B" style={styles.loader} />
-      ) : todayAudits.length === 0 ? (
+      ) : memoizedAudits.length === 0 ? (
         <View style={styles.emptyContainer}>
           <MaterialCommunityIcons name="calendar-blank" size={64} color="#B0BEC5" />
           <Text style={styles.noAuditsText}>No audits scheduled for today</Text>
         </View>
       ) : (
         <FlatList
-          data={todayAudits}
-          renderItem={renderAudit}
+          data={memoizedAudits}
+          renderItem={({ item }) => (
+            <View style={styles.auditCard}>
+              <LinearGradient
+                colors={['#ffffff', '#f8f9fa']}
+                style={styles.cardGradient}
+              >
+                <LinearGradient
+                  colors={['#00796B', '#004D40']}
+                  style={styles.accentBar}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                />
+
+                <View style={styles.clientBadgeContainer}>
+                  <LinearGradient
+                    colors={['#00796B', '#004D40']}
+                    style={styles.clientBadge}
+                  >
+                    <Text style={styles.clientInitial}>
+                      {(memoizedAudits.indexOf(item) + 1).toString()}
+                    </Text>
+                  </LinearGradient>
+                </View>
+
+                <View style={styles.header}>
+                  <View style={styles.clientInfo}>
+                    <Text style={styles.companyName} numberOfLines={1}>
+                      {item.clientDetails?.name || "Client Name"}
+                    </Text>
+                    <View style={styles.branchContainer}>
+                      <MaterialIcons name="business" size={16} color="#7f8c8d" style={styles.branchIcon} />
+                      <Text style={styles.branchName} numberOfLines={1}>
+                        {item.branchDetails?.name || "Branch Name"}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+
+                <View style={styles.details}>
+                  <View style={styles.detailRow}>
+                    <MaterialIcons name="location-on" size={20} color="#00796B" />
+                    <Text style={styles.detailText}>{item.branchDetails?.city || "City Not Specified"}</Text>
+                  </View>
+                  <View style={styles.detailRow}>
+                    <MaterialCommunityIcons name="shield-search" size={20} color="#00796B" />
+                    <Text style={styles.detailText}>{item.auditType || "Audit Type Not Specified"}</Text>
+                  </View>
+                  <View style={styles.detailRow}>
+                    <MaterialIcons name="event" size={20} color="#00796B" />
+                    <Text style={styles.detailText}>
+                      {moment(item.date).format('DD MMM, YYYY')}
+                    </Text>
+                  </View>
+                </View>
+              </LinearGradient>
+            </View>
+          )}
           keyExtractor={(item) => item.id}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.listContainer}
@@ -201,6 +183,7 @@ export default function TodaysTasks({ navigation }) {
     </SafeAreaView>
   );
 }
+
 
 const styles = StyleSheet.create({
   container: {

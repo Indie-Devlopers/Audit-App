@@ -13,7 +13,7 @@ const ReportScreen = ({ route }) => {
   const navigation = useNavigation();
   const [scanDate, setScanDate] = useState(null);
   const [hardCopyDate, setHardCopyDate] = useState(null);
-  const [softCopyDate, setSoftCopyDate] = useState(null);
+  const [excelFormat, setexcelFormat] = useState(null);
   const [photoDate, setPhotoDate] = useState(null);
 
   const [auditId, setAuditId] = useState(route?.params?.auditId || '');
@@ -21,7 +21,7 @@ const ReportScreen = ({ route }) => {
 
   const [showScanDatePicker, setShowScanDatePicker] = useState(false);
   const [showHardCopyDatePicker, setShowHardCopyDatePicker] = useState(false);
-  const [showSoftCopyDatePicker, setShowSoftCopyDatePicker] = useState(false);
+  const [showexcelFormatPicker, setShowexcelFormatPicker] = useState(false);
   const [showPhotoDatePicker, setShowPhotoDatePicker] = useState(false);
 
   useEffect(() => {
@@ -34,12 +34,12 @@ const ReportScreen = ({ route }) => {
         if (data.reportDate) {
           const scanDateObj = data.reportDate.find(d => d.type === 'scanDate');
           const hardDateObj = data.reportDate.find(d => d.type === 'hardCopyDate');
-          const softDateObj = data.reportDate.find(d => d.type === 'softCopyDate');
+          const softDateObj = data.reportDate.find(d => d.type === 'excelFormat');
           const photoDateObj = data.reportDate.find(d => d.type === 'photoDate');
 
           setScanDate(scanDateObj?.date ? new Date(scanDateObj.date) : null);
           setHardCopyDate(hardDateObj?.date ? new Date(hardDateObj.date) : null);
-          setSoftCopyDate(softDateObj?.date ? new Date(softDateObj.date) : null);
+          setexcelFormat(softDateObj?.date ? new Date(softDateObj.date) : null);
           setPhotoDate(photoDateObj?.date ? new Date(photoDateObj.date) : null);
         }
       }
@@ -83,11 +83,11 @@ const ReportScreen = ({ route }) => {
               isSubmitted: !!hardCopyDate,
               submittedBy: userId
             };
-          case 'softCopyDate':
+          case 'excelFormat':
             return {
               ...dateObj,
-              date: softCopyDate ? moment(softCopyDate).format('YYYY-MM-DD') : null,
-              isSubmitted: !!softCopyDate,
+              date: excelFormat ? moment(excelFormat).format('YYYY-MM-DD') : null,
+              isSubmitted: !!excelFormat,
               submittedBy: userId
             };
           case 'photoDate':
@@ -180,11 +180,11 @@ const ReportScreen = ({ route }) => {
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>Select Dates for Reports</Text>
       <View style={styles.dateSection}>
-        <Text style={styles.sectionTitle}>Soft Copy Date</Text>
-        <TouchableOpacity style={styles.datePickerButton} onPress={() => setShowSoftCopyDatePicker(true)}>
-          <Text style={styles.dateText}>{softCopyDate ? softCopyDate.toDateString() : 'Select Date'}</Text>
+        <Text style={styles.sectionTitle}>Excel Format Date</Text>
+        <TouchableOpacity style={styles.datePickerButton} onPress={() => setShowexcelFormatPicker(true)}>
+          <Text style={styles.dateText}>{excelFormat ? excelFormat.toDateString() : 'Select Date'}</Text>
         </TouchableOpacity>
-        {renderDatePicker(softCopyDate, setSoftCopyDate, showSoftCopyDatePicker, setShowSoftCopyDatePicker)}
+        {renderDatePicker(excelFormat, setexcelFormat, showexcelFormatPicker, setShowexcelFormatPicker)}
       </View>
       <View style={styles.dateSection}>
         <Text style={styles.sectionTitle}>Scan Date</Text>

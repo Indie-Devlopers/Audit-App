@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, FlatList, Image, ActivityIndicator } from "react-native";
-import { getFirestore, doc, getDoc, getDocs, collection, query, where } from "firebase/firestore";
+import React, { useState, useEffect, useMemo } from "react";
+import { View, Text, TouchableOpacity, StyleSheet, FlatList, ActivityIndicator } from "react-native";
+import { getDocs, collection, doc, getDoc } from "firebase/firestore";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { db } from "./firebaseConfig";
 import MaterialIcons from "react-native-vector-icons/MaterialIcons";
@@ -31,33 +31,26 @@ const NotSubmitted = ({ navigation }) => {
       // Get accepted audits for the user
       const acceptedAuditsRef = collection(db, "Profile", userId, "acceptedAudits");
       const acceptedSnapshot = await getDocs(acceptedAuditsRef);
-      
-      const filteredAudits = [];
 
-      // Process each accepted audit
-      for (const acceptedDoc of acceptedSnapshot.docs) {
+      const auditPromises = acceptedSnapshot.docs.map(async (acceptedDoc) => {
         const acceptedData = acceptedDoc.data();
         const auditId = acceptedData.auditId;
         const acceptedDate = moment(acceptedData.date).tz("Asia/Kolkata").startOf('day');
 
-        // Skip if audit date is in future
-        if (acceptedDate.isAfter(today)) {
-          continue;
-        }
+        // Skip if audit date is in the future
+        if (acceptedDate.isAfter(today)) return null;
 
-        // Get the audit details from audits collection
+        // Get the audit details from the audits collection
         const auditRef = doc(db, "audits", auditId);
         const auditSnap = await getDoc(auditRef);
 
-        if (!auditSnap.exists()) continue;
+        if (!auditSnap.exists()) return null;
 
         const auditData = auditSnap.data();
-
-        // Get reportDate array, initialize if doesn't exist
         const reportDate = auditData.reportDate || [
           { type: 'scanDate', date: null, isSubmitted: false, submittedBy: '' },
           { type: 'hardCopyDate', date: null, isSubmitted: false, submittedBy: '' },
-          { type: 'softCopyDate', date: null, isSubmitted: false, submittedBy: '' },
+          { type: 'excelFormat', date: null, isSubmitted: false, submittedBy: '' },
           { type: 'photoDate', date: null, isSubmitted: false, submittedBy: '' }
         ];
 
@@ -65,28 +58,29 @@ const NotSubmitted = ({ navigation }) => {
         const submittedCount = reportDate.filter(report => report.isSubmitted).length;
 
         // Only include audits with zero submitted reports
-        if (submittedCount > 0) continue;
+        if (submittedCount > 0) return null;
 
-        // Get branch details
+        // Get branch and client details
         const branchRef = doc(db, "branches", auditData.branchId);
-        const branchSnap = await getDoc(branchRef);
-        const branchData = branchSnap.exists() ? branchSnap.data() : {};
-
-        // Get client details
         const clientRef = doc(db, "clients", auditData.clientId);
-        const clientSnap = await getDoc(clientRef);
+
+        // Fetch all branch and client data concurrently
+        const [branchSnap, clientSnap] = await Promise.all([getDoc(branchRef), getDoc(clientRef)]);
+        const branchData = branchSnap.exists() ? branchSnap.data() : {};
         const clientData = clientSnap.exists() ? clientSnap.data() : {};
 
-        // Add to filtered audits
-        filteredAudits.push({
+        return {
           id: auditId,
           ...auditData,
           reportDate,
           date: acceptedData.date,
           branchDetails: branchData,
           clientDetails: clientData
-        });
-      }
+        };
+      });
+
+      // Wait for all audit data to be fetched
+      const filteredAudits = (await Promise.all(auditPromises)).filter(audit => audit !== null);
 
       setNotSubmittedAudits(filteredAudits);
       setLoading(false);
@@ -96,52 +90,55 @@ const NotSubmitted = ({ navigation }) => {
     }
   };
 
-  const renderAuditItem = ({ item }) => (
-    <TouchableOpacity
-      style={styles.auditCard}
-      onPress={() => navigation.navigate("Report", { 
-        audit: {
-          id: item.id,
-          clientName: item.clientDetails?.name,
-          branchName: item.branchDetails?.name,
-          auditType: item.auditType,
-          date: item.date,
-          reportDate: item.reportDate
-        }
-      })}
-    >
-      <LinearGradient
-        colors={['#ffffff', '#f8f9fa']}
-        style={styles.cardGradient}
+  const renderedAudits = useMemo(() => {
+    return notSubmittedAudits.map(item => (
+      <TouchableOpacity
+        key={item.id}
+        style={styles.auditCard}
+        onPress={() => navigation.navigate("Report", { 
+          audit: {
+            id: item.id,
+            clientName: item.clientDetails?.name,
+            branchName: item.branchDetails?.name,
+            auditType: item.auditType,
+            date: item.date,
+            reportDate: item.reportDate
+          }
+        })}
       >
-        <View style={styles.cardHeader}>
-          <View style={styles.clientInfo}>
-            <View style={styles.iconContainer}>
-              <MaterialIcons name="business" size={24} color="#1976D2" />
+        <LinearGradient
+          colors={['#ffffff', '#f8f9fa']}
+          style={styles.cardGradient}
+        >
+          <View style={styles.cardHeader}>
+            <View style={styles.clientInfo}>
+              <View style={styles.iconContainer}>
+                <MaterialIcons name="business" size={24} color="#1976D2" />
+              </View>
+              <View style={styles.headerText}>
+                <Text style={styles.clientName}>{item.clientDetails?.name || 'Unknown Client'}</Text>
+                <Text style={styles.date}>{moment(item.date).format('DD MMM, YYYY')}</Text>
+              </View>
             </View>
-            <View style={styles.headerText}>
-              <Text style={styles.clientName}>{item.clientDetails?.name || 'Unknown Client'}</Text>
-              <Text style={styles.date}>{moment(item.date).format('DD MMM, YYYY')}</Text>
+            <View style={styles.statusContainer}>
+              <Text style={styles.statusText}>Not Started</Text>
             </View>
           </View>
-          <View style={styles.statusContainer}>
-            <Text style={styles.statusText}>Not Started</Text>
-          </View>
-        </View>
 
-        <View style={styles.cardContent}>
-          <View style={styles.locationRow}>
-            <MaterialCommunityIcons name="office-building" size={20} color="#666" />
-            <Text style={styles.locationText}>{item.branchDetails?.name || 'Unknown Branch'}</Text>
+          <View style={styles.cardContent}>
+            <View style={styles.locationRow}>
+              <MaterialCommunityIcons name="office-building" size={20} color="#666" />
+              <Text style={styles.locationText}>{item.branchDetails?.name || 'Unknown Branch'}</Text>
+            </View>
+            <View style={styles.locationRow}>
+              <MaterialIcons name="location-on" size={20} color="#666" />
+              <Text style={styles.locationText}>{item.branchDetails?.city || 'Unknown Location'}</Text>
+            </View>
           </View>
-          <View style={styles.locationRow}>
-            <MaterialIcons name="location-on" size={20} color="#666" />
-            <Text style={styles.locationText}>{item.branchDetails?.city || 'Unknown Location'}</Text>
-          </View>
-        </View>
-      </LinearGradient>
-    </TouchableOpacity>
-  );
+        </LinearGradient>
+      </TouchableOpacity>
+    ));
+  }, [notSubmittedAudits, navigation]);
 
   if (loading) {
     return (
@@ -163,7 +160,7 @@ const NotSubmitted = ({ navigation }) => {
       {notSubmittedAudits.length > 0 ? (
         <FlatList
           data={notSubmittedAudits}
-          renderItem={renderAuditItem}
+          renderItem={({ item }) => renderedAudits}
           keyExtractor={item => item.id}
           contentContainerStyle={styles.listContainer}
           showsVerticalScrollIndicator={false}
