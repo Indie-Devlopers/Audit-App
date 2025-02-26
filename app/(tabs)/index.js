@@ -5,10 +5,6 @@ import { createStackNavigator } from "@react-navigation/stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from 'expo-linear-gradient';
-import NotificationService, { 
-  setupDailyNotifications, 
-  handleNotificationResponse 
-} from '../services/NotificationService';
 import * as Notifications from 'expo-notifications';
 
 // Import your screens
@@ -251,19 +247,7 @@ const styles = StyleSheet.create({
 
 // Main App Navigator
 export default function App() {
-  useEffect(() => {
-    // Set up notifications
-    setupDailyNotifications();
 
-    // Listen for notification taps
-    const subscription = Notifications.addNotificationResponseReceivedListener(response => {
-      handleNotificationResponse(response, navigation);
-    });
-
-    return () => {
-      subscription.remove();
-    };
-  }, []);
 
   return (
     <Stack.Navigator 

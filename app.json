@@ -1,24 +1,24 @@
 {
   "expo": {
-    "name": "audit",
+    "name": "Smart Auditor",
     "slug": "audit",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/logo.png",
     "scheme": "myapp",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {              
       "resizeMode": "contain",
       "backgroundColor": "#ffffff",
-      "image": "./assets/images/icon.png" 
+      "image": "./assets/images/logo.png"
     },
     "assetBundlePatterns": [
       "**/*"
     ],
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "foregroundImage": "./assets/images/logo-2.png",
         "backgroundColor": "#ffffff"
       },
       "package": "com.indidevelopers.audit"
@@ -26,19 +26,11 @@
     "web": {
       "bundler": "metro",
       "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/logo.png"
     },
     "plugins": [
       "expo-router",
-      "expo-font",
-      [
-        "expo-notifications",
-        {
-          "icon": "./assets/icon.png",
-          "color": "#00796B",
-          "sounds": ["./assets/notification.wav"]
-        }
-      ]
+      "expo-font"
     ],
     "experiments": {
       "typedRoutes": true
