@@ -6,26 +6,25 @@ import {
   TextInput,
   TouchableOpacity,
   Dimensions,
-  ScrollView,
-  ImageBackground,
   Alert,
   BackHandler,
   StatusBar,
+  Platform,
 } from "react-native";
-import { Picker } from "@react-native-picker/picker";
 import { LinearGradient } from 'expo-linear-gradient';
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from './firebaseConfig';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view'; // Ensure this is imported
 
 const { width, height } = Dimensions.get("window");
 
 export default function LoginScreen({ navigation }) {
-  const [language, setLanguage] = useState("en"); // Default to English
+  const [language, setLanguage] = useState("en");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [passwordVisible, setPasswordVisible] = useState(false); // State for password visibility
+  const [passwordVisible, setPasswordVisible] = useState(false);
 
   useEffect(() => {
     const checkUserLogin = async () => {
@@ -34,7 +33,6 @@ export default function LoginScreen({ navigation }) {
         navigation.navigate("HomeScreen");
       }
     };
-
     checkUserLogin();
   }, [navigation]);
 
@@ -101,14 +99,18 @@ export default function LoginScreen({ navigation }) {
   };
 
   return (
-    <View style={styles.container}>
+    <KeyboardAwareScrollView
+      style={styles.container}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardShouldPersistTaps="handled"
+      contentContainerStyle={styles.scrollViewContent}
+      extraHeight={20} // Add extra height to make sure content is fully visible when keyboard opens
+    >
       <StatusBar barStyle="light-content" />
       <LinearGradient
         colors={['#00796B', '#004D40']}
         style={styles.topSection}
       >
-     
-
         <View style={styles.headerContent}>
           <Ionicons name="shield-checkmark" size={80} color="#fff" />
           <Text style={styles.welcomeText}>Welcome Auditors</Text>
@@ -161,7 +163,7 @@ export default function LoginScreen({ navigation }) {
           </LinearGradient>
         </TouchableOpacity>
       </View>
-    </View>
+    </KeyboardAwareScrollView>
   );
 }
 
@@ -181,29 +183,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 20,
   },
-  languageSelector: {
-    position: 'absolute',
-    top: 20,
-    right: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 10,
-    overflow: 'hidden',
-  },
-  picker: {
-    height: 50,
-    width: 120,
-    color: '#fff',
-  },
   welcomeText: {
     fontSize: 28,
     fontWeight: 'bold',
     color: '#fff',
     marginTop: 20,
   },
+  scrollViewContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
+  },
   bottomSection: {
     flex: 1,
     padding: 20,
     paddingTop: 40,
+    paddingBottom: 20, // Add some padding to avoid overlapping
   },
   inputContainer: {
     marginBottom: 30,
