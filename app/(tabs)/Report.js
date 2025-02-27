@@ -525,7 +525,7 @@ const styles = StyleSheet.create({
     color: '#4CAF50',
   },
   clearButton: {
-    marginLeft: 160,
+    marginLeft: 110,
     marginTop:-5
   },
   checkIcon: {

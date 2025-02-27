@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useMemo } from "react";
-import { View, Text, StyleSheet, ActivityIndicator, SafeAreaView, FlatList } from "react-native";
-import { getFirestore, collection, getDocs, doc, getDoc } from "firebase/firestore";
+import React, { useState, useEffect } from "react";
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, SafeAreaView, FlatList } from "react-native";
+import { getFirestore, collection, getDocs, doc, getDoc, updateDoc } from "firebase/firestore";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { app } from "./firebaseConfig";
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
@@ -10,62 +10,10 @@ import moment from 'moment';
 
 const db = getFirestore(app);
 
-const AuditCard = React.memo(({ audit, index }) => (
-  <View style={styles.auditCard}>
-    <LinearGradient colors={['#ffffff', '#f8f9fa']} style={styles.cardGradient}>
-      <LinearGradient colors={['#00796B', '#004D40']} style={styles.accentBar} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} />
-      <View style={styles.clientBadgeContainer}>
-        <LinearGradient colors={['#00796B', '#004D40']} style={styles.clientBadge}>
-          <Text style={styles.clientInitial}>{(index + 1).toString()}</Text>
-        </LinearGradient>
-      </View>
-      <View style={styles.header}>
-        <View style={styles.clientInfo}>
-          <Text style={styles.companyName} numberOfLines={1}>{audit.clientDetails?.name || "Client Name"}</Text>
-          <View style={styles.branchContainer}>
-            <MaterialIcons name="business" size={16} color="#7f8c8d" style={styles.branchIcon} />
-            <Text style={styles.branchName} numberOfLines={1}>{audit.branchDetails?.name || "Branch Name"}</Text>
-          </View>
-        </View>
-      </View>
-      <View style={styles.details}>
-        <View style={styles.detailRow}>
-          <View style={styles.detailIconContainer}>
-            <MaterialIcons name="location-on" size={20} color="#00796B" />
-          </View>
-          <View style={styles.detailTextContainer}>
-            <Text style={styles.detailLabel}>Location</Text>
-            <Text style={styles.detailText}>{audit.branchDetails?.city || "City Not Specified"}</Text>
-          </View>
-        </View>
-        <View style={styles.detailRow}>
-          <View style={styles.detailIconContainer}>
-            <MaterialCommunityIcons name="shield-search" size={20} color="#00796B" />
-          </View>
-          <View style={styles.detailTextContainer}>
-            <Text style={styles.detailLabel}>Audit Type</Text>
-            <Text style={styles.detailText}>{audit.auditType || "Audit Type Not Specified"}</Text>
-          </View>
-        </View>
-        <View style={styles.detailRow}>
-          <View style={styles.detailIconContainer}>
-            <MaterialIcons name="event" size={20} color="#00796B" />
-          </View>
-          <View style={styles.detailTextContainer}>
-            <Text style={styles.detailLabel}>Scheduled Date</Text>
-            <Text style={styles.detailText}>
-              {audit.acceptedDate ? moment(audit.acceptedDate).format('DD MMM, YYYY') : "Not Scheduled"}
-            </Text>
-          </View>
-        </View>
-      </View>
-    </LinearGradient>
-  </View>
-));
-
 const Ongoing = ({ navigation }) => {
   const [ongoingAudits, setOngoingAudits] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [ongoingCounter, setOngoingCounter] = useState(0);
 
   useEffect(() => {
     const loadOngoingAudits = async () => {
@@ -77,20 +25,11 @@ const Ongoing = ({ navigation }) => {
           return;
         }
 
-        const cacheKey = `ongoingAudits_${userId}`;
-        const cachedAudits = await AsyncStorage.getItem(cacheKey);
-        
-        if (cachedAudits) {
-          setOngoingAudits(JSON.parse(cachedAudits));
-          setLoading(false);
-          return;
-        }
-
         const userAcceptedRef = collection(doc(db, "Profile", userId), "acceptedAudits");
         const acceptedAuditsSnap = await getDocs(userAcceptedRef);
 
         const fetchedAudits = [];
-        const today = new Date(); 
+        const today = new Date(); // Current date
 
         const auditPromises = acceptedAuditsSnap.docs.map(async (auditDoc) => {
           const auditId = auditDoc.id;
@@ -114,22 +53,27 @@ const Ongoing = ({ navigation }) => {
             const acceptedAuditData = acceptedAuditSnap.data();
             const acceptedDate = acceptedAuditData ? acceptedAuditData.date : null;
 
-            if (branchSnap.exists() && clientSnap.exists() && acceptedDate && new Date(acceptedDate) > today) {
-              fetchedAudits.push({
-                id: auditId,
-                ...auditDetails,
-                branchDetails: branchSnap.data(),
-                clientDetails: clientSnap.data(),
-                acceptedDate,
-              });
+            if (branchSnap.exists() && clientSnap.exists()) {
+              // Include only future tasks
+              if (acceptedDate && new Date(acceptedDate) > today) {
+                fetchedAudits.push({
+                  id: auditId,
+                  ...auditDetails,
+                  branchDetails: branchSnap.data(),
+                  clientDetails: clientSnap.data(),
+                  acceptedDate,
+                });
+              }
+            } else {
+              console.log("Branch or client details missing for audit:", auditId);
             }
           }
         });
 
         await Promise.all(auditPromises);
-        
+
         setOngoingAudits(fetchedAudits);
-        await AsyncStorage.setItem(cacheKey, JSON.stringify(fetchedAudits));
+        setOngoingCounter(fetchedAudits.length);
       } catch (error) {
         console.error("Error loading ongoing audits:", error);
       } finally {
@@ -140,14 +84,120 @@ const Ongoing = ({ navigation }) => {
     loadOngoingAudits();
   }, []);
 
-  const memoizedOngoingAudits = useMemo(() => ongoingAudits, [ongoingAudits]);
+  const handleRemove = async (auditId, auditName) => {
+    try {
+      const userId = await AsyncStorage.getItem("userId");
+      if (!userId) {
+        console.error("User ID not found!");
+        return;
+      }
 
-  const renderAudit = ({ item, index }) => <AuditCard audit={item} index={index} />;
+      await updateDoc(doc(db, "audits", auditId), { isRejected: true });
+
+      const acceptedAuditsRef = doc(db, "Profile", userId, "acceptedAudits", auditId);
+      await updateDoc(acceptedAuditsRef, { isRejected: true });
+
+      setOngoingAudits((prev) => prev.filter((audit) => audit.id !== auditId));
+      navigation.navigate("RejectedAudits", { auditName, isRejected: true });
+    } catch (error) {
+      console.error("Error removing audit:", error);
+    }
+  };
+
+  const handleGenerateReport = (auditId, auditName) => {
+    navigation.navigate("ReportScreen", { auditId, auditName });
+  };
+
+  const renderAudit = ({ item: audit, index }) => (
+    <View style={styles.auditCard}>
+      <LinearGradient
+        colors={['#ffffff', '#f8f9fa']}
+        style={styles.cardGradient}
+      >
+        {/* Top Accent Bar */}
+        <LinearGradient
+          colors={['#00796B', '#004D40']}
+          style={styles.accentBar}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+        />
+
+        {/* Serial Number Badge */}
+        <View style={styles.clientBadgeContainer}>
+          <LinearGradient
+            colors={['#00796B', '#004D40']}
+            style={styles.clientBadge}
+          >
+            <Text style={styles.clientInitial}>
+              {(index + 1).toString()}
+            </Text>
+          </LinearGradient>
+        </View>
+
+        {/* Header Section */}
+        <View style={styles.header}>
+          <View style={styles.clientInfo}>
+            <Text style={styles.companyName} numberOfLines={1}>
+              {audit.clientDetails?.name || "Client Name"}
+            </Text>
+            <View style={styles.branchContainer}>
+              <MaterialIcons name="business" size={16} color="#7f8c8d" style={styles.branchIcon} />
+              <Text style={styles.branchName} numberOfLines={1}>
+                {audit.branchDetails?.name || "Branch Name"}
+              </Text>
+            </View>
+          </View>
+          {/* <View style={styles.statusBadge}>
+            <MaterialIcons name="schedule" size={14} color="#1976d2" style={styles.statusIcon} />
+            <Text style={styles.statusText}>Upcoming</Text>
+          </View> */}
+        </View>
+
+        {/* Details Section */}
+        <View style={styles.details}>
+          <View style={styles.detailRow}>
+            <View style={styles.detailIconContainer}>
+              <MaterialIcons name="location-on" size={20} color="#00796B" />
+            </View>
+            <View style={styles.detailTextContainer}>
+              <Text style={styles.detailLabel}>Location</Text>
+              <Text style={styles.detailText}>{audit.branchDetails?.city || "City Not Specified"}</Text>
+            </View>
+          </View>
+          
+          <View style={styles.detailRow}>
+            <View style={styles.detailIconContainer}>
+              <MaterialCommunityIcons name="shield-search" size={20} color="#00796B" />
+            </View>
+            <View style={styles.detailTextContainer}>
+              <Text style={styles.detailLabel}>Audit Type</Text>
+              <Text style={styles.detailText}>{audit.auditType || "Audit Type Not Specified"}</Text>
+            </View>
+          </View>
+          
+          <View style={styles.detailRow}>
+            <View style={styles.detailIconContainer}>
+              <MaterialIcons name="event" size={20} color="#00796B" />
+            </View>
+            <View style={styles.detailTextContainer}>
+              <Text style={styles.detailLabel}>Scheduled Date</Text>
+              <Text style={styles.detailText}>
+                {audit.acceptedDate ? moment(audit.acceptedDate).format('DD MMM, YYYY') : "Not Scheduled"}
+              </Text>
+            </View>
+          </View>
+        </View>
+      </LinearGradient>
+    </View>
+  );
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.headerContainer}>
-        <LinearGradient colors={['#00796B', '#004D40']} style={styles.headerGradient}>
+        <LinearGradient
+          colors={['#00796B', '#004D40']}
+          style={styles.headerGradient}
+        >
           <View style={styles.headerContent}>
             <Text style={styles.headerTitle}>Accepted Audits</Text>
             <View style={styles.headerLine} />
@@ -158,14 +208,14 @@ const Ongoing = ({ navigation }) => {
 
       {loading ? (
         <ActivityIndicator size="large" color="#00796B" style={styles.loader} />
-      ) : memoizedOngoingAudits.length === 0 ? (
+      ) : ongoingAudits.length === 0 ? (
         <View style={styles.emptyContainer}>
           <MaterialCommunityIcons name="clipboard-text-clock" size={64} color="#B0BEC5" />
           <Text style={styles.noAuditsText}>No upcoming audits</Text>
         </View>
       ) : (
         <FlatList
-          data={memoizedOngoingAudits}
+          data={ongoingAudits}
           renderItem={renderAudit}
           keyExtractor={(item) => item.id}
           showsVerticalScrollIndicator={false}
@@ -175,7 +225,6 @@ const Ongoing = ({ navigation }) => {
     </SafeAreaView>
   );
 };
-
 
 const styles = StyleSheet.create({
   container: {

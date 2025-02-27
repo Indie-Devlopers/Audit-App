@@ -6,14 +6,15 @@ import {
   StyleSheet,
   Animated,
   Dimensions,
+  Linking,
 } from "react-native";
 import { doc, getDoc } from "firebase/firestore";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { db } from "./firebaseConfig";
-import { LinearGradient } from 'expo-linear-gradient';
+import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 
-const { width } = Dimensions.get('window');
+const { width } = Dimensions.get("window");
 
 const ProfileScreen = ({ navigation }) => {
   const [userData, setUserData] = useState(null);
@@ -56,48 +57,38 @@ const ProfileScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <LinearGradient
-        colors={['#00796B', '#004D40']}
-        style={styles.headerGradient}
-      >
+      <LinearGradient colors={["#00796B", "#004D40"]} style={styles.headerGradient}>
         <View style={styles.headerOverlay}>
           <View style={styles.profileSection}>
             <View style={styles.profileImageContainer}>
               <LinearGradient
-                colors={['rgba(255,255,255,0.3)', 'rgba(255,255,255,0.1)']}
+                colors={["rgba(255,255,255,0.3)", "rgba(255,255,255,0.1)"]}
                 style={styles.profileIconContainer}
               >
                 <Ionicons name="person" size={50} color="#fff" />
               </LinearGradient>
               <View style={styles.onlineIndicator} />
             </View>
-            <Text style={styles.name}>{userData?.name || 'Loading...'}</Text>
-            <Text style={styles.email}>{userData?.email || ''}</Text>
+            <Text style={styles.name}>{userData?.name || "Loading..."}</Text>
+            <Text style={styles.email}>{userData?.email || ""}</Text>
           </View>
         </View>
       </LinearGradient>
 
       <View style={styles.contentContainer}>
         <View style={styles.infoCard}>
-          <LinearGradient
-            colors={['#E8F5E9', '#C8E6C9']}
-            style={styles.iconBackground}
-          >
+          <LinearGradient colors={["#E8F5E9", "#C8E6C9"]} style={styles.iconBackground}>
             <MaterialCommunityIcons name="phone-outline" size={24} color="#00796B" />
           </LinearGradient>
           <View style={styles.infoTextContainer}>
             <Text style={styles.infoLabel}>Contact Number</Text>
-            <Text style={styles.infoValue}>{userData?.phone || 'Not specified'}</Text>
+            <Text style={styles.infoValue}>{userData?.phone || "Not specified"}</Text>
           </View>
         </View>
 
-        <TouchableOpacity 
-          style={styles.logoutButton} 
-          onPress={handleLogout}
-          activeOpacity={0.8}
-        >
+        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout} activeOpacity={0.8}>
           <LinearGradient
-            colors={['#00796B', '#004D40']}
+            colors={["#00796B", "#004D40"]}
             style={styles.logoutGradient}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
@@ -106,6 +97,17 @@ const ProfileScreen = ({ navigation }) => {
             <Text style={styles.logoutText}>Logout</Text>
           </LinearGradient>
         </TouchableOpacity>
+
+        {/* Footer */}
+        <View style={styles.footer}>
+          <TouchableOpacity onPress={() => Linking.openURL("https://indidevelopers.com")}>
+            <Text style={styles.footerText}>
+              <Text style={{ color: "#666" }}>Designed & Developed by </Text>
+              <Text style={{ color: "#00796B", fontWeight: "bold" }}>Indidevelopers</Text>
+            </Text>
+          </TouchableOpacity>
+        </View>
+
       </View>
     </View>
   );
@@ -114,7 +116,7 @@ const ProfileScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: "#f5f5f5",
   },
   headerGradient: {
     height: 280,
@@ -123,67 +125,66 @@ const styles = StyleSheet.create({
   },
   headerOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.1)',
+    backgroundColor: "rgba(0,0,0,0.1)",
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
   },
   profileSection: {
-    alignItems: 'center',
+    alignItems: "center",
     paddingTop: 60,
   },
   profileImageContainer: {
-    position: 'relative',
+    position: "relative",
     marginBottom: 20,
   },
   profileIconContainer: {
     width: 110,
     height: 110,
     borderRadius: 55,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     borderWidth: 3,
-    borderColor: 'rgba(255,255,255,0.5)',
+    borderColor: "rgba(255,255,255,0.5)",
   },
   onlineIndicator: {
-    position: 'absolute',
+    position: "absolute",
     right: 5,
     bottom: 5,
     width: 20,
     height: 20,
     borderRadius: 10,
-    backgroundColor: '#4CAF50',
+    backgroundColor: "#4CAF50",
     borderWidth: 3,
-    borderColor: '#fff',
+    borderColor: "#fff",
   },
   name: {
     fontSize: 26,
-    fontWeight: 'bold',
-    color: '#fff',
+    fontWeight: "bold",
+    color: "#fff",
     marginBottom: 8,
-    textShadowColor: 'rgba(0,0,0,0.2)',
+    textShadowColor: "rgba(0,0,0,0.2)",
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
   },
   email: {
     fontSize: 16,
-    color: '#B2DFDB',
+    color: "#B2DFDB",
     marginBottom: 10,
   },
   contentContainer: {
     flex: 1,
     padding: 20,
-    justifyContent: 'space-between',
-    paddingBottom: 90,
+    justifyContent: "space-between",
   },
   infoCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
     padding: 20,
     borderRadius: 16,
     marginTop: 20,
     elevation: 4,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
@@ -192,8 +193,8 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 25,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   infoTextContainer: {
     marginLeft: 15,
@@ -201,39 +202,49 @@ const styles = StyleSheet.create({
   },
   infoLabel: {
     fontSize: 14,
-    color: '#666',
+    color: "#666",
     marginBottom: 4,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   infoValue: {
     fontSize: 18,
-    color: '#333',
-    fontWeight: '600',
+    color: "#333",
+    fontWeight: "600",
   },
   logoutButton: {
     borderRadius: 16,
-    overflow: 'hidden',
+    overflow: "hidden",
     elevation: 4,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 8,
-    width: '100%',
+    width: "100%",
   },
   logoutGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     paddingVertical: 16,
   },
   logoutIcon: {
     marginRight: 10,
   },
   logoutText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: "600",
     letterSpacing: 0.5,
+  },
+  footer: {
+    alignItems: "center",
+    marginTop: 20,
+  },
+  footerText: {
+    fontSize: 14,
+    color: "#00796B",
+    fontWeight: "500",
+
   },
 });
 
