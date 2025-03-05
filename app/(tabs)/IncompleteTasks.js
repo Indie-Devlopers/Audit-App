@@ -122,7 +122,7 @@ const IncompleteTasks = ({ navigation }) => {
           id: item.id,
           clientName: item.clientDetails?.name,
           branchName: item.branchDetails?.name,
-          auditType: item.auditType,
+          auditTypeId: item.auditTypeId,
           date: item.date,
           reportDate: item.reportDate
         }

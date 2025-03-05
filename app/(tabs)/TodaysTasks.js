@@ -7,6 +7,7 @@ import MaterialIcons from "react-native-vector-icons/MaterialIcons";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import { LinearGradient } from 'expo-linear-gradient';
 import moment from 'moment';
+import { BackHandler } from "react-native";
 import 'moment-timezone';
 moment.tz.setDefault("Asia/Kolkata");
 
@@ -34,6 +35,20 @@ export default function TodaysTasks({ navigation }) {
 
     getUserId();
   }, []);
+
+  useEffect(() => {
+    const backAction = () => {
+      navigation.navigate("HomeScreen");
+      return true; // prevent default behavior
+    };
+
+    const backHandler = BackHandler.addEventListener(
+      "hardwareBackPress",
+      backAction
+    );
+
+    return () => backHandler.remove();
+  }, [navigation]);
 
   const fetchTodayAudits = async (userId) => {
     try {

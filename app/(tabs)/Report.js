@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -20,6 +20,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 const Report = ({ route, navigation }) => {
   const { audit } = route.params;
   const [selectedReport, setSelectedReport] = useState(null);
+  const [auditTypeName, setAuditTypeName] = useState(audit.auditType);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -180,6 +181,26 @@ const Report = ({ route, navigation }) => {
       navigation.navigate('HomeScreen');
     }
   };
+
+  useEffect(() => {
+    const fetchAuditType = async () => {
+      console.log('Fetching audit type:', audit.auditTypeId);
+      try {
+        if (audit.auditTypeId) {
+          const auditTypeRef = doc(db, 'auditType', audit.auditTypeId);
+          const auditTypeDoc = await getDoc(auditTypeRef);
+          if (auditTypeDoc.exists()) {
+            const data = auditTypeDoc.data();
+            // Assuming the audit type name is stored in the "name" key
+            setAuditTypeName(data.name);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching audit type:', error);
+      }
+    };
+    fetchAuditType();
+  }, [audit.auditTypeId]);
 
   const isReportSubmitted = (type) => {
     return localReportDate.find(report => report.type === type)?.isSubmitted || false;
@@ -374,7 +395,7 @@ const Report = ({ route, navigation }) => {
           <Text style={styles.infoLabel}>Branch:</Text>
           <Text style={styles.infoValue}>{audit.branchName}</Text>
           <Text style={styles.infoLabel}>Audit Type:</Text>
-          <Text style={styles.infoValue}>{audit.auditType}</Text>
+          <Text style={styles.infoValue}>{auditTypeName}</Text>
           <Text style={styles.infoLabel}>Date:</Text>
           <Text style={styles.infoValue}>
             {moment(audit.date).format('DD MMM, YYYY')}

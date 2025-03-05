@@ -8,6 +8,7 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import MaterialIcons from "react-native-vector-icons/MaterialIcons";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import moment from 'moment';
+import { BackHandler } from "react-native";
 import 'moment-timezone';
 import { LinearGradient } from 'expo-linear-gradient';
 moment.tz.setDefault("Asia/Kolkata");
@@ -21,6 +22,7 @@ const AuditDetails = ({ route, navigation }) => {
   const [loading, setLoading] = useState(true);
   const [showCalendar, setShowCalendar] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [submitting, setSubmitting] = useState(false);
 
   const handleDateConfirm = async (event, date) => {
     if (event.type === "set" && date) {
@@ -31,9 +33,11 @@ const AuditDetails = ({ route, navigation }) => {
       setSelectedDate(new Date(formattedDate));
 
       try {
+        setSubmitting(true);
         const userId = await AsyncStorage.getItem("userId");
         if (!userId) {
           console.error("User ID not found!");
+          setSubmitting(false);
           return;
         }
 
@@ -71,21 +75,37 @@ const AuditDetails = ({ route, navigation }) => {
 
         // Check if selected date is today
         const today = moment().tz("Asia/Kolkata").startOf('day');
-        const selectedDate = moment(formattedDate).tz("Asia/Kolkata").startOf('day');
+        const selectedMoment = moment(formattedDate).tz("Asia/Kolkata").startOf('day');
 
         // Navigate based on the date
-        if (selectedDate.isSame(today, 'day')) {
+        if (selectedMoment.isSame(today, 'day')) {
           navigation.navigate("TodaysTasks");
         } else {
           navigation.navigate("Ongoing");
         }
+        setSubmitting(false);
       } catch (error) {
         console.error("Error accepting audit", error);
+        setSubmitting(false);
       }
     } else {
       setShowCalendar(false);
     }
   };
+
+  useEffect(() => {
+    const backAction = () => {
+      navigation.navigate("HomeScreen");
+      return true; // prevent default behavior
+    };
+
+    const backHandler = BackHandler.addEventListener(
+      "hardwareBackPress",
+      backAction
+    );
+
+    return () => backHandler.remove();
+  }, [navigation]);
 
   useEffect(() => {
     const fetchAuditDetails = async () => {
@@ -144,13 +164,6 @@ const AuditDetails = ({ route, navigation }) => {
       ));
   };
 
-  if (!auditDetails) {
-    return (
-      <View style={styles.container}>
-        <Text style={styles.errorText}>No audit details found</Text>
-      </View>
-    );
-  }
 
   if (loading) {
     return (
@@ -239,6 +252,12 @@ const AuditDetails = ({ route, navigation }) => {
           </View>
         )}
       </ScrollView>
+
+      {submitting && (
+        <View style={styles.submittingOverlay}>
+          <ActivityIndicator size="large" color="#6200ee" />
+        </View>
+      )}
 
       {showCalendar && (
         <DateTimePicker
@@ -385,6 +404,16 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+  },
+  submittingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   '@global': {
     '.react-native-modal-datetime-picker': {
