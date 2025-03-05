@@ -115,10 +115,20 @@ export default function TodaysTasks({ navigation }) {
           colors={['#00796B', '#004D40']}
           style={styles.headerGradient}
         >
+
+
           <View style={styles.headerContent}>
-            <Text style={styles.headerTitle}>Today's Audits</Text>
-            <View style={styles.headerLine} />
-            <Text style={styles.headerSubtitle}>View your scheduled audits for today</Text>
+            <View>
+
+              <Text style={styles.headerTitle}>Today's Audits</Text>
+              <View style={styles.headerLine} />
+              <Text style={styles.headerSubtitle}>View your scheduled audits for today</Text>
+            </View>
+            <View>
+              <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                <MaterialIcons name="arrow-back" size={24} color="#ffffff" />
+              </TouchableOpacity>
+            </View>
           </View>
         </LinearGradient>
       </View>
@@ -218,7 +228,15 @@ const styles = StyleSheet.create({
   },
   headerContent: {
     paddingHorizontal: 20,
+    flexDirection: 'row'
+    , justifyContent: 'space-between'
   },
+  backButton: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 5
+  },
+
   headerTitle: {
     fontSize: 28,
     fontWeight: '700',

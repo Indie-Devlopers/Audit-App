@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, SafeAreaView, FlatList } from "react-native";
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, SafeAreaView, FlatList, TouchableOpacity } from "react-native";
 import { getFirestore, collection, getDocs, doc, getDoc, updateDoc } from "firebase/firestore";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { app } from "./firebaseConfig";
@@ -164,7 +164,7 @@ const Ongoing = ({ navigation }) => {
               <Text style={styles.detailText}>{audit.branchDetails?.city || "City Not Specified"}</Text>
             </View>
           </View>
-          
+
           <View style={styles.detailRow}>
             <View style={styles.detailIconContainer}>
               <MaterialCommunityIcons name="shield-search" size={20} color="#00796B" />
@@ -174,7 +174,7 @@ const Ongoing = ({ navigation }) => {
               <Text style={styles.detailText}>{audit.auditType || "Audit Type Not Specified"}</Text>
             </View>
           </View>
-          
+
           <View style={styles.detailRow}>
             <View style={styles.detailIconContainer}>
               <MaterialIcons name="event" size={20} color="#00796B" />
@@ -199,9 +199,17 @@ const Ongoing = ({ navigation }) => {
           style={styles.headerGradient}
         >
           <View style={styles.headerContent}>
-            <Text style={styles.headerTitle}>Accepted Audits</Text>
-            <View style={styles.headerLine} />
-            <Text style={styles.headerSubtitle}>View your upcoming scheduled audits</Text>
+            <View>
+              <Text style={styles.headerTitle}>Accepted Audits</Text>
+              <View style={styles.headerLine} />
+              <Text style={styles.headerSubtitle}>View your upcoming scheduled audits</Text>
+            </View>
+            <View>
+
+              <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                <MaterialIcons name="arrow-back" size={24} color="#ffffff" />
+              </TouchableOpacity>
+            </View>
           </View>
         </LinearGradient>
       </View>
@@ -243,8 +251,15 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 4,
   },
+  backButton: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 5
+  },
   headerContent: {
     paddingHorizontal: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-between'
   },
   headerTitle: {
     fontSize: 28,
