@@ -95,7 +95,9 @@ const NotSubmitted = ({ navigation }) => {
       <TouchableOpacity
         key={item.id}
         style={styles.auditCard}
-        onPress={() => navigation.navigate("Report", { 
+        onPress={() => navigation.navigate("Report", {
+          title: "Submit Reports",
+          isCommingFormCompleted: true,
           audit: {
             id: item.id,
             clientName: item.clientDetails?.name,

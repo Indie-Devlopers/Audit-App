@@ -18,7 +18,8 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
 const Report = ({ route, navigation }) => {
-  const { audit } = route.params;
+  const { audit, title,isCommingFormCompleted } = route.params;
+
   const [selectedReport, setSelectedReport] = useState(null);
   const [auditTypeName, setAuditTypeName] = useState(audit.auditType);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -36,9 +37,9 @@ const Report = ({ route, navigation }) => {
   const [editDate, setEditDate] = useState(new Date());
 
   const reportTypes = [
-    { type: 'scanDate', label: 'Scan Report', icon: 'scanner' },
-    { type: 'hardCopyDate', label: 'Hard Copy', icon: 'file-document' },
-    { type: 'excelFormat', label: 'Excel Format', icon: 'file-pdf-box' },
+    { type: 'scanDate', label: 'Scan Report  ', icon: 'scanner' },
+    { type: 'hardCopyDate', label: 'Hard Copy     ', icon: 'file-document' },
+   { type: 'excelFormat', label: 'Excel Format', icon: 'file-excel-box' },
     { type: 'photoDate', label: 'Photo Report', icon: 'image' }
   ];
   const handleDateChange = (event, date) => {
@@ -47,7 +48,7 @@ const Report = ({ route, navigation }) => {
       setShowDatePicker(false);
       return;
     }
-  
+
     setShowDatePicker(Platform.OS === 'ios');
     if (date) {
       setSelectedDate(date);
@@ -56,7 +57,7 @@ const Report = ({ route, navigation }) => {
       }
     }
   };
-  
+
   // In the DateTimePicker for Android
   <DateTimePicker
     value={editingReport ? editDate : selectedDate}
@@ -161,7 +162,7 @@ const Report = ({ route, navigation }) => {
 
   const handleDone = () => {
     const allSubmitted = checkAllReportsSubmitted(localReportDate);
-    
+
     if (allSubmitted) {
       Alert.alert(
         'Complete',
@@ -171,7 +172,7 @@ const Report = ({ route, navigation }) => {
             text: 'OK',
             onPress: () => {
               navigation.popToTop();
-              navigation.navigate('IncompleteTasks');
+              navigation.navigate('HomeScreen');
             }
           }
         ]
@@ -350,20 +351,24 @@ const Report = ({ route, navigation }) => {
           {submitted && reportDate && (
             <View style={styles.dateContainer}>
               <Text style={styles.dateText}>
-                {moment(reportDate).format('DD MMM, YYYY')}
+              {label} - {moment(reportDate).format('DD MMM, YYYY')}
               </Text>
-              <TouchableOpacity 
+              
+              <TouchableOpacity
                 onPress={() => handleEditDate(type, reportDate)}
                 style={styles.editButton}
               >
                 <MaterialCommunityIcons name="pencil" size={16} color="#00796B" />
               </TouchableOpacity>
-              <TouchableOpacity 
-                onPress={() => handleClearDate(type)}
-                style={styles.clearButton}
-              >
-                <MaterialCommunityIcons name="close-circle" size={20} color="#D32F2F" />
-              </TouchableOpacity>
+              {
+                isCommingFormCompleted && (<TouchableOpacity
+                  onPress={() => handleClearDate(type)}
+                  style={styles.clearButton}
+                >
+                  <MaterialCommunityIcons name="close-circle" size={20} color="#D32F2F" />
+                </TouchableOpacity>)
+              }
+
             </View>
           )}
         </View>
@@ -385,7 +390,7 @@ const Report = ({ route, navigation }) => {
         colors={['#00796B', '#004D40']}
         style={styles.header}
       >
-        <Text style={styles.headerTitle}>Submit Report</Text>
+        <Text style={styles.headerTitle}>{title}</Text>
       </LinearGradient>
 
       <View style={styles.content}>
@@ -546,8 +551,8 @@ const styles = StyleSheet.create({
     color: '#4CAF50',
   },
   clearButton: {
-    marginLeft: 110,
-    marginTop:-5
+    marginLeft: 50,
+    marginTop: -5
   },
   checkIcon: {
     marginLeft: 10,
@@ -599,7 +604,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   editButton: {
-    marginLeft: 8,
+    marginLeft: 30,
     padding: 4,
   },
   modalContainer: {

@@ -64,12 +64,12 @@ const IncompleteTasks = ({ navigation }) => {
         if (submittedCount === 0 || submittedCount === reportDate.length) return null;
 
         // Get branch and client data in parallel using Promise.all
-        const branchDataPromise = cache.branchCache[auditData.branchId] 
-          ? Promise.resolve(cache.branchCache[auditData.branchId]) 
+        const branchDataPromise = cache.branchCache[auditData.branchId]
+          ? Promise.resolve(cache.branchCache[auditData.branchId])
           : getDoc(doc(db, "branches", auditData.branchId)).then(branchSnap => branchSnap.exists() ? branchSnap.data() : {});
-        
-        const clientDataPromise = cache.clientCache[auditData.clientId] 
-          ? Promise.resolve(cache.clientCache[auditData.clientId]) 
+
+        const clientDataPromise = cache.clientCache[auditData.clientId]
+          ? Promise.resolve(cache.clientCache[auditData.clientId])
           : getDoc(doc(db, "clients", auditData.clientId)).then(clientSnap => clientSnap.exists() ? clientSnap.data() : {});
 
         // Use Promise.all to fetch both client and branch data in parallel
@@ -115,10 +115,13 @@ const IncompleteTasks = ({ navigation }) => {
   };
 
   const renderAuditItem = ({ item }) => (
-    <TouchableOpacity 
+    <TouchableOpacity
       style={styles.auditCard}
       onPress={() => navigation.navigate('Report', {
+        title: "Submit Reports",
+        isCommingFormCompleted : true,
         audit: {
+
           id: item.id,
           clientName: item.clientDetails?.name,
           branchName: item.branchDetails?.name,

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, FlatList, ActivityIndicator, Image, BackHandler } from "react-native";
+import { View, Text, StyleSheet, FlatList, ActivityIndicator, Image, BackHandler, TouchableOpacity } from "react-native";
 import { getFirestore, collection, query, where, getDocs, doc, getDoc } from "firebase/firestore";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { app } from "./firebaseConfig";
@@ -35,17 +35,17 @@ const CompletedTasks = () => {
         setLoading(false);
         return;
       }
-  
+
       const auditsRef = collection(db, "audits");
       const auditsSnapshot = await getDocs(auditsRef);
-  
+
       const auditsData = [];
-  
+
       // Collect all branch, client, and auditType ids in separate arrays
       const branchIds = [];
       const clientIds = [];
       const auditTypeIds = [];
-  
+
       auditsSnapshot.docs.forEach((auditDoc) => {
         const auditData = auditDoc.data();
         if (auditData.isCompleted && auditData.acceptedByUser && auditData.acceptedByUser.includes(userId)) {
@@ -58,12 +58,12 @@ const CompletedTasks = () => {
           auditTypeIds.push(auditData.auditTypeId);
         }
       });
-  
+
       // Remove duplicates
       const uniqueBranchIds = [...new Set(branchIds)];
       const uniqueClientIds = [...new Set(clientIds)];
       const uniqueAuditTypeIds = [...new Set(auditTypeIds)];
-  
+
       // Fetch all branch, client, and auditType data in parallel
       const branchPromises = uniqueBranchIds.map((branchId) =>
         getDoc(doc(db, "branches", branchId))
@@ -74,19 +74,19 @@ const CompletedTasks = () => {
       const auditTypePromises = uniqueAuditTypeIds.map((auditTypeId) =>
         getDoc(doc(db, "auditType", auditTypeId))
       );
-  
+
       const [branchSnapshots, clientSnapshots, auditTypeSnapshots] = await Promise.all([
         Promise.all(branchPromises),
         Promise.all(clientPromises),
         Promise.all(auditTypePromises),
       ]);
-  
+
       // Map the results to the audits data
       auditsData.forEach((audit) => {
         const branchData = branchSnapshots.find((branchSnap) => branchSnap.id === audit.branchId)?.data();
         const clientData = clientSnapshots.find((clientSnap) => clientSnap.id === audit.clientId)?.data();
         const auditTypeData = auditTypeSnapshots.find((auditTypeSnap) => auditTypeSnap.id === audit.auditTypeId)?.data();
-  
+
         audit.branchDetails = {
           ...branchData,
           location: branchData?.city || 'City not available',
@@ -94,12 +94,12 @@ const CompletedTasks = () => {
         audit.clientDetails = clientData || {};
         audit.auditTypeName = auditTypeData?.name || 'Unknown Audit Type';
       });
-  
+
       // Sort by completedDate in descending order
       auditsData.sort((a, b) =>
         moment(b.completedDate).valueOf() - moment(a.completedDate).valueOf()
       );
-  
+
       setCompletedAudits(auditsData);
       setLoading(false);
     } catch (error) {
@@ -107,7 +107,6 @@ const CompletedTasks = () => {
       setLoading(false);
     }
   };
-  
 
   const renderAuditCard = ({ item }) => (
     <View style={styles.cardContainer}>
@@ -144,24 +143,42 @@ const CompletedTasks = () => {
             <MaterialCommunityIcons name="clipboard-text" size={20} color="#666" />
             <Text style={styles.infoText}>{item.auditTypeName}</Text>
           </View>
-          
+
           {/* Report Status Section */}
           <View style={styles.reportsContainer}>
             {item.reportDate?.map((report, index) => (
               <View key={index} style={styles.reportItem}>
-                <MaterialCommunityIcons 
+                <MaterialCommunityIcons
                   name={
                     report.type === 'scanDate' ? 'scanner' :
-                    report.type === 'hardCopyDate' ? 'file-document-outline' :
-                    report.type === 'excelFormat' ? 'file-pdf-box' :
-                    'image-outline'
+                      report.type === 'hardCopyDate' ? 'file-document-outline' :
+                        report.type === 'excelFormat' ? 'file-pdf-box' :
+                          'image-outline'
                   }
                   size={18}
                   color="#00796B"
                 />
-                <Text style={styles.reportDate}>
-                  {moment(report.date).format('DD MMM')}
-                </Text>
+                <TouchableOpacity
+                  onPress={() => navigation.navigate('Report', {
+                    title: "Update Report",
+                    isCommingFormCompleted : false,
+                    audit: {
+                      id: item.id,
+                      clientName: item.clientDetails?.name,
+                      branchName: item.branchDetails?.name,
+                      auditTypeId: item.auditTypeId,
+                      date: report.date,
+                      reportDate: item.reportDate
+                    }
+                  })}
+                >
+
+
+                  <Text style={styles.reportDate}>
+                    {moment(report.date).format('DD MMM')}
+                  </Text>
+                </TouchableOpacity>
+
               </View>
             ))}
           </View>
