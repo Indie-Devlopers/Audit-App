@@ -278,6 +278,7 @@ export default function App() {
       <Stack.Screen name="Report" component={Report} />
       <Stack.Screen name="ReportScreen" component={ReportScreen} />
       <Stack.Screen name="GuideScreen" component={GuideScreen} />
+      <Stack.Screen name="Home" component={HomeScreen} />
     </Stack.Navigator>
   );
 }

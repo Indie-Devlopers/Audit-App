@@ -85,10 +85,16 @@ export default function TodaysTasks({ navigation }) {
           const clientSnapshot = await getDoc(clientRef);
           const clientDetails = clientSnapshot.exists() ? clientSnapshot.data() : {};
 
+          const auditTypeRef = doc(db, "auditType", auditData.auditTypeId);
+          const auditTypeSnapshot = await getDoc(auditTypeRef);
+          const auditTypeDetails = auditTypeSnapshot.exists() ? auditTypeSnapshot.data() : {};
+
+          
           return {
             id: auditId,
             ...auditData,
             date: auditDate,
+            auditType:auditTypeDetails.name,
             branchDetails,
             clientDetails,
           };
@@ -125,9 +131,10 @@ export default function TodaysTasks({ navigation }) {
               <Text style={styles.headerSubtitle}>View your scheduled audits for today</Text>
             </View>
             <View>
-              <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+              <TouchableOpacity onPress={() => navigation.navigate('Home')} style={styles.backButton}>
                 <MaterialIcons name="arrow-back" size={24} color="#ffffff" />
               </TouchableOpacity>
+
             </View>
           </View>
         </LinearGradient>

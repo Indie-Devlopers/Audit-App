@@ -40,25 +40,32 @@ const Ongoing = ({ navigation }) => {
           if (auditSnap.exists()) {
             const auditDetails = auditSnap.data();
 
+            // Fetch the auditType from the 'auditTypes' collection using the auditTypeId
+           
+            const auditTypeId = auditDetails.auditTypeId;  // Assuming this field exists in auditDetails
+            console.log("123", auditTypeId)
+            const auditTypeRef = doc(db, "auditType", auditTypeId);
+            // const auditTypeSnap = await getDoc(auditTypeRef);
+            // const auditType = auditTypeSnap.exists() ? auditTypeSnap.data().name : "Audit Type Not Specified";
+            // console.log("..........", auditType)
             const branchRef = doc(db, "branches", auditDetails.branchId);
             const clientRef = doc(db, "clients", auditDetails.clientId);
 
-            const [branchSnap, clientSnap] = await Promise.all([
-              getDoc(branchRef),
-              getDoc(clientRef)
-            ]);
+            const [branchSnap, clientSnap, auditTypeSnap] = await Promise.all([getDoc(branchRef), getDoc(clientRef), getDoc(auditTypeRef)]);
 
             const acceptedAuditRef = doc(db, "Profile", userId, "acceptedAudits", auditId);
             const acceptedAuditSnap = await getDoc(acceptedAuditRef);
             const acceptedAuditData = acceptedAuditSnap.data();
             const acceptedDate = acceptedAuditData ? acceptedAuditData.date : null;
 
-            if (branchSnap.exists() && clientSnap.exists()) {
+            if (branchSnap.exists() && clientSnap.exists() && auditTypeSnap.exists()) {
               // Include only future tasks
               if (acceptedDate && new Date(acceptedDate) > today) {
                 fetchedAudits.push({
                   id: auditId,
                   ...auditDetails,
+                  auditType: auditTypeSnap.data().name,  // Add auditType to the fetched data
+
                   branchDetails: branchSnap.data(),
                   clientDetails: clientSnap.data(),
                   acceptedDate,
@@ -83,6 +90,7 @@ const Ongoing = ({ navigation }) => {
 
     loadOngoingAudits();
   }, []);
+
 
   const handleRemove = async (auditId, auditName) => {
     try {

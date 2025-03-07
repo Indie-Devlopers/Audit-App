@@ -36,7 +36,7 @@ const HomeScreen = () => {
   const [branchesData, setBranchesData] = useState([]);
   const [clientsData, setClientsData] = useState({});
   const [branchesMap, setBranchesMap] = useState({});
-
+console.log("dfdfdf",upcomingAudits)
   // Fetch initial data
   useEffect(() => {
     const fetchInitialData = async () => {

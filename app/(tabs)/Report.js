@@ -372,14 +372,7 @@ const Report = ({ route, navigation }) => {
             </View>
           )}
         </View>
-        {submitted && (
-          <MaterialCommunityIcons
-            name="check-circle"
-            size={20}
-            color="#4CAF50"
-            style={styles.checkIcon}
-          />
-        )}
+        
       </TouchableOpacity>
     );
   };

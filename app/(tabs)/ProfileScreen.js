@@ -99,14 +99,14 @@ const ProfileScreen = ({ navigation }) => {
         </TouchableOpacity>
 
         {/* Footer */}
-        <View style={styles.footer}>
+        {/* <View style={styles.footer}>
           <TouchableOpacity onPress={() => Linking.openURL("https://indidevelopers.com")}>
             <Text style={styles.footerText}>
               <Text style={{ color: "#666" }}>Designed & Developed by </Text>
               <Text style={{ color: "#00796B", fontWeight: "bold" }}>Indidevelopers</Text>
             </Text>
           </TouchableOpacity>
-        </View>
+        </View> */}
 
       </View>
     </View>

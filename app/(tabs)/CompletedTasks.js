@@ -152,7 +152,7 @@ const CompletedTasks = () => {
                   name={
                     report.type === 'scanDate' ? 'scanner' :
                       report.type === 'hardCopyDate' ? 'file-document-outline' :
-                        report.type === 'excelFormat' ? 'file-pdf-box' :
+                        report.type === 'excelFormat' ? 'file-excel-box' :
                           'image-outline'
                   }
                   size={18}
