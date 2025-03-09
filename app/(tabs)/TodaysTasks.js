@@ -131,9 +131,9 @@ export default function TodaysTasks({ navigation }) {
               <Text style={styles.headerSubtitle}>View your scheduled audits for today</Text>
             </View>
             <View>
-              <TouchableOpacity onPress={() => navigation.navigate('Home')} style={styles.backButton}>
-                <MaterialIcons name="arrow-back" size={24} color="#ffffff" />
-              </TouchableOpacity>
+                         <TouchableOpacity onPress={() => navigation.navigate('HomeScreen')} style={styles.backButton}>
+               <MaterialIcons name="arrow-back" size={24} color="#ffffff" />
+             </TouchableOpacity>
 
             </View>
           </View>

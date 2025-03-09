@@ -214,9 +214,10 @@ const Ongoing = ({ navigation }) => {
             </View>
             <View>
 
-              <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                <MaterialIcons name="arrow-back" size={24} color="#ffffff" />
-              </TouchableOpacity>
+            <TouchableOpacity onPress={() => navigation.navigate('HomeScreen')} style={styles.backButton}>
+  <MaterialIcons name="arrow-back" size={24} color="#ffffff" />
+</TouchableOpacity>
+
             </View>
           </View>
         </LinearGradient>
