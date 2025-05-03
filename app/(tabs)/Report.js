@@ -390,8 +390,8 @@ const Report = ({ route, navigation }) => {
         <View style={styles.auditInfo}>
           <Text style={styles.infoLabel}>Client:</Text>
           <Text style={styles.infoValue}>{audit.clientName}</Text>
-          <Text style={styles.infoLabel}>Branch:</Text>
-          <Text style={styles.infoValue}>{audit.branchName}</Text>
+          {/* <Text style={styles.infoLabel}>Branch:</Text> */}
+          {/* <Text style={styles.infoValue}>{audit.branchName}</Text> */}
           <Text style={styles.infoLabel}>Audit Type:</Text>
           <Text style={styles.infoValue}>{auditTypeName}</Text>
           <Text style={styles.infoLabel}>Date:</Text>

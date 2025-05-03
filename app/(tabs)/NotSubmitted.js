@@ -1,12 +1,19 @@
-import React, { useState, useEffect, useMemo } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, FlatList, ActivityIndicator } from "react-native";
+import React, { useState, useEffect } from "react";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  FlatList,
+  ActivityIndicator,
+} from "react-native";
 import { getDocs, collection, doc, getDoc } from "firebase/firestore";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { db } from "./firebaseConfig";
 import MaterialIcons from "react-native-vector-icons/MaterialIcons";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
-import moment from 'moment-timezone';
-import { LinearGradient } from 'expo-linear-gradient';
+import moment from "moment-timezone";
+import { LinearGradient } from "expo-linear-gradient";
 
 const NotSubmitted = ({ navigation }) => {
   const [notSubmittedAudits, setNotSubmittedAudits] = useState([]);
@@ -18,55 +25,74 @@ const NotSubmitted = ({ navigation }) => {
 
   const fetchNotSubmittedAudits = async () => {
     try {
-      const userId = await AsyncStorage.getItem('userId');
+      const userId = await AsyncStorage.getItem("userId");
       if (!userId) {
         console.error("User ID not found");
         setLoading(false);
         return;
       }
 
-      // Get today's date at start of day in IST
-      const today = moment().tz("Asia/Kolkata").startOf('day');
-
-      // Get accepted audits for the user
-      const acceptedAuditsRef = collection(db, "Profile", userId, "acceptedAudits");
+      const today = moment().tz("Asia/Kolkata").startOf("day");
+      const acceptedAuditsRef = collection(
+        db,
+        "Profile",
+        userId,
+        "acceptedAudits"
+      );
       const acceptedSnapshot = await getDocs(acceptedAuditsRef);
 
       const auditPromises = acceptedSnapshot.docs.map(async (acceptedDoc) => {
         const acceptedData = acceptedDoc.data();
+        if (!acceptedData || !acceptedData.auditId) return null;
+        
         const auditId = acceptedData.auditId;
-        const acceptedDate = moment(acceptedData.date).tz("Asia/Kolkata").startOf('day');
+        const acceptedDate = moment(acceptedData.date)
+          .tz("Asia/Kolkata")
+          .startOf("day");
 
-        // Skip if audit date is in the future
         if (acceptedDate.isAfter(today)) return null;
 
-        // Get the audit details from the audits collection
         const auditRef = doc(db, "audits", auditId);
         const auditSnap = await getDoc(auditRef);
-
         if (!auditSnap.exists()) return null;
 
         const auditData = auditSnap.data();
-        const reportDate = auditData.reportDate || [
-          { type: 'scanDate', date: null, isSubmitted: false, submittedBy: '' },
-          { type: 'hardCopyDate', date: null, isSubmitted: false, submittedBy: '' },
-          { type: 'excelFormat', date: null, isSubmitted: false, submittedBy: '' },
-          { type: 'photoDate', date: null, isSubmitted: false, submittedBy: '' }
-        ];
+        const reportDate =
+          auditData.reportDate || [
+            {
+              type: "scanDate",
+              date: null,
+              isSubmitted: false,
+              submittedBy: "",
+            },
+            {
+              type: "hardCopyDate",
+              date: null,
+              isSubmitted: false,
+              submittedBy: "",
+            },
+            {
+              type: "excelFormat",
+              date: null,
+              isSubmitted: false,
+              submittedBy: "",
+            },
+            {
+              type: "photoDate",
+              date: null,
+              isSubmitted: false,
+              submittedBy: "",
+            },
+          ];
 
-        // Count submitted reports
-        const submittedCount = reportDate.filter(report => report.isSubmitted).length;
+        const submittedCount = reportDate.filter(
+          (report) => report.isSubmitted
+        ).length;
 
-        // Only include audits with zero submitted reports
         if (submittedCount > 0) return null;
 
-        // Get branch and client details
-        const branchRef = doc(db, "branches", auditData.branchId);
         const clientRef = doc(db, "clients", auditData.clientId);
-
-        // Fetch all branch and client data concurrently
-        const [branchSnap, clientSnap] = await Promise.all([getDoc(branchRef), getDoc(clientRef)]);
-        const branchData = branchSnap.exists() ? branchSnap.data() : {};
+        const clientSnap = await getDoc(clientRef);
         const clientData = clientSnap.exists() ? clientSnap.data() : {};
 
         return {
@@ -74,73 +100,72 @@ const NotSubmitted = ({ navigation }) => {
           ...auditData,
           reportDate,
           date: acceptedData.date,
-          branchDetails: branchData,
-          clientDetails: clientData
+          clientDetails: clientData,
         };
       });
 
-      // Wait for all audit data to be fetched
-      const filteredAudits = (await Promise.all(auditPromises)).filter(audit => audit !== null);
+      const filteredAudits = (
+        await Promise.all(auditPromises)
+      ).filter((audit) => audit !== null);
 
       setNotSubmittedAudits(filteredAudits);
-      setLoading(false);
     } catch (error) {
       console.error("Error fetching not submitted audits:", error);
+    } finally {
       setLoading(false);
     }
   };
 
-  const renderedAudits = useMemo(() => {
-    return notSubmittedAudits.map(item => (
-      <TouchableOpacity
-        key={item.id}
-        style={styles.auditCard}
-        onPress={() => navigation.navigate("Report", {
+  const renderAuditItem = ({ item }) => (
+    <TouchableOpacity
+      key={item.id}
+      style={styles.auditCard}
+      onPress={() =>
+        navigation.navigate("Report", {
           title: "Submit Reports",
           isCommingFormCompleted: true,
           audit: {
             id: item.id,
             clientName: item.clientDetails?.name,
-            branchName: item.branchDetails?.name,
             auditTypeId: item.auditTypeId,
             date: item.date,
-            reportDate: item.reportDate
-          }
-        })}
-      >
-        <LinearGradient
-          colors={['#ffffff', '#f8f9fa']}
-          style={styles.cardGradient}
-        >
-          <View style={styles.cardHeader}>
-            <View style={styles.clientInfo}>
-              <View style={styles.iconContainer}>
-                <MaterialIcons name="business" size={24} color="#1976D2" />
-              </View>
-              <View style={styles.headerText}>
-                <Text style={styles.clientName}>{item.clientDetails?.name || 'Unknown Client'}</Text>
-                <Text style={styles.date}>{moment(item.date).format('DD MMM, YYYY')}</Text>
-              </View>
+            reportDate: item.reportDate,
+          },
+        })
+      }
+    >
+      <LinearGradient colors={["#ffffff", "#f8f9fa"]} style={styles.cardGradient}>
+        <View style={styles.cardHeader}>
+          <View style={styles.clientInfo}>
+            <View style={styles.iconContainer}>
+              <MaterialIcons name="business" size={24} color="#1976D2" />
             </View>
-            <View style={styles.statusContainer}>
-              <Text style={styles.statusText}>Not Started</Text>
+            <View style={styles.headerText}>
+              <Text style={styles.clientName}>
+                {item.clientDetails?.name || "Unknown Client"}
+              </Text>
+              <Text style={styles.date}>
+                {moment(item.date).format("DD MMM, YYYY")}
+              </Text>
             </View>
           </View>
+          <View style={styles.statusContainer}>
+            <Text style={styles.statusText}>Not Started</Text>
+          </View>
+        </View>
 
-          <View style={styles.cardContent}>
-            <View style={styles.locationRow}>
-              <MaterialCommunityIcons name="office-building" size={20} color="#666" />
-              <Text style={styles.locationText}>{item.branchDetails?.name || 'Unknown Branch'}</Text>
-            </View>
-            <View style={styles.locationRow}>
-              <MaterialIcons name="location-on" size={20} color="#666" />
-              <Text style={styles.locationText}>{item.branchDetails?.city || 'Unknown Location'}</Text>
-            </View>
+        <View style={styles.cardContent}>
+          
+          <View style={styles.locationRow}>
+            <MaterialIcons name="location-on" size={20} color="#666" />
+            <Text style={styles.locationText}>
+              {item.city || "N/A"}, {item.state || "N/A"}
+            </Text>
           </View>
-        </LinearGradient>
-      </TouchableOpacity>
-    ));
-  }, [notSubmittedAudits, navigation]);
+        </View>
+      </LinearGradient>
+    </TouchableOpacity>
+  );
 
   if (loading) {
     return (
@@ -152,18 +177,15 @@ const NotSubmitted = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <LinearGradient
-        colors={['#D32F2F', '#B71C1C']}
-        style={styles.header}
-      >
+      <LinearGradient colors={["#D32F2F", "#B71C1C"]} style={styles.header}>
         <Text style={styles.headerTitle}>Not Submitted Audits</Text>
       </LinearGradient>
 
       {notSubmittedAudits.length > 0 ? (
         <FlatList
           data={notSubmittedAudits}
-          renderItem={({ item }) => renderedAudits}
-          keyExtractor={item => item.id}
+          renderItem={renderAuditItem}
+          keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContainer}
           showsVerticalScrollIndicator={false}
         />
@@ -179,10 +201,11 @@ const NotSubmitted = ({ navigation }) => {
 
 export default NotSubmitted;
 
+// styles stay the same
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f7fa',
+    backgroundColor: "#f5f7fa",
   },
   header: {
     paddingTop: 15,
@@ -194,9 +217,9 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#fff',
-    textAlign: 'center',
+    fontWeight: "600",
+    color: "#fff",
+    textAlign: "center",
   },
   listContainer: {
     padding: 16,
@@ -204,10 +227,10 @@ const styles = StyleSheet.create({
   auditCard: {
     marginBottom: 16,
     borderRadius: 16,
-    overflow: 'hidden',
-    backgroundColor: '#fff',
+    overflow: "hidden",
+    backgroundColor: "#fff",
     elevation: 4,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -216,23 +239,23 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 12,
   },
   clientInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     flex: 1,
   },
   iconContainer: {
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: '#f5f5f5',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#f5f5f5",
+    justifyContent: "center",
+    alignItems: "center",
     marginRight: 12,
   },
   headerText: {
@@ -240,37 +263,37 @@ const styles = StyleSheet.create({
   },
   clientName: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#2c3e50',
+    fontWeight: "600",
+    color: "#2c3e50",
     marginBottom: 4,
   },
   date: {
     fontSize: 13,
-    color: '#666',
-    fontWeight: '500',
+    color: "#666",
+    fontWeight: "500",
   },
   statusContainer: {
-    backgroundColor: '#FFEBEE',
+    backgroundColor: "#FFEBEE",
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
   },
   statusText: {
-    color: '#D32F2F',
+    color: "#D32F2F",
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   cardContent: {
     marginTop: 8,
   },
   locationRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 8,
   },
   locationText: {
     fontSize: 14,
-    color: '#2c3e50',
+    color: "#2c3e50",
     marginLeft: 8,
     flex: 1,
   },
@@ -286,11 +309,8 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: '#666',
+    color: "#666",
     marginTop: 12,
-    textAlign: 'center',
+    textAlign: "center",
   },
-  emptyIcon: {
-    color: '#D32F2F'
-  },
-}); 
+});

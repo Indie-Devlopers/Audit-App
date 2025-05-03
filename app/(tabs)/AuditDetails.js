@@ -16,8 +16,8 @@ moment.tz.setDefault("Asia/Kolkata");
 const AuditDetails = ({ route, navigation }) => {
   const { audit } = route.params;
   const [auditDetails, setAuditDetails] = useState(null);
-  const [branchDetails, setBranchDetails] = useState(null);
   const [clientDetails, setClientDetails] = useState(null);
+  const [auditType, setAuditType] = useState(null);
   const [isAcceptedByUser, setIsAcceptedByUser] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showCalendar, setShowCalendar] = useState(false);
@@ -116,24 +116,22 @@ const AuditDetails = ({ route, navigation }) => {
           const auditData = auditSnap.data();
           setAuditDetails(auditData);
 
+          // Fetch audit type details
+          if (auditData.auditTypeId) {
+            const auditTypeRef = doc(db, "auditType", auditData.auditTypeId);
+            const auditTypeSnap = await getDoc(auditTypeRef);
+            if (auditTypeSnap.exists()) {
+              setAuditType(auditTypeSnap.data());
+            }
+          }
+
           const userId = await AsyncStorage.getItem("userId");
           if (userId && auditData.acceptedBy && auditData.acceptedBy === userId) {
             setIsAcceptedByUser(true);
           }
 
-          const branchRef = doc(db, "branches", auditData.branchId);
           const clientRef = doc(db, "clients", auditData.clientId);
-
-          const [branchSnap, clientSnap] = await Promise.all([
-            getDoc(branchRef),
-            getDoc(clientRef)
-          ]);
-
-          if (branchSnap.exists()) {
-            const branchData = branchSnap.data();
-            delete branchData.clientId; // Remove unnecessary fields
-            setBranchDetails(branchData);
-          }
+          const clientSnap = await getDoc(clientRef);
 
           if (clientSnap.exists()) {
             setClientDetails(clientSnap.data());
@@ -188,7 +186,7 @@ const AuditDetails = ({ route, navigation }) => {
           </View>
         </LinearGradient>
 
-        {auditDetails && branchDetails && clientDetails ? (
+        {auditDetails && clientDetails ? (
           <View style={styles.contentContainer}>
             <View style={styles.card}>
               <LinearGradient
@@ -207,11 +205,11 @@ const AuditDetails = ({ route, navigation }) => {
 
                 <View style={styles.infoRow}>
                   <View style={styles.iconContainer}>
-                    <MaterialCommunityIcons name="office-building" size={24} color="#009688" />
+                    <MaterialIcons name="assignment" size={24} color="#9C27B0" />
                   </View>
                   <View style={styles.textContainer}>
-                    <Text style={styles.label}>Branch</Text>
-                    <Text style={styles.infoText}>{branchDetails.name}</Text>
+                    <Text style={styles.label}>Audit Type</Text>
+                    <Text style={styles.infoText}>{auditType?.name || 'Not specified'}</Text>
                   </View>
                 </View>
 
@@ -221,7 +219,23 @@ const AuditDetails = ({ route, navigation }) => {
                   </View>
                   <View style={styles.textContainer}>
                     <Text style={styles.label}>Location</Text>
-                    <Text style={styles.infoText}>{branchDetails.city}</Text>
+                    <Text style={styles.infoText}>{auditDetails.city || 'Location not specified'} , {auditDetails.state || 'Location not specified'}</Text>
+                  </View>
+                </View>
+
+                <View style={styles.infoRow}>
+                  <View style={styles.iconContainer}>
+                    <MaterialCommunityIcons name="account-group" size={24} color="#009688" />
+                  </View>
+                  <View style={styles.textContainer}>
+                    <Text style={styles.label}>External Auditors</Text>
+                    <Text style={styles.infoText}>
+                      {auditDetails.externalAuditors && auditDetails.externalAuditors.length > 0 
+                        ? auditDetails.externalAuditors.map((auditor, index) => (
+                            `${auditor.name}${index < auditDetails.externalAuditors.length - 1 ? ', ' : ''}`
+                          ))
+                        : 'No external auditors assigned'}
+                    </Text>
                   </View>
                 </View>
               </LinearGradient>

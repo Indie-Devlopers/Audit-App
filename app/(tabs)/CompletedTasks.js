@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, FlatList, ActivityIndicator, Image, BackHandler, TouchableOpacity } from "react-native";
-import { getFirestore, collection, query, where, getDocs, doc, getDoc } from "firebase/firestore";
+import { View, Text, StyleSheet, FlatList, ActivityIndicator, BackHandler, TouchableOpacity } from "react-native";
+import { getFirestore, collection, getDocs, doc, getDoc } from "firebase/firestore";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { app } from "./firebaseConfig";
 import moment from 'moment-timezone';
@@ -41,33 +41,28 @@ const CompletedTasks = () => {
 
       const auditsData = [];
 
-      // Collect all branch, client, and auditType ids in separate arrays
-      const branchIds = [];
       const clientIds = [];
       const auditTypeIds = [];
 
       auditsSnapshot.docs.forEach((auditDoc) => {
         const auditData = auditDoc.data();
-        if (auditData.isCompleted && auditData.acceptedByUser && auditData.acceptedByUser.includes(userId)) {
+        if (
+          auditData.isCompleted &&
+          Array.isArray(auditData.acceptedByUser) &&
+          auditData.acceptedByUser.includes(userId)
+        ) {
           auditsData.push({
             id: auditDoc.id,
             ...auditData,
           });
-          branchIds.push(auditData.branchId);
           clientIds.push(auditData.clientId);
           auditTypeIds.push(auditData.auditTypeId);
         }
       });
 
-      // Remove duplicates
-      const uniqueBranchIds = [...new Set(branchIds)];
       const uniqueClientIds = [...new Set(clientIds)];
       const uniqueAuditTypeIds = [...new Set(auditTypeIds)];
 
-      // Fetch all branch, client, and auditType data in parallel
-      const branchPromises = uniqueBranchIds.map((branchId) =>
-        getDoc(doc(db, "branches", branchId))
-      );
       const clientPromises = uniqueClientIds.map((clientId) =>
         getDoc(doc(db, "clients", clientId))
       );
@@ -75,27 +70,26 @@ const CompletedTasks = () => {
         getDoc(doc(db, "auditType", auditTypeId))
       );
 
-      const [branchSnapshots, clientSnapshots, auditTypeSnapshots] = await Promise.all([
-        Promise.all(branchPromises),
+      const [clientSnapshots, auditTypeSnapshots] = await Promise.all([
         Promise.all(clientPromises),
         Promise.all(auditTypePromises),
       ]);
 
-      // Map the results to the audits data
       auditsData.forEach((audit) => {
-        const branchData = branchSnapshots.find((branchSnap) => branchSnap.id === audit.branchId)?.data();
-        const clientData = clientSnapshots.find((clientSnap) => clientSnap.id === audit.clientId)?.data();
-        const auditTypeData = auditTypeSnapshots.find((auditTypeSnap) => auditTypeSnap.id === audit.auditTypeId)?.data();
+        const clientData = clientSnapshots.find((snap) => snap.id === audit.clientId)?.data();
+        const auditTypeData = auditTypeSnapshots.find((snap) => snap.id === audit.auditTypeId)?.data();
 
-        audit.branchDetails = {
-          ...branchData,
-          location: branchData?.city || 'City not available',
-        };
         audit.clientDetails = clientData || {};
         audit.auditTypeName = auditTypeData?.name || 'Unknown Audit Type';
+
+        // Include city and state from the audit data
+        audit.branchDetails = {
+          name: 'N/A',
+          location: audit.city || 'City not available',
+          state: audit.state || 'State not available'
+        };
       });
 
-      // Sort by completedDate in descending order
       auditsData.sort((a, b) =>
         moment(b.completedDate).valueOf() - moment(a.completedDate).valueOf()
       );
@@ -114,7 +108,6 @@ const CompletedTasks = () => {
         colors={['#ffffff', '#f8f9fa']}
         style={styles.cardGradient}
       >
-        {/* Header Section */}
         <View style={styles.cardHeader}>
           <View style={styles.clientInfo}>
             <MaterialCommunityIcons name="domain" size={24} color="#00796B" />
@@ -131,12 +124,11 @@ const CompletedTasks = () => {
           </View>
         </View>
 
-        {/* Content Section */}
         <View style={styles.cardContent}>
           <View style={styles.infoRow}>
             <MaterialCommunityIcons name="map-marker" size={20} color="#666" />
             <Text style={styles.infoText}>
-              {item.branchDetails?.city || 'City not available'}
+              {item.branchDetails?.location || 'City not available'}, {item.branchDetails?.state || 'State not available'}
             </Text>
           </View>
           <View style={styles.infoRow}>
@@ -144,7 +136,15 @@ const CompletedTasks = () => {
             <Text style={styles.infoText}>{item.auditTypeName}</Text>
           </View>
 
-          {/* Report Status Section */}
+          {item.externalAuditors && item.externalAuditors.length > 0 && (
+            <View style={styles.infoRow}>
+              <MaterialCommunityIcons name="account-group" size={20} color="#666" />
+              <Text style={styles.infoText}>
+                External Auditors: {item.externalAuditors.map(auditor => auditor.name).join(', ')}
+              </Text>
+            </View>
+          )}
+
           <View style={styles.reportsContainer}>
             {item.reportDate?.map((report, index) => (
               <View key={index} style={styles.reportItem}>
@@ -161,7 +161,7 @@ const CompletedTasks = () => {
                 <TouchableOpacity
                   onPress={() => navigation.navigate('Report', {
                     title: "Update Report",
-                    isCommingFormCompleted : false,
+                    isCommingFormCompleted: false,
                     audit: {
                       id: item.id,
                       clientName: item.clientDetails?.name,
@@ -172,13 +172,10 @@ const CompletedTasks = () => {
                     }
                   })}
                 >
-
-
                   <Text style={styles.reportDate}>
                     {moment(report.date).format('DD MMM')}
                   </Text>
                 </TouchableOpacity>
-
               </View>
             ))}
           </View>
@@ -197,10 +194,7 @@ const CompletedTasks = () => {
 
   return (
     <View style={styles.container}>
-      <LinearGradient
-        colors={['#00796B', '#004D40']}
-        style={styles.header}
-      >
+      <LinearGradient colors={['#00796B', '#004D40']} style={styles.header}>
         <Text style={styles.headerTitle}>Completed Audits</Text>
         <View style={styles.counterBadge}>
           <Text style={styles.counterText}>{completedAudits.length}</Text>
@@ -225,145 +219,32 @@ const CompletedTasks = () => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#f5f5f5",
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 16,
-    paddingTop: 20,
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#fff',
-  },
-  counterBadge: {
-    backgroundColor: '#fff',
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-  },
-  counterText: {
-    color: '#00796B',
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-  listContainer: {
-    padding: 16,
-    paddingTop: 8,
-  },
-  cardContainer: {
-    marginBottom: 16,
-    borderRadius: 12,
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  cardGradient: {
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-  },
-  clientInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  headerText: {
-    marginLeft: 12,
-    flex: 1,
-  },
-  clientName: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  completedDate: {
-    fontSize: 14,
-    color: '#666',
-    marginTop: 2,
-  },
-  statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#E8F5E9',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  statusText: {
-    color: '#4CAF50',
-    marginLeft: 4,
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  cardContent: {
-    padding: 16,
-  },
-  infoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  infoText: {
-    marginLeft: 8,
-    fontSize: 16,
-    color: '#444',
-  },
-  reportsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginTop: 12,
-    padding: 8,
-    backgroundColor: '#f8f8f8',
-    borderRadius: 8,
-  },
-  reportItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    padding: 6,
-    paddingHorizontal: 10,
-    borderRadius: 6,
-    marginRight: 8,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-  },
-  reportDate: {
-    marginLeft: 6,
-    fontSize: 14,
-    color: '#666',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingTop: 40,
-  },
-  emptyText: {
-    marginTop: 12,
-    fontSize: 16,
-    color: '#666',
-  },
+  // same styles as you already have, unchanged
+  container: { flex: 1, backgroundColor: "#f5f5f5" },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, paddingTop: 20 },
+  headerTitle: { fontSize: 24, fontWeight: 'bold', color: '#fff' },
+  counterBadge: { backgroundColor: '#fff', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6 },
+  counterText: { color: '#00796B', fontWeight: 'bold', fontSize: 16 },
+  listContainer: { padding: 16, paddingTop: 8 },
+  cardContainer: { marginBottom: 16, borderRadius: 12, elevation: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4 },
+  cardGradient: { borderRadius: 12, overflow: 'hidden' },
+  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
+  clientInfo: { flexDirection: 'row', alignItems: 'center', flex: 1 },
+  headerText: { marginLeft: 12, flex: 1 },
+  clientName: { fontSize: 18, fontWeight: 'bold', color: '#333' },
+  completedDate: { fontSize: 14, color: '#666', marginTop: 2 },
+  statusBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#E8F5E9', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 },
+  statusText: { color: '#4CAF50', marginLeft: 4, fontSize: 14, fontWeight: '500' },
+  cardContent: { padding: 16 },
+  infoRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
+  infoText: { marginLeft: 8, fontSize: 16, color: '#444' },
+  reportsContainer: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 12, padding: 8, backgroundColor: '#f8f8f8', borderRadius: 8 },
+  reportItem: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', padding: 6, paddingHorizontal: 10, borderRadius: 6, marginRight: 8, marginBottom: 8, borderWidth: 1, borderColor: '#e0e0e0' },
+  reportDate: { marginLeft: 6, fontSize: 14, color: '#666' },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 40 },
+  emptyText: { marginTop: 12, fontSize: 16, color: '#666' },
 });
 
 export default CompletedTasks;
+

@@ -22,7 +22,6 @@ const IncompleteTasks = ({ navigation }) => {
 
   const cache = useMemo(() => ({
     clientCache: {},
-    branchCache: {},
   }), []);
 
   const fetchIncompleteAudits = useCallback(async () => {
@@ -63,20 +62,14 @@ const IncompleteTasks = ({ navigation }) => {
         // Skip if no reports are submitted or all reports are submitted
         if (submittedCount === 0 || submittedCount === reportDate.length) return null;
 
-        // Get branch and client data in parallel using Promise.all
-        const branchDataPromise = cache.branchCache[auditData.branchId]
-          ? Promise.resolve(cache.branchCache[auditData.branchId])
-          : getDoc(doc(db, "branches", auditData.branchId)).then(branchSnap => branchSnap.exists() ? branchSnap.data() : {});
-
+        // Get client data
         const clientDataPromise = cache.clientCache[auditData.clientId]
           ? Promise.resolve(cache.clientCache[auditData.clientId])
           : getDoc(doc(db, "clients", auditData.clientId)).then(clientSnap => clientSnap.exists() ? clientSnap.data() : {});
 
-        // Use Promise.all to fetch both client and branch data in parallel
-        const [branchData, clientData] = await Promise.all([branchDataPromise, clientDataPromise]);
+        const clientData = await clientDataPromise;
 
         // Cache the results for future use
-        cache.branchCache[auditData.branchId] = branchData;
         cache.clientCache[auditData.clientId] = clientData;
 
         return {
@@ -84,8 +77,10 @@ const IncompleteTasks = ({ navigation }) => {
           ...auditData,
           reportDate,
           date: acceptedData.date,
-          branchDetails: branchData,
-          clientDetails: clientData
+          clientDetails: clientData,
+          city: auditData.city || "City Not Specified",
+          state: auditData.state || "State Not Specified",
+          externalAuditors: auditData.externalAuditors || []
         };
       });
 
@@ -121,7 +116,6 @@ const IncompleteTasks = ({ navigation }) => {
         title: "Submit Reports",
         isCommingFormCompleted : true,
         audit: {
-
           id: item.id,
           clientName: item.clientDetails?.name,
           branchName: item.branchDetails?.name,
@@ -155,11 +149,18 @@ const IncompleteTasks = ({ navigation }) => {
         <View style={styles.cardContent}>
           <View style={styles.locationRow}>
             <MaterialCommunityIcons name="office-building" size={20} color="#666" />
-            <Text style={styles.locationText}>{item.branchDetails?.name || 'Unknown Branch'}</Text>
+            <Text style={styles.locationText}>{item.clientDetails?.name || 'Unknown Client'}</Text>
           </View>
           <View style={styles.locationRow}>
             <MaterialIcons name="location-on" size={20} color="#666" />
-            <Text style={styles.locationText}>{item.branchDetails?.city || 'Unknown Location'}</Text>
+            <Text style={styles.locationText}>{item.city}, {item.state}</Text>
+          </View>
+          <View style={styles.locationRow}>
+            <MaterialCommunityIcons name="account-group" size={20} color="#666" />
+            <Text style={styles.locationText}>
+              <Text style={styles.boldText}>External Auditors: </Text>
+              {item.externalAuditors?.map(auditor => auditor.name).join(', ') || 'No auditors assigned'}
+            </Text>
           </View>
         </View>
       </LinearGradient>
@@ -200,8 +201,6 @@ const IncompleteTasks = ({ navigation }) => {
     </View>
   );
 };
-
-
 
 const styles = StyleSheet.create({
   container: {
@@ -297,6 +296,9 @@ const styles = StyleSheet.create({
     color: '#2c3e50',
     marginLeft: 8,
     flex: 1,
+  },
+  boldText: {
+    fontWeight: 'bold',
   },
   loadingContainer: {
     flex: 1,

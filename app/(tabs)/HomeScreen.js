@@ -247,10 +247,11 @@ console.log("dfdfdf",upcomingAudits)
               id: auditId,
               title: auditData.title,
               city: auditData.city,
+              state: auditData.state,
               date: auditData.date,
               branchId: auditData.branchId,
               clientId: auditData.clientId,
-              createDate: auditData.createDate || "2000-01-01T00:00:00.000Z" // Default to avoid undefined errors
+              createDate: auditData.createDate || "2000-01-01T00:00:00.000Z"
             });
           }
         });
@@ -336,15 +337,10 @@ console.log("dfdfdf",upcomingAudits)
             <Text style={styles.auditTitle} numberOfLines={1}>
               {clientsData[item.clientId] || 'Unknown Client'}
             </Text>
-            <Text style={styles.branchName} numberOfLines={1}>
-              {branchesMap[item.branchId]?.name || 'Unknown Location'}
-            </Text>
-            <View style={styles.locationContainer}>
-              <Ionicons name="location-outline" size={14} color="#4A90E2" />
-              <Text style={styles.locationText} numberOfLines={1}>
-                {branchesMap[item.branchId]?.city || 'Unknown City'}
+            <Text style={styles.locationText} numberOfLines={1}>
+                {item.city || 'Unknown City'}, {item.state || ''}
               </Text>
-            </View>
+           
           </View>
         </View>
       </LinearGradient>

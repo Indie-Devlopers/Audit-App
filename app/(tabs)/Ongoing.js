@@ -41,38 +41,34 @@ const Ongoing = ({ navigation }) => {
             const auditDetails = auditSnap.data();
 
             // Fetch the auditType from the 'auditTypes' collection using the auditTypeId
-           
             const auditTypeId = auditDetails.auditTypeId;  // Assuming this field exists in auditDetails
             console.log("123", auditTypeId)
             const auditTypeRef = doc(db, "auditType", auditTypeId);
-            // const auditTypeSnap = await getDoc(auditTypeRef);
-            // const auditType = auditTypeSnap.exists() ? auditTypeSnap.data().name : "Audit Type Not Specified";
-            // console.log("..........", auditType)
-            const branchRef = doc(db, "branches", auditDetails.branchId);
             const clientRef = doc(db, "clients", auditDetails.clientId);
 
-            const [branchSnap, clientSnap, auditTypeSnap] = await Promise.all([getDoc(branchRef), getDoc(clientRef), getDoc(auditTypeRef)]);
+            const [clientSnap, auditTypeSnap] = await Promise.all([getDoc(clientRef), getDoc(auditTypeRef)]);
 
             const acceptedAuditRef = doc(db, "Profile", userId, "acceptedAudits", auditId);
             const acceptedAuditSnap = await getDoc(acceptedAuditRef);
             const acceptedAuditData = acceptedAuditSnap.data();
             const acceptedDate = acceptedAuditData ? acceptedAuditData.date : null;
 
-            if (branchSnap.exists() && clientSnap.exists() && auditTypeSnap.exists()) {
+            if (clientSnap.exists() && auditTypeSnap.exists()) {
               // Include only future tasks
               if (acceptedDate && new Date(acceptedDate) > today) {
                 fetchedAudits.push({
                   id: auditId,
                   ...auditDetails,
                   auditType: auditTypeSnap.data().name,  // Add auditType to the fetched data
-
-                  branchDetails: branchSnap.data(),
                   clientDetails: clientSnap.data(),
                   acceptedDate,
+                  city: auditDetails.city || "City Not Specified",
+                  state: auditDetails.state || "State Not Specified",
+                  externalAuditors: auditDetails.externalAuditors || []
                 });
               }
             } else {
-              console.log("Branch or client details missing for audit:", auditId);
+              console.log("Client or audit type details missing for audit:", auditId);
             }
           }
         });
@@ -151,7 +147,7 @@ const Ongoing = ({ navigation }) => {
             <View style={styles.branchContainer}>
               <MaterialIcons name="business" size={16} color="#7f8c8d" style={styles.branchIcon} />
               <Text style={styles.branchName} numberOfLines={1}>
-                {audit.branchDetails?.name || "Branch Name"}
+                {audit.clientDetails?.name || "Client Name"}
               </Text>
             </View>
           </View>
@@ -169,7 +165,19 @@ const Ongoing = ({ navigation }) => {
             </View>
             <View style={styles.detailTextContainer}>
               <Text style={styles.detailLabel}>Location</Text>
-              <Text style={styles.detailText}>{audit.branchDetails?.city || "City Not Specified"}</Text>
+              <Text style={styles.detailText}>{audit.city}, {audit.state}</Text>
+            </View>
+          </View>
+
+          <View style={styles.detailRow}>
+            <View style={styles.detailIconContainer}>
+              <MaterialCommunityIcons name="account-group" size={20} color="#00796B" />
+            </View>
+            <View style={styles.detailTextContainer}>
+              <Text style={styles.detailLabel}>External Auditors</Text>
+              <Text style={styles.detailText}>
+                {audit.externalAuditors?.map(auditor => auditor.name).join(', ') || 'No auditors assigned'}
+              </Text>
             </View>
           </View>
 
