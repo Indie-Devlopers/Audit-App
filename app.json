@@ -8,7 +8,7 @@
     "scheme": "myapp",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
-    "splash": {
+    "splash": {              
       "resizeMode": "contain",
       "backgroundColor": "#ffffff",
       "image": "./assets/images/logo.png"
@@ -43,10 +43,6 @@
         "projectId": "62cecbb2-d56e-4112-b418-6907720e195b"
       }
     },
-    "owner": "hr-rathod",
-    "notification": {
-      "icon": "./assets/images/logo.png",
-      "color": "#ffffff"
-    }
+    "owner": "hr-rathod"
   }
 }
