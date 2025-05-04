@@ -223,21 +223,21 @@ const AuditDetails = ({ route, navigation }) => {
                   </View>
                 </View>
 
-                <View style={styles.infoRow}>
-                  <View style={styles.iconContainer}>
-                    <MaterialCommunityIcons name="account-group" size={24} color="#009688" />
+                {auditDetails.externalAuditors && auditDetails.externalAuditors.length > 0 && (
+                  <View style={styles.infoRow}>
+                    <View style={styles.iconContainer}>
+                      <MaterialCommunityIcons name="account-group" size={24} color="#009688" />
+                    </View>
+                    <View style={styles.textContainer}>
+                      <Text style={styles.label}>External Auditors</Text>
+                      <Text style={styles.infoText}>
+                        {auditDetails.externalAuditors.map((auditor, index) => (
+                          `${auditor.name}${index < auditDetails.externalAuditors.length - 1 ? ', ' : ''}`
+                        ))}
+                      </Text>
+                    </View>
                   </View>
-                  <View style={styles.textContainer}>
-                    <Text style={styles.label}>External Auditors</Text>
-                    <Text style={styles.infoText}>
-                      {auditDetails.externalAuditors && auditDetails.externalAuditors.length > 0 
-                        ? auditDetails.externalAuditors.map((auditor, index) => (
-                            `${auditor.name}${index < auditDetails.externalAuditors.length - 1 ? ', ' : ''}`
-                          ))
-                        : 'No external auditors assigned'}
-                    </Text>
-                  </View>
-                </View>
+                )}
               </LinearGradient>
             </View>
 

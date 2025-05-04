@@ -37,10 +37,10 @@ const Report = ({ route, navigation }) => {
   const [editDate, setEditDate] = useState(new Date());
 
   const reportTypes = [
+    { type: 'excelFormat', label: 'Excel Format', icon: 'file-excel-box' },
     { type: 'scanDate', label: 'Scan Report  ', icon: 'scanner' },
+    { type: 'photoDate', label: 'Photo Report', icon: 'image' },
     { type: 'hardCopyDate', label: 'Hard Copy     ', icon: 'file-document' },
-   { type: 'excelFormat', label: 'Excel Format', icon: 'file-excel-box' },
-    { type: 'photoDate', label: 'Photo Report', icon: 'image' }
   ];
   const handleDateChange = (event, date) => {
     if (event.type === 'dismissed') {
