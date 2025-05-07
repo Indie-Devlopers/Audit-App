@@ -23,6 +23,7 @@ import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityI
 import { LinearGradient } from "expo-linear-gradient";
 import moment from "moment";
 import "moment-timezone";
+import { Ionicons } from "@expo/vector-icons";
 
 moment.tz.setDefault("Asia/Kolkata");
 const db = getFirestore(app);
@@ -216,7 +217,7 @@ export default function TodaysTasks({ navigation }) {
                       color="#00796B"
                     />
                     <Text style={styles.detailText}>
-                      {item.auditType || "Audit Type Not Specified"}
+                    <Text style={{fontWeight: 'bold'}}>Audit Type :</Text>  {item.auditType || "Audit Type Not Specified"}
                     </Text>
                   </View>
                   <View style={styles.detailRow}>
@@ -225,11 +226,17 @@ export default function TodaysTasks({ navigation }) {
                       {moment(item.date).format("DD MMM, YYYY")}
                     </Text>
                   </View>
+                  <View style={styles.detailRow}>
+                    <Ionicons name="business-outline" size={20} color="#00796B" />
+                    <Text style={styles.detailText}>
+                    <Text style={{fontWeight: 'bold'}}>Branch :</Text> {item.branchName || 'Unknown Branch'}
+                    </Text>
+                  </View>
                   {item.externalAuditors && item.externalAuditors.length > 0 && (
                     <View style={styles.detailRow}>
                       <MaterialCommunityIcons name="account-group" size={20} color="#00796B" />
                       <Text style={styles.detailText}>
-                        External Auditors: {item.externalAuditors.map(auditor => auditor.name).join(', ')}
+                        <Text style={{fontWeight: 'bold'}}>External Auditors:</Text> {item.externalAuditors.map(auditor => auditor.name).join(', ')}
                       </Text>
                     </View>
                   )}

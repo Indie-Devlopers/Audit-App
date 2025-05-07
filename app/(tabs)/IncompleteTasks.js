@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { MaterialIcons, MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 import { collection, getDocs, doc, getDoc, query, limit } from 'firebase/firestore';
 import { db } from './firebaseConfig';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -154,6 +154,10 @@ const IncompleteTasks = ({ navigation }) => {
           <View style={styles.locationRow}>
             <MaterialIcons name="location-on" size={20} color="#666" />
             <Text style={styles.locationText}>{item.city}, {item.state}</Text>
+          </View>
+          <View style={styles.locationRow}>
+            <Ionicons name="business-outline"  size={20} color="#666" />
+            <Text style={{fontWeight: 'bold', marginLeft: 5}}> Branch :</Text>  <Text style={styles.locationText}>{item.branchName}</Text>
           </View>
           <View style={styles.locationRow}>
             <MaterialCommunityIcons name="account-group" size={20} color="#666" />

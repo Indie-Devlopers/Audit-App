@@ -5,7 +5,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { app } from "./firebaseConfig";
 import moment from 'moment-timezone';
 import { LinearGradient } from 'expo-linear-gradient';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 
 const db = getFirestore(app);
@@ -84,7 +84,7 @@ const CompletedTasks = () => {
 
         // Include city and state from the audit data
         audit.branchDetails = {
-          name: 'N/A',
+          name: audit.branchName || 'Branch not available',
           location: audit.city || 'City not available',
           state: audit.state || 'State not available'
         };
@@ -132,15 +132,23 @@ const CompletedTasks = () => {
             </Text>
           </View>
           <View style={styles.infoRow}>
+            <Ionicons name="business-outline" size={20} color="#666" />
+            <Text style={styles.infoText}>
+              <Text style={styles.labelText}>Branch:</Text> {item.branchDetails?.name || 'Branch not available'}
+            </Text>
+          </View>
+          <View style={styles.infoRow}>
             <MaterialCommunityIcons name="clipboard-text" size={20} color="#666" />
-            <Text style={styles.infoText}>{item.auditTypeName}</Text>
+            <Text style={styles.infoText}>
+              <Text style={styles.labelText}>Audit Type:</Text> {item.auditTypeName}
+            </Text>
           </View>
 
           {item.externalAuditors && item.externalAuditors.length > 0 && (
             <View style={styles.infoRow}>
               <MaterialCommunityIcons name="account-group" size={20} color="#666" />
               <Text style={styles.infoText}>
-                External Auditors: {item.externalAuditors.map(auditor => auditor.name).join(', ')}
+                <Text style={styles.labelText}>External Auditors:</Text> {item.externalAuditors.map(auditor => auditor.name).join(', ')}
               </Text>
             </View>
           )}
@@ -219,7 +227,6 @@ const CompletedTasks = () => {
 };
 
 const styles = StyleSheet.create({
-  // same styles as you already have, unchanged
   container: { flex: 1, backgroundColor: "#f5f5f5" },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, paddingTop: 20 },
   headerTitle: { fontSize: 24, fontWeight: 'bold', color: '#fff' },
@@ -236,10 +243,42 @@ const styles = StyleSheet.create({
   statusBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#E8F5E9', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 },
   statusText: { color: '#4CAF50', marginLeft: 4, fontSize: 14, fontWeight: '500' },
   cardContent: { padding: 16 },
-  infoRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
-  infoText: { marginLeft: 8, fontSize: 16, color: '#444' },
-  reportsContainer: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 12, padding: 8, backgroundColor: '#f8f8f8', borderRadius: 8 },
-  reportItem: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', padding: 6, paddingHorizontal: 10, borderRadius: 6, marginRight: 8, marginBottom: 8, borderWidth: 1, borderColor: '#e0e0e0' },
+  infoRow: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    marginBottom: 12,
+    paddingHorizontal: 4
+  },
+  infoText: { 
+    marginLeft: 8, 
+    fontSize: 16, 
+    color: '#444',
+    flex: 1
+  },
+  labelText: {
+    fontWeight: 'bold',
+    marginRight: 4
+  },
+  reportsContainer: { 
+    flexDirection: 'row', 
+    flexWrap: 'wrap', 
+    marginTop: 10, 
+    padding: 5, 
+    backgroundColor: '#f8f8f8', 
+    borderRadius: 8 
+  },
+  reportItem: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    backgroundColor: '#fff', 
+    padding: 8, 
+    paddingHorizontal: 12, 
+    borderRadius: 6, 
+    marginRight: 8, 
+    marginBottom: 8, 
+    borderWidth: 1, 
+    borderColor: '#e0e0e0' 
+  },
   reportDate: { marginLeft: 6, fontSize: 14, color: '#666' },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 40 },

@@ -171,6 +171,17 @@ const Ongoing = ({ navigation }) => {
 
           <View style={styles.detailRow}>
             <View style={styles.detailIconContainer}>
+              <Ionicons name="business-outline" size={20} color="#00796B" />
+            </View>
+            <View style={styles.detailTextContainer}>
+              <Text style={styles.detailLabel}>Branch Name</Text>
+              <Text style={styles.detailText}>
+              <Text style={{fontWeight: 'bold'}}> Branch :</Text>  {audit.branchName || 'No auditors assigned'}
+              </Text>
+            </View>
+          </View>
+          <View style={styles.detailRow}>
+            <View style={styles.detailIconContainer}>
               <MaterialCommunityIcons name="account-group" size={20} color="#00796B" />
             </View>
             <View style={styles.detailTextContainer}>

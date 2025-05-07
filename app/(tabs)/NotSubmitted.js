@@ -147,6 +147,7 @@ const NotSubmitted = ({ navigation }) => {
               <Text style={styles.date}>
                 {moment(item.date).format("DD MMM, YYYY")}
               </Text>
+              
             </View>
           </View>
           <View style={styles.statusContainer}>
@@ -161,6 +162,9 @@ const NotSubmitted = ({ navigation }) => {
             <Text style={styles.locationText}>
               {item.city || "N/A"}, {item.state || "N/A"}
             </Text>
+            <Text style={styles.date}>
+               Branch : {item.branchName || 'Unknown Branch'}
+              </Text>
           </View>
         </View>
       </LinearGradient>

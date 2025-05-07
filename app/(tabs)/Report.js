@@ -18,7 +18,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
 const Report = ({ route, navigation }) => {
-  const { audit, title,isCommingFormCompleted } = route.params;
+  const { audit, title, isCommingFormCompleted } = route.params;
 
   const [selectedReport, setSelectedReport] = useState(null);
   const [auditTypeName, setAuditTypeName] = useState(audit.auditType);
@@ -35,6 +35,7 @@ const Report = ({ route, navigation }) => {
   const [editingReport, setEditingReport] = useState(null);
   const [showEditDatePicker, setShowEditDatePicker] = useState(false);
   const [editDate, setEditDate] = useState(new Date());
+  const [branchName, setBranchName] = useState('');
 
   const reportTypes = [
     { type: 'excelFormat', label: 'Excel Format', icon: 'file-excel-box' },
@@ -202,6 +203,24 @@ const Report = ({ route, navigation }) => {
     };
     fetchAuditType();
   }, [audit.auditTypeId]);
+
+  useEffect(() => {
+    const fetchAuditDetails = async () => {
+      try {
+        const auditRef = doc(db, 'audits', audit.id);
+        const auditDoc = await getDoc(auditRef);
+        
+        if (auditDoc.exists()) {
+          const auditData = auditDoc.data();
+          setBranchName(auditData.branchName || '');
+        }
+      } catch (error) {
+        console.error('Error fetching audit details:', error);
+      }
+    };
+
+    fetchAuditDetails();
+  }, [audit.id]);
 
   const isReportSubmitted = (type) => {
     return localReportDate.find(report => report.type === type)?.isSubmitted || false;
@@ -390,10 +409,12 @@ const Report = ({ route, navigation }) => {
         <View style={styles.auditInfo}>
           <Text style={styles.infoLabel}>Client:</Text>
           <Text style={styles.infoValue}>{audit.clientName}</Text>
-          {/* <Text style={styles.infoLabel}>Branch:</Text> */}
-          {/* <Text style={styles.infoValue}>{audit.branchName}</Text> */}
+          <Text style={styles.infoLabel}>Branch:</Text>
+          <Text style={styles.infoValue}>{branchName || audit.branchName}</Text>
           <Text style={styles.infoLabel}>Audit Type:</Text>
           <Text style={styles.infoValue}>{auditTypeName}</Text>
+          {/* <Text style={styles.infoLabel}>Branch Name:</Text>
+          <Text style={styles.infoValue}>{audit.branchName}</Text> */}
           <Text style={styles.infoLabel}>Date:</Text>
           <Text style={styles.infoValue}>
             {moment(audit.date).format('DD MMM, YYYY')}
