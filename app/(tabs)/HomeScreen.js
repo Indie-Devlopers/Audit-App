@@ -337,9 +337,12 @@ console.log("dfdfdf",upcomingAudits)
             <Text style={styles.auditTitle} numberOfLines={1}>
               {clientsData[item.clientId] || 'Unknown Client'}
             </Text>
-            <Text style={styles.locationText} numberOfLines={1}>
-                {item.city || 'Unknown City'}, {item.state || ''}
-              </Text>
+            <View style={styles.locationContainer}>
+                         <Ionicons name="location-outline" size={14} color="#4A90E2" />
+                         <Text style={styles.locationText} numberOfLines={1}>
+                           {item.city || 'Unknown City'}
+                         </Text>
+                       </View>
            
           </View>
         </View>
@@ -645,7 +648,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#f8f9fa',
-    paddingVertical: 4,
+    // paddingVertical: ,
     borderRadius: 8,
     alignSelf: 'flex-start',
   },

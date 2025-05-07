@@ -104,13 +104,13 @@ const UpcomingAudits = ({ navigation }) => {
             <Text style={styles.auditTitle} numberOfLines={1}>
               {clientsData[item.clientId] || 'Unknown Client'}
             </Text>
-            <Text style={styles.branchName} numberOfLines={1}>
+            {/* <Text style={styles.branchName} numberOfLines={1}>
               {branchesMap[item.branchId]?.name || 'Unknown Location'}
-            </Text>
+            </Text> */}
             <View style={styles.locationContainer}>
               <Ionicons name="location-outline" size={14} color="#4A90E2" />
               <Text style={styles.locationText} numberOfLines={1}>
-                {branchesMap[item.branchId]?.city || 'Unknown City'}
+                {item.city || 'Unknown City'}
               </Text>
             </View>
           </View>
@@ -278,8 +278,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#f8f9fa',
-    paddingVertical: 4,
-    paddingHorizontal: 8,
+    paddingVertical: 0,
+    paddingHorizontal: 0,
     borderRadius: 8,
     alignSelf: 'flex-start',
   },

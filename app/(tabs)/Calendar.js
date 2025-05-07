@@ -113,18 +113,13 @@ const CalendarScreen = () => {
             const fullAuditData = auditSnap.data();
             
             const clientRef = doc(db, "clients", fullAuditData.clientId);
-            const branchRef = doc(db, "branches", fullAuditData.branchId);
             
-            const [clientSnap, branchSnap] = await Promise.all([
-              getDoc(clientRef),
-              getDoc(branchRef)
-            ]);
+            const clientSnap = await getDoc(clientRef);
 
             auditsForDate.push({
               id: auditData.auditId,
               ...fullAuditData,
               clientDetails: clientSnap.exists() ? clientSnap.data() : null,
-              branchDetails: branchSnap.exists() ? branchSnap.data() : null
             });
           }
         }
@@ -190,9 +185,6 @@ const CalendarScreen = () => {
                       </Text> */}
                       <Text style={styles.auditClientName}>
                         {audit.clientDetails?.name || "Client Name"}
-                      </Text>
-                      <Text style={styles.auditBranchName}>
-                        {audit.branchDetails?.name || "Branch Name"}
                       </Text>
                       {/* <Text style={styles.auditType}>
                         {audit.auditType || "Audit Type"}
