@@ -102,58 +102,104 @@ const CompletedTasks = () => {
     }
   };
 
-  const renderAuditCard = ({ item }) => (
-    <View style={styles.cardContainer}>
+  const renderAuditCard = ({ item, index }) => (
+    <View style={styles.auditCard}>
       <LinearGradient
         colors={['#ffffff', '#f8f9fa']}
         style={styles.cardGradient}
       >
-        <View style={styles.cardHeader}>
+        {/* Top Accent Bar */}
+        <LinearGradient
+          colors={['#00796B', '#004D40']}
+          style={styles.accentBar}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+        />
+
+        {/* Serial Number Badge */}
+        <View style={styles.clientBadgeContainer}>
+          <LinearGradient
+            colors={['#00796B', '#004D40']}
+            style={styles.clientBadge}
+          >
+            <Text style={styles.clientInitial}>
+              {(index + 1).toString()}
+            </Text>
+          </LinearGradient>
+        </View>
+
+        {/* Header Section */}
+        <View style={styles.header}>
           <View style={styles.clientInfo}>
-            <MaterialCommunityIcons name="domain" size={24} color="#00796B" />
-            <View style={styles.headerText}>
-              <Text style={styles.clientName}>{item.clientDetails?.name || 'Unknown Client'}</Text>
-              <Text style={styles.completedDate}>
-                Completed on: {moment(item.completedDate).format('DD MMM, YYYY')}
+            <Text style={styles.companyName} numberOfLines={1}>
+              {item.clientDetails?.name || "Client Name"}
+            </Text>
+            <View style={styles.branchContainer}>
+              <MaterialCommunityIcons name="domain" size={16} color="#7f8c8d" style={styles.branchIcon} />
+              <Text style={styles.branchName} numberOfLines={1}>
+                {item.branchDetails?.name || "Branch"}
               </Text>
             </View>
           </View>
-          <View style={styles.statusBadge}>
-            <MaterialCommunityIcons name="check-circle" size={20} color="#4CAF50" />
+          {/* <View style={styles.statusBadge}>
+            <MaterialCommunityIcons name="check-circle" size={16} color="#4CAF50" style={styles.statusIcon} />
             <Text style={styles.statusText}>Completed</Text>
-          </View>
+          </View> */}
         </View>
 
-        <View style={styles.cardContent}>
-          <View style={styles.infoRow}>
-            <MaterialCommunityIcons name="map-marker" size={20} color="#666" />
-            <Text style={styles.infoText}>
-              {item.branchDetails?.location || 'City not available'}, {item.branchDetails?.state || 'State not available'}
-            </Text>
+        {/* Details Section */}
+        <View style={styles.details}>
+          <View style={styles.detailRow}>
+            <View style={styles.detailIconContainer}>
+              <MaterialCommunityIcons name="map-marker" size={20} color="#00796B" />
+            </View>
+            <View style={styles.detailTextContainer}>
+              <Text style={styles.detailLabel}>Location</Text>
+              <Text style={styles.detailText}>
+                {item.branchDetails?.location || 'City Not Specified'}, {item.branchDetails?.state || 'State Not Specified'}
+              </Text>
+            </View>
           </View>
-          <View style={styles.infoRow}>
-            <Ionicons name="business-outline" size={20} color="#666" />
-            <Text style={styles.infoText}>
-              <Text style={styles.labelText}>Branch:</Text> {item.branchDetails?.name || 'Branch not available'}
-            </Text>
+
+          <View style={styles.detailRow}>
+            <View style={styles.detailIconContainer}>
+              <MaterialCommunityIcons name="clipboard-text" size={20} color="#00796B" />
+            </View>
+            <View style={styles.detailTextContainer}>
+              <Text style={styles.detailLabel}>Audit Type</Text>
+              <Text style={styles.detailText}>
+                {item.auditTypeName || "Audit Type Not Specified"}
+              </Text>
+            </View>
           </View>
-          <View style={styles.infoRow}>
-            <MaterialCommunityIcons name="clipboard-text" size={20} color="#666" />
-            <Text style={styles.infoText}>
-              <Text style={styles.labelText}>Audit Type:</Text> {item.auditTypeName}
-            </Text>
+
+          <View style={styles.detailRow}>
+            <View style={styles.detailIconContainer}>
+              <MaterialCommunityIcons name="calendar-check" size={20} color="#00796B" />
+            </View>
+            <View style={styles.detailTextContainer}>
+              <Text style={styles.detailLabel}>Completed Date</Text>
+              <Text style={styles.detailText}>
+                {moment(item.completedDate).format('DD MMM, YYYY')}
+              </Text>
+            </View>
           </View>
 
           {item.externalAuditors && item.externalAuditors.length > 0 && (
-            <View style={styles.infoRow}>
-              <MaterialCommunityIcons name="account-group" size={20} color="#666" />
-              <Text style={styles.infoText}>
-                <Text style={styles.labelText}>External Auditors:</Text> {item.externalAuditors.map(auditor => auditor.name).join(', ')}
-              </Text>
+            <View style={styles.detailRow}>
+              <View style={styles.detailIconContainer}>
+                <MaterialCommunityIcons name="account-group" size={20} color="#00796B" />
+              </View>
+              <View style={styles.detailTextContainer}>
+                <Text style={styles.detailLabel}>External Auditors</Text>
+                <Text style={styles.detailText}>
+                  {item.externalAuditors.map(auditor => auditor.name).join(', ') || 'No auditors assigned'}
+                </Text>
+              </View>
             </View>
           )}
 
-          <View style={styles.reportsContainer}>
+<View style={styles.reportsContainer}>
             {item.reportDate?.map((report, index) => (
               <View key={index} style={styles.reportItem}>
                 <MaterialCommunityIcons
@@ -262,8 +308,7 @@ const styles = StyleSheet.create({
   reportsContainer: { 
     flexDirection: 'row', 
     flexWrap: 'wrap', 
-    marginTop: 10, 
-    padding: 5, 
+    paddingLeft: 5, 
     backgroundColor: '#f8f8f8', 
     borderRadius: 8 
   },
@@ -283,6 +328,163 @@ const styles = StyleSheet.create({
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 40 },
   emptyText: { marginTop: 12, fontSize: 16, color: '#666' },
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 5,
+  },
+  detailIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  detailTextContainer: {
+    flex: 1,
+  },
+  detailLabel: {
+    fontSize: 12,
+    color: '#95a5a6',
+    marginBottom: 2,
+    fontWeight: '500',
+  },
+  detailText: {
+    fontSize: 15,
+    color: '#34495e',
+    fontWeight: '500',
+  },
+  auditCard: {
+    marginHorizontal: 0,
+    marginBottom: 16,
+    borderRadius: 16,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    overflow: 'hidden',
+    backgroundColor: '#fff',
+  },
+  cardGradient: {
+    position: 'relative',
+  },
+  accentBar: {
+    height: 4,
+    width: '100%',
+  },
+  clientBadgeContainer: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    elevation: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+  },
+  clientBadge: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  clientInitial: {
+    color: '#fff',
+    fontSize: 22,
+    fontWeight: '700',
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    padding: 16,
+    paddingTop: 20,
+  },
+  clientInfo: {
+    flex: 1,
+    marginRight: 50,
+  },
+  companyName: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#2c3e50',
+    marginBottom: 6,
+  },
+  branchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  branchIcon: {
+    marginRight: 4,
+  },
+  branchName: {
+    fontSize: 15,
+    color: '#7f8c8d',
+    fontWeight: '500',
+  },
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E8F5E9',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  statusIcon: {
+    marginRight: 4,
+  },
+  statusText: {
+    color: '#4CAF50',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  details: {
+    padding: 16,
+    paddingTop: 8,
+    backgroundColor: 'rgba(248, 249, 250, 0.7)',
+  },
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  detailIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  detailTextContainer: {
+    flex: 1,
+  },
+  detailLabel: {
+    fontSize: 12,
+    color: '#95a5a6',
+    marginBottom: 2,
+    fontWeight: '500',
+  },
+  detailText: {
+    fontSize: 15,
+    color: '#34495e',
+    fontWeight: '500',
+  },
 });
 
 export default CompletedTasks;

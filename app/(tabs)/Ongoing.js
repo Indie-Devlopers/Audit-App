@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, ActivityIndicator, SafeAreaView, Fl
 import { getFirestore, collection, getDocs, doc, getDoc, updateDoc } from "firebase/firestore";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { app } from "./firebaseConfig";
+import { Ionicons } from '@expo/vector-icons';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -147,7 +148,7 @@ const Ongoing = ({ navigation }) => {
             <View style={styles.branchContainer}>
               <MaterialIcons name="business" size={16} color="#7f8c8d" style={styles.branchIcon} />
               <Text style={styles.branchName} numberOfLines={1}>
-                {audit.clientDetails?.name || "Client Name"}
+                {audit.branchName || "Branch"}
               </Text>
             </View>
           </View>
@@ -169,28 +170,18 @@ const Ongoing = ({ navigation }) => {
             </View>
           </View>
 
-          <View style={styles.detailRow}>
+          {/* <View style={styles.detailRow}>
             <View style={styles.detailIconContainer}>
               <Ionicons name="business-outline" size={20} color="#00796B" />
             </View>
             <View style={styles.detailTextContainer}>
               <Text style={styles.detailLabel}>Branch Name</Text>
               <Text style={styles.detailText}>
-              <Text style={{fontWeight: 'bold'}}> Branch :</Text>  {audit.branchName || 'No auditors assigned'}
+               {audit.branchName || 'No auditors assigned'}
               </Text>
             </View>
-          </View>
-          <View style={styles.detailRow}>
-            <View style={styles.detailIconContainer}>
-              <MaterialCommunityIcons name="account-group" size={20} color="#00796B" />
-            </View>
-            <View style={styles.detailTextContainer}>
-              <Text style={styles.detailLabel}>External Auditors</Text>
-              <Text style={styles.detailText}>
-                {audit.externalAuditors?.map(auditor => auditor.name).join(', ') || 'No auditors assigned'}
-              </Text>
-            </View>
-          </View>
+          </View> */}
+
 
           <View style={styles.detailRow}>
             <View style={styles.detailIconContainer}>
@@ -213,6 +204,19 @@ const Ongoing = ({ navigation }) => {
               </Text>
             </View>
           </View>
+
+          <View style={styles.detailRow}>
+            <View style={styles.detailIconContainer}>
+              <MaterialCommunityIcons name="account-group" size={20} color="#00796B" />
+            </View>
+            <View style={styles.detailTextContainer}>
+              <Text style={styles.detailLabel}>External Auditors</Text>
+              <Text style={styles.detailText}>
+                {audit.externalAuditors?.map(auditor => auditor.name).join(', ') || 'No auditors assigned'}
+              </Text>
+            </View>
+          </View>
+          
         </View>
       </LinearGradient>
     </View>

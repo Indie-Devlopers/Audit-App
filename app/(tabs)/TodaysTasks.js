@@ -172,17 +172,21 @@ export default function TodaysTasks({ navigation }) {
           renderItem={({ item, index }) => (
             <View style={styles.auditCard}>
               <LinearGradient
-                colors={["#ffffff", "#f8f9fa"]}
+                colors={['#ffffff', '#f8f9fa']}
                 style={styles.cardGradient}
               >
+                {/* Top Accent Bar */}
                 <LinearGradient
-                  colors={["#00796B", "#004D40"]}
+                  colors={['#00796B', '#004D40']}
                   style={styles.accentBar}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
                 />
 
+                {/* Serial Number Badge */}
                 <View style={styles.clientBadgeContainer}>
                   <LinearGradient
-                    colors={["#00796B", "#004D40"]}
+                    colors={['#00796B', '#004D40']}
                     style={styles.clientBadge}
                   >
                     <Text style={styles.clientInitial}>
@@ -191,53 +195,82 @@ export default function TodaysTasks({ navigation }) {
                   </LinearGradient>
                 </View>
 
+                {/* Header Section */}
                 <View style={styles.header}>
                   <View style={styles.clientInfo}>
                     <Text style={styles.companyName} numberOfLines={1}>
                       {item.clientDetails?.name || "Client Name"}
                     </Text>
                     <View style={styles.branchContainer}>
-                    
-                     
+                      <MaterialIcons name="business" size={16} color="#7f8c8d" style={styles.branchIcon} />
+                      <Text style={styles.branchName} numberOfLines={1}>
+                        {item.branchName || "Branch"}
+                      </Text>
                     </View>
                   </View>
                 </View>
 
+                {/* Details Section */}
                 <View style={styles.details}>
                   <View style={styles.detailRow}>
-                    <MaterialIcons name="location-on" size={20} color="#00796B" />
-                    <Text style={styles.detailText}>
-                      {item.city || 'City Not Specified'}, {item.state || ''}
-                    </Text>
+                    <View style={styles.detailIconContainer}>
+                      <MaterialIcons name="location-on" size={20} color="#00796B" />
+                    </View>
+                    <View style={styles.detailTextContainer}>
+                      <Text style={styles.detailLabel}>Location</Text>
+                      <Text style={styles.detailText}>
+                        {item.city || 'City Not Specified'}, {item.state || ''}
+                      </Text>
+                    </View>
                   </View>
+
                   <View style={styles.detailRow}>
-                    <MaterialCommunityIcons
-                      name="shield-search"
-                      size={20}
-                      color="#00796B"
-                    />
-                    <Text style={styles.detailText}>
-                    <Text style={{fontWeight: 'bold'}}>Audit Type :</Text>  {item.auditType || "Audit Type Not Specified"}
-                    </Text>
+                    <View style={styles.detailIconContainer}>
+                      <MaterialCommunityIcons name="shield-search" size={20} color="#00796B" />
+                    </View>
+                    <View style={styles.detailTextContainer}>
+                      <Text style={styles.detailLabel}>Audit Type</Text>
+                      <Text style={styles.detailText}>
+                        {item.auditType || "Audit Type Not Specified"}
+                      </Text>
+                    </View>
                   </View>
+
                   <View style={styles.detailRow}>
-                    <MaterialIcons name="event" size={20} color="#00796B" />
-                    <Text style={styles.detailText}>
-                      {moment(item.date).format("DD MMM, YYYY")}
-                    </Text>
+                    <View style={styles.detailIconContainer}>
+                      <MaterialIcons name="event" size={20} color="#00796B" />
+                    </View>
+                    <View style={styles.detailTextContainer}>
+                      <Text style={styles.detailLabel}>Scheduled Date</Text>
+                      <Text style={styles.detailText}>
+                        {moment(item.date).format("DD MMM, YYYY")}
+                      </Text>
+                    </View>
                   </View>
-                  <View style={styles.detailRow}>
-                    <Ionicons name="business-outline" size={20} color="#00796B" />
-                    <Text style={styles.detailText}>
-                    <Text style={{fontWeight: 'bold'}}>Branch :</Text> {item.branchName || 'Unknown Branch'}
-                    </Text>
-                  </View>
+
+                  {/* <View style={styles.detailRow}>
+                    <View style={styles.detailIconContainer}>
+                      <Ionicons name="business-outline" size={20} color="#00796B" />
+                    </View>
+                    <View style={styles.detailTextContainer}>
+                      <Text style={styles.detailLabel}>Branch</Text>
+                      <Text style={styles.detailText}>
+                        {item.branchName || 'Unknown Branch'}
+                      </Text>
+                    </View>
+                  </View> */}
+
                   {item.externalAuditors && item.externalAuditors.length > 0 && (
                     <View style={styles.detailRow}>
-                      <MaterialCommunityIcons name="account-group" size={20} color="#00796B" />
-                      <Text style={styles.detailText}>
-                        <Text style={{fontWeight: 'bold'}}>External Auditors:</Text> {item.externalAuditors.map(auditor => auditor.name).join(', ')}
-                      </Text>
+                      <View style={styles.detailIconContainer}>
+                        <MaterialCommunityIcons name="account-group" size={20} color="#00796B" />
+                      </View>
+                      <View style={styles.detailTextContainer}>
+                        <Text style={styles.detailLabel}>External Auditors</Text>
+                        <Text style={styles.detailText}>
+                          {item.externalAuditors.map(auditor => auditor.name).join(', ') || 'No auditors assigned'}
+                        </Text>
+                      </View>
                     </View>
                   )}
                 </View>
@@ -372,11 +405,34 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 16,
   },
+  detailIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  detailTextContainer: {
+    flex: 1,
+  },
+  detailLabel: {
+    fontSize: 12,
+    color: '#95a5a6',
+    marginBottom: 2,
+    fontWeight: '500',
+  },
   detailText: {
     fontSize: 15,
     color: "#34495e",
     fontWeight: "500",
-    marginLeft: 8,
+    // marginLeft: 8,
   },
   loader: {
     flex: 1,

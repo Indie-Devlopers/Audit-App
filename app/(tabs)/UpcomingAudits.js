@@ -107,6 +107,12 @@ const UpcomingAudits = ({ navigation }) => {
             {/* <Text style={styles.branchName} numberOfLines={1}>
               {branchesMap[item.branchId]?.name || 'Unknown Location'}
             </Text> */}
+                  <View style={styles.branchContainer}>
+                          <Ionicons name="business-outline" size={14} color="#4A90E2" />
+                          <Text style={styles.branchText} numberOfLines={1}>
+                            {item.branchName || 'Unknown Branch'}
+                          </Text>
+                        </View>
             <View style={styles.locationContainer}>
               <Ionicons name="location-outline" size={14} color="#4A90E2" />
               <Text style={styles.locationText} numberOfLines={1}>
@@ -306,6 +312,29 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#666',
     textAlign: 'center',
+  },
+  branchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f8f9fa',
+    paddingVertical: 4,
+    // paddingHorizontal: 8,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+    flex: 1,
+  },
+  branchLabel: {
+    fontSize: 12,
+    color: '#4A90E2',
+    marginLeft: 4,
+    fontWeight: '600',
+  },
+  branchText: {
+    fontSize: 12,
+    color: '#7f8c8d',
+    marginLeft: 4,
+    fontWeight: '500',
+    flex: 1,
   },
 });
 

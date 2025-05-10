@@ -338,7 +338,12 @@ const HomeScreen = () => {
             <Text style={styles.auditTitle} numberOfLines={1}>
               {clientsData[item.clientId] || 'Unknown Client'}
             </Text>
-          
+            <View style={styles.branchContainer}>
+              <Ionicons name="business-outline" size={14} color="#4A90E2" />
+              <Text style={styles.branchText} numberOfLines={1}>
+                {item.branchName || 'Unknown Branch'}
+              </Text>
+            </View>
             <View style={styles.locationContainer}>
               
               <Ionicons name="location-outline" size={14} color="#4A90E2" />
@@ -346,14 +351,9 @@ const HomeScreen = () => {
                 {item.city || 'Unknown City'}
               </Text>
 
-              <View style={styles.branchContainer}>
-              <Ionicons name="business-outline" size={14} color="#4A90E2" />
-              <Text style={styles.branchLabel}>Branch:</Text>
-              <Text style={styles.branchText} numberOfLines={1}>
-                {item.branchName || 'Unknown Branch'}
-              </Text>
+
             </View>
-            </View>
+
           </View>
         </View>
       </LinearGradient>
@@ -646,14 +646,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: '#2c3e50',
-    marginBottom: 6,
+    marginBottom: 0,
   },
   locationContainer: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'left',
     backgroundColor: '#f8f9fa',
-    paddingVertical: 4,
-    paddingHorizontal: 8,
+    // paddingVertical: 4,
+    // paddingHorizontal: 8,
     borderRadius: 8,
     alignSelf: 'flex-start',
     flex: 1,
@@ -671,7 +671,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#f8f9fa',
     paddingVertical: 4,
-    paddingHorizontal: 8,
+    // paddingHorizontal: 8,
     borderRadius: 8,
     alignSelf: 'flex-start',
     flex: 1,

@@ -202,7 +202,15 @@ const AuditDetails = ({ route, navigation }) => {
                     <Text style={styles.infoText}>{clientDetails.name}</Text>
                   </View>
                 </View>
-
+                <View style={styles.infoRow}>
+                  <View style={styles.iconContainer}>
+                    <Ionicons name="business-outline" size={24} color="#9C27B0" />
+                  </View>
+                  <View style={styles.textContainer}>
+                    <Text style={styles.label}>Branch</Text>
+                    <Text style={styles.infoText}>{auditDetails.branchName || 'Not specified'}</Text>
+                  </View>
+                </View>
                 <View style={styles.infoRow}>
                   <View style={styles.iconContainer}>
                     <MaterialIcons name="assignment" size={24} color="#9C27B0" />
@@ -212,15 +220,7 @@ const AuditDetails = ({ route, navigation }) => {
                     <Text style={styles.infoText}>{auditType?.name || 'Not specified'}</Text>
                   </View>
                 </View>
-                <View style={styles.infoRow}>
-                  <View style={styles.iconContainer}>
-                    <Ionicons name="business-outline" size={24} color="#9C27B0" />
-                  </View>
-                  <View style={styles.textContainer}>
-                    <Text style={styles.label}>Branch Name</Text>
-                    <Text style={styles.infoText}>{auditDetails.branchName || 'Not specified'}</Text>
-                  </View>
-                </View>
+
 
                 <View style={styles.infoRow}>
                   <View style={styles.iconContainer}>
