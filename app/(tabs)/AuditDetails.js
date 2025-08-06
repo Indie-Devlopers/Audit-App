@@ -23,6 +23,7 @@ const AuditDetails = ({ route, navigation }) => {
   const [showCalendar, setShowCalendar] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [submitting, setSubmitting] = useState(false);
+  const [acceptedAuditorNames, setAcceptedAuditorNames] = useState([]);
 
   const handleDateConfirm = async (event, date) => {
     if (event.type === "set" && date) {
@@ -136,8 +137,25 @@ const AuditDetails = ({ route, navigation }) => {
           if (clientSnap.exists()) {
             setClientDetails(clientSnap.data());
           }
-        }
 
+          // Fetch accepted auditors' names
+          const acceptedIds = auditData.acceptedByUser || [];
+          if (acceptedIds.length > 0) {
+            const namePromises = acceptedIds.map(async (uid) => {
+              const userRef = doc(db, "Profile", uid);
+              const userSnap = await getDoc(userRef);
+              if (userSnap.exists()) {
+                return userSnap.data().name || uid;
+              } else {
+                return uid;
+              }
+            });
+            const names = await Promise.all(namePromises);
+            setAcceptedAuditorNames(names);
+          } else {
+            setAcceptedAuditorNames([]);
+          }
+        }
         setLoading(false);
       } catch (error) {
         console.error("Error fetching audit details:", error);
@@ -149,7 +167,13 @@ const AuditDetails = ({ route, navigation }) => {
   }, [audit.id]);
 
   const handleAccept = () => {
-    setShowCalendar(true);
+    if (auditDetails?.date) {
+      // If date is already set, set selectedDate to that and show calendar in read-only mode
+      setSelectedDate(new Date(auditDetails.date));
+      setShowCalendar(true);
+    } else {
+      setShowCalendar(true);
+    }
   };
 
   const renderFields = (details, includeKeys = []) => {
@@ -193,46 +217,119 @@ const AuditDetails = ({ route, navigation }) => {
                 colors={['rgba(255, 255, 255, 1)', 'rgba(255, 255, 255, 0.95)']}
                 style={styles.cardGradient}
               >
+                {/* 1. Client Name */}
                 <View style={styles.infoRow}>
                   <View style={styles.iconContainer}>
                     <MaterialIcons name="business" size={24} color="#1976D2" />
                   </View>
                   <View style={styles.textContainer}>
                     <Text style={styles.label}>Client</Text>
-                    <Text style={styles.infoText}>{clientDetails.name}</Text>
+                    <Text style={styles.infoText}>{clientDetails?.name}</Text>
                   </View>
                 </View>
-                <View style={styles.infoRow}>
-                  <View style={styles.iconContainer}>
-                    <Ionicons name="business-outline" size={24} color="#9C27B0" />
+                {/* 2. Audit Type */}
+                {auditType?.name ? (
+                  <View style={styles.infoRow}>
+                    <View style={styles.iconContainer}>
+                      <MaterialIcons name="assignment" size={24} color="#9C27B0" />
+                    </View>
+                    <View style={styles.textContainer}>
+                      <Text style={styles.label}>Audit Type</Text>
+                      <Text style={styles.infoText}>{auditType.name}</Text>
+                    </View>
                   </View>
-                  <View style={styles.textContainer}>
-                    <Text style={styles.label}>Branch</Text>
-                    <Text style={styles.infoText}>{auditDetails.branchName || 'Not specified'}</Text>
+                ) : null}
+                 {/* 3. Branch Name */}
+                {auditDetails?.branchName ? (
+                  <View style={styles.infoRow}>
+                    <View style={styles.iconContainer}>
+                      <Ionicons name="business-outline" size={24} color="#9C27B0" />
+                    </View>
+                    <View style={styles.textContainer}>
+                      <Text style={styles.label}>Branch</Text>
+                      <Text style={styles.infoText}>{auditDetails.branchName}</Text>
+                    </View>
                   </View>
-                </View>
-                <View style={styles.infoRow}>
-                  <View style={styles.iconContainer}>
-                    <MaterialIcons name="assignment" size={24} color="#9C27B0" />
+                ) : null}
+                {/* 4. State */}
+                {auditDetails?.state ? (
+                  <View style={styles.infoRow}>
+                    <View style={styles.iconContainer}>
+                      <MaterialIcons name="map" size={24} color="#FF5722" />
+                    </View>
+                    <View style={styles.textContainer}>
+                      <Text style={styles.label}>State</Text>
+                      <Text style={styles.infoText}>{auditDetails.state}</Text>
+                    </View>
                   </View>
-                  <View style={styles.textContainer}>
-                    <Text style={styles.label}>Audit Type</Text>
-                    <Text style={styles.infoText}>{auditType?.name || 'Not specified'}</Text>
+                ) : null}
+                {/* 5. Distributor Name */}
+                {auditDetails?.distributor ? (
+                  <View style={styles.infoRow}>
+                    <View style={styles.iconContainer}>
+                      <MaterialIcons name="person" size={24} color="#388E3C" />
+                    </View>
+                    <View style={styles.textContainer}>
+                      <Text style={styles.label}>Distributor</Text>
+                      <Text style={styles.infoText}>{auditDetails.distributor}</Text>
+                    </View>
                   </View>
-                </View>
+                ) : null}
+               
+                
+                {/* 6. City */}
+                {auditDetails?.city ? (
+                  <View style={styles.infoRow}>
+                    <View style={styles.iconContainer}>
+                      <MaterialIcons name="location-city" size={24} color="#FF5722" />
+                    </View>
+                    <View style={styles.textContainer}>
+                      <Text style={styles.label}>City</Text>
+                      <Text style={styles.infoText}>{auditDetails.city}</Text>
+                    </View>
+                  </View>
+                ) : null}
+                {/* 7. Claim No. */}
+                {auditDetails?.claimNo ? (
+                  <View style={styles.infoRow}>
+                    <View style={styles.iconContainer}>
+                      <MaterialIcons name="confirmation-number" size={24} color="#607D8B" />
+                    </View>
+                    <View style={styles.textContainer}>
+                      <Text style={styles.label}>Claim No.</Text>
+                      <Text style={styles.infoText}>{auditDetails.claimNo}</Text>
+                    </View>
+                  </View>
+                ) : null}
 
-
-                <View style={styles.infoRow}>
-                  <View style={styles.iconContainer}>
-                    <MaterialIcons name="location-on" size={24} color="#FF5722" />
+                 {/* 8. Claimed Amount */}
+                {auditDetails?.claimedAmount ? (
+                  <View style={styles.infoRow}>
+                    <View style={styles.iconContainer}>
+                      <MaterialIcons name="currency-rupee" size={24} color="#388E3C" />
+                    </View>
+                    <View style={styles.textContainer}>
+                      <Text style={styles.label}>Claimed Amount</Text>
+                      <Text style={styles.infoText}>{auditDetails.claimedAmount}</Text>
+                    </View>
                   </View>
-                  <View style={styles.textContainer}>
-                    <Text style={styles.label}>Location</Text>
-                    <Text style={styles.infoText}>{auditDetails.city || 'Location not specified'} , {auditDetails.state || 'Location not specified'}</Text>
+                ) : null}
+                {/* 9. Date */}
+                {auditDetails?.date ? (
+                  <View style={styles.infoRow}>
+                    <View style={styles.iconContainer}>
+                      <MaterialIcons name="event" size={24} color="#1976D2" />
+                    </View>
+                    <View style={styles.textContainer}>
+                      <Text style={styles.label}>Date</Text>
+                      <Text style={styles.infoText}>{auditDetails.date}</Text>
+                    </View>
                   </View>
-                </View>
-
-                {auditDetails.externalAuditors && auditDetails.externalAuditors.length > 0 && (
+                ) : null}
+               
+                
+                {/* 10. External Auditors */}
+                {auditDetails?.externalAuditors && auditDetails.externalAuditors.length > 0 ? (
                   <View style={styles.infoRow}>
                     <View style={styles.iconContainer}>
                       <MaterialCommunityIcons name="account-group" size={24} color="#009688" />
@@ -240,13 +337,37 @@ const AuditDetails = ({ route, navigation }) => {
                     <View style={styles.textContainer}>
                       <Text style={styles.label}>External Auditors</Text>
                       <Text style={styles.infoText}>
-                        {auditDetails.externalAuditors.map((auditor, index) => (
-                          `${auditor.name}${index < auditDetails.externalAuditors.length - 1 ? ', ' : ''}`
-                        ))}
+                        {auditDetails.externalAuditors.map(auditor => auditor.name).filter(Boolean).join(', ')}
                       </Text>
                     </View>
                   </View>
-                )}
+                ) : null}
+                {/* 11. Add Note */}
+                {auditDetails?.note ? (
+                  <View style={styles.infoRow}>
+                    <View style={styles.iconContainer}>
+                      <MaterialIcons name="note" size={24} color="#607D8B" />
+                    </View>
+                    <View style={styles.textContainer}>
+                      <Text style={styles.label}>Note</Text>
+                      <Text style={styles.infoText}>{auditDetails.note}</Text>
+                    </View>
+                  </View>
+                ) : null}
+                {/* 12. Accepted Auditors */}
+                <View style={styles.infoRow}>
+                  <View style={styles.iconContainer}>
+                    <MaterialCommunityIcons name="account-check" size={24} color="#1976D2" />
+                  </View>
+                  <View style={styles.textContainer}>
+                    <Text style={styles.label}>Accepted Auditors</Text>
+                    {acceptedAuditorNames.length > 0 ? (
+                      <Text style={styles.infoText}>{acceptedAuditorNames.join(', ')}</Text>
+                    ) : (
+                      <Text style={styles.infoText}>No one has accepted yet. You can be the first to accept this audit.</Text>
+                    )}
+                  </View>
+                </View>
               </LinearGradient>
             </View>
 
@@ -295,6 +416,9 @@ const AuditDetails = ({ route, navigation }) => {
           negativeButtonLabel="Cancel"
           positiveButton={{ label: 'OK', textColor: '#00796B' }}
           negativeButton={{ label: 'Cancel', textColor: '#00796B' }}
+          minimumDate={auditDetails?.date ? new Date(auditDetails.date) : undefined}
+          maximumDate={auditDetails?.date ? new Date(auditDetails.date) : undefined}
+          disabled={!!auditDetails?.date}
         />
       )}
     </View>

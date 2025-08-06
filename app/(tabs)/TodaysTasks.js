@@ -103,6 +103,21 @@ export default function TodaysTasks({ navigation }) {
             ? auditTypeSnapshot.data()
             : {};
 
+          // Fetch accepted auditors' names
+          let acceptedAuditorNames = [];
+          if (Array.isArray(auditData.acceptedByUser) && auditData.acceptedByUser.length > 0) {
+            const namePromises = auditData.acceptedByUser.map(async (uid) => {
+              const userRef = doc(db, "Profile", uid);
+              const userSnap = await getDoc(userRef);
+              if (userSnap.exists()) {
+                return userSnap.data().name || uid;
+              } else {
+                return uid;
+              }
+            });
+            acceptedAuditorNames = await Promise.all(namePromises);
+          }
+
           return {
             id: auditId,
             ...auditData,
@@ -110,7 +125,8 @@ export default function TodaysTasks({ navigation }) {
             auditType: auditTypeDetails.name,
             clientDetails,
             city: auditData.city,
-            state: auditData.state
+            state: auditData.state,
+            acceptedAuditorNames,
           };
         })
       );
@@ -273,6 +289,20 @@ export default function TodaysTasks({ navigation }) {
                       </View>
                     </View>
                   )}
+                  {/* Accepted Auditors Row */}
+                  <View style={styles.detailRow}>
+                    <View style={styles.detailIconContainer}>
+                      <MaterialCommunityIcons name="account-check" size={20} color="#1976D2" />
+                    </View>
+                    <View style={styles.detailTextContainer}>
+                      <Text style={styles.detailLabel}>Accepted Auditors</Text>
+                      {item.acceptedAuditorNames && item.acceptedAuditorNames.length > 0 ? (
+                        <Text style={styles.detailText}>{item.acceptedAuditorNames.join(', ')}</Text>
+                      ) : (
+                        <Text style={styles.detailText}>No one has accepted yet.</Text>
+                      )}
+                    </View>
+                  </View>
                 </View>
               </LinearGradient>
             </View>

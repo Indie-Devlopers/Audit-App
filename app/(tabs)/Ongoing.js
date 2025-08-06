@@ -54,6 +54,21 @@ const Ongoing = ({ navigation }) => {
             const acceptedAuditData = acceptedAuditSnap.data();
             const acceptedDate = acceptedAuditData ? acceptedAuditData.date : null;
 
+            // Fetch accepted auditors' names
+            let acceptedAuditorNames = [];
+            if (Array.isArray(auditDetails.acceptedByUser) && auditDetails.acceptedByUser.length > 0) {
+              const namePromises = auditDetails.acceptedByUser.map(async (uid) => {
+                const userRef = doc(db, "Profile", uid);
+                const userSnap = await getDoc(userRef);
+                if (userSnap.exists()) {
+                  return userSnap.data().name || uid;
+                } else {
+                  return uid;
+                }
+              });
+              acceptedAuditorNames = await Promise.all(namePromises);
+            }
+
             if (clientSnap.exists() && auditTypeSnap.exists()) {
               // Include only future tasks
               if (acceptedDate && new Date(acceptedDate) > today) {
@@ -65,7 +80,8 @@ const Ongoing = ({ navigation }) => {
                   acceptedDate,
                   city: auditDetails.city || "City Not Specified",
                   state: auditDetails.state || "State Not Specified",
-                  externalAuditors: auditDetails.externalAuditors || []
+                  externalAuditors: auditDetails.externalAuditors || [],
+                  acceptedAuditorNames,
                 });
               }
             } else {
@@ -214,6 +230,20 @@ const Ongoing = ({ navigation }) => {
               <Text style={styles.detailText}>
                 {audit.externalAuditors?.map(auditor => auditor.name).join(', ') || 'No auditors assigned'}
               </Text>
+            </View>
+          </View>
+          {/* Accepted Auditors Row */}
+          <View style={styles.detailRow}>
+            <View style={styles.detailIconContainer}>
+              <MaterialCommunityIcons name="account-check" size={20} color="#1976D2" />
+            </View>
+            <View style={styles.detailTextContainer}>
+              <Text style={styles.detailLabel}>Accepted Auditors</Text>
+              {audit.acceptedAuditorNames && audit.acceptedAuditorNames.length > 0 ? (
+                <Text style={styles.detailText}>{audit.acceptedAuditorNames.join(', ')}</Text>
+              ) : (
+                <Text style={styles.detailText}>No one has accepted yet.</Text>
+              )}
             </View>
           </View>
           
